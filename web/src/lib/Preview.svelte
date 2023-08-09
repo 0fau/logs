@@ -3,7 +3,7 @@
 
   let svg;
   let width = 500;
-  let height = 350;
+  let height = 300;
   let margin = 20;
 
   const radius = Math.min(width, height) / 2 - margin
