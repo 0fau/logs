@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: logsbyfaust
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logsbyfaust
+  namespace: logsbyfaust
+  labels:
+    app: logsbyfaust
+spec:
+  selector:
+    matchLabels:
+      app: logsbyfaust
+  template:
+    metadata:
+      labels:
+        app: logsbyfaust
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/0fau/logs:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
