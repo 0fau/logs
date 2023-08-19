@@ -5,6 +5,7 @@ import (
 	"github.com/0fau/logs/pkg/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
 )
 
 func config() {
@@ -21,6 +22,11 @@ func config() {
 
 	viper.MustBindEnv("API_SERVER_REDIS_PASSWORD")
 	viper.MustBindEnv("API_SERVER_SESSION_SECRET")
+
+	viper.MustBindEnv(
+		"API_SERVER_DISCORD_OAUTH2_CLIENT_ID",
+		"API_SERVER_DISCORD_OAUTH2_CLIENT_SECRET",
+	)
 }
 
 func main() {
@@ -35,6 +41,18 @@ func main() {
 				SessionSecret: viper.GetString("API_SERVER_SESSION_SECRET"),
 				RedisAddress:  viper.GetString("API_SERVER_REDIS_ADDRESS"),
 				RedisPassword: viper.GetString("API_SERVER_REDIS_PASSWORD"),
+
+				OAuth2: &oauth2.Config{
+					ClientID:     viper.GetString("API_SERVER_DISCORD_OAUTH2_CLIENT_ID"),
+					ClientSecret: viper.GetString("API_SERVER_DISCORD_OAUTH2_CLIENT_SECRET"),
+					RedirectURL:  viper.GetString("API_SERVER_DISCORD_OAUTH2_REDIRECT_URL"),
+					Scopes:       []string{"identify"},
+
+					Endpoint: oauth2.Endpoint{
+						TokenURL: "https://discord.com/api/oauth2/token",
+						AuthURL:  "https://discord.com/oauth2/authorize",
+					},
+				},
 			})
 			return s.Run(context.Background())
 		},

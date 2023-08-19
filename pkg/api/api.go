@@ -2,11 +2,13 @@ package api
 
 import (
 	"context"
+	"encoding/gob"
 	"github.com/0fau/logs/pkg/database"
 	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/oauth2"
 )
 
 type ServerConfig struct {
@@ -16,6 +18,8 @@ type ServerConfig struct {
 	RedisAddress  string
 	RedisPassword string
 	SessionSecret string
+
+	OAuth2 *oauth2.Config
 }
 
 type Server struct {
@@ -50,7 +54,13 @@ func (s *Server) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	store.Options(sessions.Options{MaxAge: 604800}) // seven days
 	s.router.Use(sessions.Sessions("sessions", store))
+
+	gob.Register(DiscordUser{})
+	s.router.GET("oauth2", s.oauth2)
+	s.router.GET("oauth2/redirect", s.oauth2Redirect)
+	s.router.GET("api/users/@me", s.meHandler)
 
 	return s.router.Run(s.conf.Address)
 }
