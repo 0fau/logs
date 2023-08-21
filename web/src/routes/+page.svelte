@@ -9,7 +9,7 @@
       </h1>
       <p class="text-center">analytics engine for lost ark parses (wip)</p>
       <Donut />
-      <div class ="text-center">&gt;&gt; <a class="underline font-bold" href="/dash">enter</a> &lt;&lt;</div>
+      <div class ="text-center">&gt;&gt; <a class="underline font-bold" href="/me">enter</a> &lt;&lt;</div>
       <br />
       <div class="text-center">built by <a href="https://fau.dev" class="text-sky-600 underline">@faustuwu</a> for friends <img src="https://cdn.discordapp.com/emojis/1090698237410803743.webp?size=240&quality=lossless" alt="<3" class="inline w-6 -translate-y-0.5" /></div>
     </div>

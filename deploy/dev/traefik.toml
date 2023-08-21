@@ -1,0 +1,21 @@
+[http.services]
+
+[http.services.logs.loadBalancer]
+[[http.services.logs.loadBalancer.servers]]
+url = "http://localhost:5173/"
+
+[http.services.logs-api.loadBalancer]
+[[http.services.logs-api.loadBalancer.servers]]
+url = "http://localhost:3000/"
+
+[http.routers]
+
+[http.routers.logs-api]
+rule = "PathPrefix(`/api`) || PathPrefix(`/oauth`) || Path(`/logout`)"
+service = "logs-api"
+priority = 2
+
+[http.routers.logs]
+rule = "PathPrefix(`/`)"
+service = "logs"
+priority = 1

@@ -16,20 +16,21 @@ type DiscordUser struct {
 	Username string `json:"username"`
 }
 
+func redirectLoggedIn(c *gin.Context) {
+	c.Redirect(http.StatusFound, "/me")
+}
+
 func (s *Server) oauth2(c *gin.Context) {
 	sesh := sessions.Default(c)
 	if user := sesh.Get("user"); user != nil {
-		c.Redirect(http.StatusTemporaryRedirect, "dash")
+		redirectLoggedIn(c)
 		return
 	}
 
 	state := randstr.String(32)
 	url := s.conf.OAuth2.AuthCodeURL(state)
 	sesh.Set("oauth_state", state)
-	if err := sesh.Save(); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
+	sesh.Save()
 
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
@@ -37,13 +38,12 @@ func (s *Server) oauth2(c *gin.Context) {
 func (s *Server) oauth2Redirect(c *gin.Context) {
 	sesh := sessions.Default(c)
 	if user := sesh.Get("user"); user != nil {
-		c.Redirect(http.StatusTemporaryRedirect, "dash")
+		redirectLoggedIn(c)
 		return
 	}
 
 	state := sesh.Get("oauth_state")
 	if state == nil {
-		fmt.Println("no oauth_state")
 		c.Status(http.StatusUnauthorized)
 		return
 	}
@@ -93,7 +93,7 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
-	c.Redirect(http.StatusTemporaryRedirect, "dash")
+	redirectLoggedIn(c)
 }
 
 func (s *Server) meHandler(c *gin.Context) {
@@ -102,10 +102,16 @@ func (s *Server) meHandler(c *gin.Context) {
 	var u DiscordUser
 	if val := sesh.Get("user"); val != nil {
 		u = val.(DiscordUser)
-	} else {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
 	}
 
 	c.JSON(http.StatusOK, u)
+}
+
+func (s *Server) logout(c *gin.Context) {
+	sesh := sessions.Default(c)
+	sesh.Clear()
+	if err := sesh.Save(); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	redirectLoggedIn(c)
 }

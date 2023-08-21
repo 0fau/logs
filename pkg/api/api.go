@@ -58,9 +58,10 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.Use(sessions.Sessions("sessions", store))
 
 	gob.Register(DiscordUser{})
-	s.router.GET("oauth2", s.oauth2)
+	s.router.POST("oauth2", s.oauth2)
 	s.router.GET("oauth2/redirect", s.oauth2Redirect)
 	s.router.GET("api/users/@me", s.meHandler)
+	s.router.POST("logout", s.logout)
 
 	return s.router.Run(s.conf.Address)
 }
