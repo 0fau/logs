@@ -25,3 +25,42 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
+          env:
+            - name: LBF_API_SERVER_ADDRESS
+              valueFrom:
+                configMapKeyRef:
+                  name: logs-api
+                  key: LBF_API_SERVER_ADDRESS
+        - name: api
+          image: ghcr.io/0fau/logs-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3001
+          volumeMounts:
+            - name: client-certs
+              mountPath: /cockroach/
+          env:
+            - name: LBF_API_SERVER_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis
+                  key: redis-password
+          envFrom:
+            - configMapRef:
+                name: logs-api
+            - secretRef:
+                name: logs-api
+      volumes:
+        - name: client-certs
+          projected:
+            sources:
+              - secret:
+                  name: cockroachdb-logs
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+                    - key: tls.crt
+                      path: tls.crt
+                    - key: tls.key
+                      path: tls.key
+                      mode: 0600

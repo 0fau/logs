@@ -32,7 +32,7 @@ func (s *Server) oauth2(c *gin.Context) {
 	sesh.Set("oauth_state", state)
 	sesh.Save()
 
-	c.Redirect(http.StatusTemporaryRedirect, url)
+	c.Redirect(http.StatusFound, url)
 }
 
 func (s *Server) oauth2Redirect(c *gin.Context) {

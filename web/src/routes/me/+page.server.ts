@@ -8,6 +8,11 @@ export const load: PageServerLoad = async ({cookies}) => {
     }
     url += "://" + env.LBF_API_SERVER_ADDRESS
 
+    const sessions = cookies.get("sessions")
+    if (!sessions) {
+        return {}
+    }
+
     const me = await fetch(
         url + "/api/users/@me",
         {headers: {cookie: "sessions=" + cookies.get("sessions")}},
