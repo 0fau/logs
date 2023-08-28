@@ -49,11 +49,14 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	}
 	sesh.Delete("oauth_state")
 	if err := sesh.Save(); err != nil {
+		fmt.Println("huh")
+		fmt.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	if state.(string) != c.Query("state") {
+		fmt.Println("huh2")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -61,6 +64,8 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	ctx := context.Background()
 	token, err := s.conf.OAuth2.Exchange(ctx, c.Query("code"))
 	if err != nil {
+		fmt.Println("huh3")
+		fmt.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -68,6 +73,8 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	client := s.conf.OAuth2.Client(ctx, token)
 	resp, err := client.Get("https://discord.com/api/users/@me")
 	if err != nil {
+		fmt.Println("huh4")
+		fmt.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -75,20 +82,24 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println("huh5")
+		fmt.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	u := DiscordUser{}
 	if err := json.Unmarshal(body, &u); err != nil {
-		fmt.Println("failed unmarhsal")
+		fmt.Println("huh6")
+		fmt.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	sesh.Set("user", u)
 	if err := sesh.Save(); err != nil {
-		fmt.Println("failed save", err)
+		fmt.Println("huh7")
+		fmt.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}

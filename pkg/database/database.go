@@ -18,7 +18,7 @@ func Migrate(dbURL string) error {
 	}
 	u.Scheme = "cockroachdb"
 
-	m, err := migrate.New("file://pkg/database/migrations", u.String())
+	m, err := migrate.New("file://migrations", u.String())
 	if err != nil {
 		return err
 	}
