@@ -31,6 +31,7 @@ type Server struct {
 
 func NewServer(conf *ServerConfig) *Server {
 	router := gin.Default()
+	router.MaxMultipartMemory = 8 << 20 // 8 MiB
 
 	return &Server{
 		conf:   conf,
@@ -57,11 +58,13 @@ func (s *Server) Run(ctx context.Context) error {
 	store.Options(sessions.Options{MaxAge: 604800}) // seven days
 	s.router.Use(sessions.Sessions("sessions", store))
 
-	gob.Register(DiscordUser{})
+	gob.Register(sql.User{})
 	s.router.POST("oauth2", s.oauth2)
 	s.router.GET("oauth2/redirect", s.oauth2Redirect)
 	s.router.GET("api/users/@me", s.meHandler)
 	s.router.POST("logout", s.logout)
+
+	s.router.POST("api/logs/upload", s.uploadHandler)
 
 	return s.router.Run(s.conf.Address)
 }

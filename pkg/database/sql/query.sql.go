@@ -11,32 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUser = `-- name: CreateUser :one
-INSERT INTO users (discord_id, discord_name)
-VALUES ($1, $2)
-RETURNING id, discord_id, discord_name, access_token, roles, created_at, updated_at
-`
-
-type CreateUserParams struct {
-	DiscordID   pgtype.Text
-	DiscordName pgtype.Text
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.DiscordID, arg.DiscordName)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.DiscordID,
-		&i.DiscordName,
-		&i.AccessToken,
-		&i.Roles,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const deleteUser = `-- name: DeleteUser :exec
 DELETE
 FROM users
@@ -57,6 +31,73 @@ LIMIT 1
 
 func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUser, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.DiscordID,
+		&i.DiscordName,
+		&i.AccessToken,
+		&i.Roles,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByToken = `-- name: GetUserByToken :one
+SELECT id, discord_id, discord_name, access_token, roles, created_at, updated_at
+FROM users
+WHERE access_token = $1
+LIMIT 1
+`
+
+func (q *Queries) GetUserByToken(ctx context.Context, accessToken pgtype.Text) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByToken, accessToken)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.DiscordID,
+		&i.DiscordName,
+		&i.AccessToken,
+		&i.Roles,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const setAccessToken = `-- name: SetAccessToken :exec
+UPDATE users
+SET access_token = $2
+WHERE id = $1
+`
+
+type SetAccessTokenParams struct {
+	ID          pgtype.UUID
+	AccessToken pgtype.Text
+}
+
+func (q *Queries) SetAccessToken(ctx context.Context, arg SetAccessTokenParams) error {
+	_, err := q.db.Exec(ctx, setAccessToken, arg.ID, arg.AccessToken)
+	return err
+}
+
+const upsertUser = `-- name: UpsertUser :one
+INSERT
+INTO users (discord_id, discord_name)
+VALUES ($1, $2)
+ON CONFLICT (discord_id)
+DO UPDATE SET discord_name = excluded.discord_name
+RETURNING id, discord_id, discord_name, access_token, roles, created_at, updated_at
+`
+
+type UpsertUserParams struct {
+	DiscordID   pgtype.Text
+	DiscordName pgtype.Text
+}
+
+func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, upsertUser, arg.DiscordID, arg.DiscordName)
 	var i User
 	err := row.Scan(
 		&i.ID,

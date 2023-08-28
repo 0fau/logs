@@ -3,15 +3,18 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/pkg/errors"
 	"github.com/thanhpk/randstr"
 	"io"
+	"log"
 	"net/http"
 )
 
-type DiscordUser struct {
+type User struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 }
@@ -49,23 +52,20 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	}
 	sesh.Delete("oauth_state")
 	if err := sesh.Save(); err != nil {
-		fmt.Println("huh")
-		fmt.Println(err)
+		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	if state.(string) != c.Query("state") {
-		fmt.Println("huh2")
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
 	ctx := context.Background()
 	token, err := s.conf.OAuth2.Exchange(ctx, c.Query("code"))
 	if err != nil {
-		fmt.Println("huh3")
-		fmt.Println(err)
+		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -73,8 +73,7 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	client := s.conf.OAuth2.Client(ctx, token)
 	resp, err := client.Get("https://discord.com/api/users/@me")
 	if err != nil {
-		fmt.Println("huh4")
-		fmt.Println(err)
+		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -82,24 +81,31 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("huh5")
-		fmt.Println(err)
+		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	u := DiscordUser{}
+	u := User{}
 	if err := json.Unmarshal(body, &u); err != nil {
-		fmt.Println("huh6")
-		fmt.Println(err)
+		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	sesh.Set("user", u)
+	user, err := s.queries.UpsertUser(ctx, sql.UpsertUserParams{
+		DiscordID:   pgtype.Text{String: u.ID, Valid: true},
+		DiscordName: pgtype.Text{String: u.Username, Valid: true},
+	})
+	if err != nil {
+		log.Println(errors.WithStack(err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	sesh.Set("user", user)
 	if err := sesh.Save(); err != nil {
-		fmt.Println("huh7")
-		fmt.Println(err)
+		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -110,9 +116,11 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 func (s *Server) meHandler(c *gin.Context) {
 	sesh := sessions.Default(c)
 
-	var u DiscordUser
+	u := User{}
 	if val := sesh.Get("user"); val != nil {
-		u = val.(DiscordUser)
+		dbUser := val.(sql.User)
+		u.ID = string(dbUser.ID.Bytes[:])
+		u.Username = dbUser.DiscordName.String
 	}
 
 	c.JSON(http.StatusOK, u)
