@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/gob"
 	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/database/sql"
+	gincors "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
@@ -26,12 +26,20 @@ type Server struct {
 	conf   *ServerConfig
 	router *gin.Engine
 
-	queries *sql.Queries
+	conn *database.DB
+}
+
+func cors() gin.HandlerFunc {
+	config := gincors.DefaultConfig()
+	config.AllowOrigins = []string{"https://tauri.localhost"}
+	config.AllowHeaders = []string{"access_token"}
+	return gincors.New(config)
 }
 
 func NewServer(conf *ServerConfig) *Server {
 	router := gin.Default()
 	router.MaxMultipartMemory = 8 << 20 // 8 MiB
+	router.Use(cors())
 
 	return &Server{
 		conf:   conf,
@@ -40,16 +48,11 @@ func NewServer(conf *ServerConfig) *Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	if err := database.Migrate(s.conf.DatabaseURL); err != nil {
-		return err
-	}
-
-	pool, err := database.NewPool(ctx, s.conf.DatabaseURL)
+	conn, err := database.Connect(ctx, s.conf.DatabaseURL)
 	if err != nil {
 		return err
 	}
-	defer pool.Close()
-	s.queries = sql.New(pool)
+	s.conn = conn
 
 	store, err := redis.NewStore(10, "tcp", s.conf.RedisAddress, s.conf.RedisPassword, []byte(s.conf.SessionSecret))
 	if err != nil {
@@ -58,13 +61,15 @@ func (s *Server) Run(ctx context.Context) error {
 	store.Options(sessions.Options{MaxAge: 604800}) // seven days
 	s.router.Use(sessions.Sessions("sessions", store))
 
-	gob.Register(sql.User{})
+	gob.Register(&SessionUser{})
 	s.router.POST("oauth2", s.oauth2)
 	s.router.GET("oauth2/redirect", s.oauth2Redirect)
 	s.router.GET("api/users/@me", s.meHandler)
 	s.router.POST("logout", s.logout)
 
 	s.router.POST("api/logs/upload", s.uploadHandler)
+	s.router.GET("api/logs/recent", s.recentLogs)
+	s.router.POST("api/users/@me/token", s.generateToken)
 
 	return s.router.Run(s.conf.Address)
 }

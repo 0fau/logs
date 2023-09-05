@@ -3,18 +3,30 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"github.com/0fau/logs/pkg/database/sql"
+	"fmt"
+	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/pkg/errors"
 	"github.com/thanhpk/randstr"
 	"io"
 	"log"
 	"net/http"
+	"time"
 )
 
-type User struct {
+type DiscordUser struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+type SessionUser struct {
+	ID          string
+	DiscordName string
+	CreatedAt   time.Time
+	Roles       []string
+}
+
+type ReturnedUser struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
 }
@@ -86,24 +98,30 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
-	u := User{}
+	u := DiscordUser{}
 	if err := json.Unmarshal(body, &u); err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	user, err := s.queries.UpsertUser(ctx, sql.UpsertUserParams{
-		DiscordID:   pgtype.Text{String: u.ID, Valid: true},
-		DiscordName: pgtype.Text{String: u.Username, Valid: true},
-	})
+	user, err := s.conn.SaveUser(ctx, u.ID, u.Username)
 	if err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	sesh.Set("user", user)
+	uuid, _ := user.ID.Value()
+
+	seshUser := SessionUser{
+		ID:          uuid.(string),
+		DiscordName: user.DiscordName,
+		CreatedAt:   user.CreatedAt.Time,
+		Roles:       user.Roles,
+	}
+
+	sesh.Set("user", seshUser)
 	if err := sesh.Save(); err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -116,12 +134,13 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 func (s *Server) meHandler(c *gin.Context) {
 	sesh := sessions.Default(c)
 
-	u := User{}
+	u := ReturnedUser{}
 	if val := sesh.Get("user"); val != nil {
-		dbUser := val.(sql.User)
-		u.ID = string(dbUser.ID.Bytes[:])
-		u.Username = dbUser.DiscordName.String
+		user := val.(*SessionUser)
+		u.ID = user.ID
+		u.Username = user.DiscordName
 	}
+	fmt.Println(u)
 
 	c.JSON(http.StatusOK, u)
 }

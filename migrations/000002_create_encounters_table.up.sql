@@ -1,17 +1,8 @@
-CREATE TABLE users
-(
-    id           UUID PRIMARY KEY,
-    discord_id   TEXT       NOT NULL,
-    discord_name STRING(32) NOT NULL,
-    access_token STRING(64),
-    roles        STRING[],
-    created_at   TIMESTAMP  NOT NULL,
-    updated_at   TIMESTAMP  NOT NULL
-);
+CREATE SEQUENCE encounter_id_seq START 1 INCREMENT 1;
 
 CREATE TABLE encounters
 (
-    id                 INT PRIMARY KEY,
+    id                 INT                DEFAULT nextval('encounter_id_seq'),
     uploaded_by        UUID      NOT NULL REFERENCES users (id),
     visibility         STRING    NOT NULL,
     raid               STRING    NOT NULL,
@@ -19,15 +10,23 @@ CREATE TABLE encounters
     duration           INT       NOT NULL,
     total_damage_dealt BIGINT    NOT NULL,
     cleared            BOOLEAN   NOT NULL,
-    uploaded_at        TIMESTAMP NOT NULL
+    uploaded_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id) USING HASH,
+    INDEX (uploaded_by),
+    INDEX (date),
+    INDEX (raid)
 );
 
 CREATE TABLE entities
 (
     encounter INTEGER NOT NULL REFERENCES encounters (id),
     class     STRING  NOT NULL,
-    enttype   STRING  NOT NULL,
     name      STRING  NOT NULL,
+    enttype   STRING  NOT NULL,
     damage    BIGINT  NOT NULL,
-    dps       INT     NOT NULL
+    dps       INT     NOT NULL,
+    PRIMARY KEY (encounter, enttype, name) USING HASH,
+    INDEX (name),
+    INDEX (class),
+    INDEX (dps)
 );

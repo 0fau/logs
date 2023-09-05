@@ -8,10 +8,31 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Encounter struct {
+	ID               int32
+	UploadedBy       pgtype.UUID
+	Visibility       string
+	Raid             string
+	Date             pgtype.Timestamp
+	Duration         int32
+	TotalDamageDealt int64
+	Cleared          bool
+	UploadedAt       pgtype.Timestamp
+}
+
+type Entity struct {
+	Encounter int32
+	Class     string
+	Enttype   string
+	Name      string
+	Damage    int64
+	Dps       int32
+}
+
 type User struct {
 	ID          pgtype.UUID
-	DiscordID   pgtype.Text
-	DiscordName pgtype.Text
+	DiscordID   string
+	DiscordName string
 	AccessToken pgtype.Text
 	Roles       []string
 	CreatedAt   pgtype.Timestamp

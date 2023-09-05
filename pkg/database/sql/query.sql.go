@@ -22,6 +22,63 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const getEncounter = `-- name: GetEncounter :one
+SELECT id, uploaded_by, visibility, raid, date, duration, total_damage_dealt, cleared, uploaded_at
+FROM encounters
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error) {
+	row := q.db.QueryRow(ctx, getEncounter, id)
+	var i Encounter
+	err := row.Scan(
+		&i.ID,
+		&i.UploadedBy,
+		&i.Visibility,
+		&i.Raid,
+		&i.Date,
+		&i.Duration,
+		&i.TotalDamageDealt,
+		&i.Cleared,
+		&i.UploadedAt,
+	)
+	return i, err
+}
+
+const getEntities = `-- name: GetEntities :many
+SELECT encounter, class, enttype, name, damage, dps
+FROM entities
+WHERE encounter = $1
+`
+
+func (q *Queries) GetEntities(ctx context.Context, encounter int32) ([]Entity, error) {
+	rows, err := q.db.Query(ctx, getEntities, encounter)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Entity
+	for rows.Next() {
+		var i Entity
+		if err := rows.Scan(
+			&i.Encounter,
+			&i.Class,
+			&i.Enttype,
+			&i.Name,
+			&i.Damage,
+			&i.Dps,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id, discord_id, discord_name, access_token, roles, created_at, updated_at
 FROM users
@@ -66,6 +123,122 @@ func (q *Queries) GetUserByToken(ctx context.Context, accessToken pgtype.Text) (
 	return i, err
 }
 
+const insertEncounter = `-- name: InsertEncounter :one
+INSERT
+INTO encounters (uploaded_by, raid, date, visibility, duration, total_damage_dealt, cleared)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, uploaded_by, visibility, raid, date, duration, total_damage_dealt, cleared, uploaded_at
+`
+
+type InsertEncounterParams struct {
+	UploadedBy       pgtype.UUID
+	Raid             string
+	Date             pgtype.Timestamp
+	Visibility       string
+	Duration         int32
+	TotalDamageDealt int64
+	Cleared          bool
+}
+
+func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams) (Encounter, error) {
+	row := q.db.QueryRow(ctx, insertEncounter,
+		arg.UploadedBy,
+		arg.Raid,
+		arg.Date,
+		arg.Visibility,
+		arg.Duration,
+		arg.TotalDamageDealt,
+		arg.Cleared,
+	)
+	var i Encounter
+	err := row.Scan(
+		&i.ID,
+		&i.UploadedBy,
+		&i.Visibility,
+		&i.Raid,
+		&i.Date,
+		&i.Duration,
+		&i.TotalDamageDealt,
+		&i.Cleared,
+		&i.UploadedAt,
+	)
+	return i, err
+}
+
+const insertEntity = `-- name: InsertEntity :one
+INSERT
+INTO entities (encounter, class, enttype, name, damage, dps)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING encounter, class, enttype, name, damage, dps
+`
+
+type InsertEntityParams struct {
+	Encounter int32
+	Class     string
+	Enttype   string
+	Name      string
+	Damage    int64
+	Dps       int32
+}
+
+func (q *Queries) InsertEntity(ctx context.Context, arg InsertEntityParams) (Entity, error) {
+	row := q.db.QueryRow(ctx, insertEntity,
+		arg.Encounter,
+		arg.Class,
+		arg.Enttype,
+		arg.Name,
+		arg.Damage,
+		arg.Dps,
+	)
+	var i Entity
+	err := row.Scan(
+		&i.Encounter,
+		&i.Class,
+		&i.Enttype,
+		&i.Name,
+		&i.Damage,
+		&i.Dps,
+	)
+	return i, err
+}
+
+const listRecentEncounters = `-- name: ListRecentEncounters :many
+SELECT id, uploaded_by, visibility, raid, date, duration, total_damage_dealt, cleared, uploaded_at
+FROM encounters
+ORDER BY date DESC
+LIMIT 5
+`
+
+func (q *Queries) ListRecentEncounters(ctx context.Context) ([]Encounter, error) {
+	rows, err := q.db.Query(ctx, listRecentEncounters)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Encounter
+	for rows.Next() {
+		var i Encounter
+		if err := rows.Scan(
+			&i.ID,
+			&i.UploadedBy,
+			&i.Visibility,
+			&i.Raid,
+			&i.Date,
+			&i.Duration,
+			&i.TotalDamageDealt,
+			&i.Cleared,
+			&i.UploadedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setAccessToken = `-- name: SetAccessToken :exec
 UPDATE users
 SET access_token = $2
@@ -87,13 +260,13 @@ INSERT
 INTO users (discord_id, discord_name)
 VALUES ($1, $2)
 ON CONFLICT (discord_id)
-DO UPDATE SET discord_name = excluded.discord_name
+    DO UPDATE SET discord_name = excluded.discord_name
 RETURNING id, discord_id, discord_name, access_token, roles, created_at, updated_at
 `
 
 type UpsertUserParams struct {
-	DiscordID   pgtype.Text
-	DiscordName pgtype.Text
+	DiscordID   string
+	DiscordName string
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {

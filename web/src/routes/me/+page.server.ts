@@ -17,6 +17,5 @@ export const load: PageServerLoad = async ({cookies}) => {
         url + "/api/users/@me",
         {headers: {cookie: "sessions=" + cookies.get("sessions")}},
     )
-
     return await me.json();
 };
