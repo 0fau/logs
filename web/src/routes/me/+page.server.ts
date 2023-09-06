@@ -13,9 +13,17 @@ export const load: PageServerLoad = async ({cookies}) => {
         return {}
     }
 
+    const recent = await fetch(
+        url + "/api/logs/recent"
+    )
+
     const me = await fetch(
         url + "/api/users/@me",
         {headers: {cookie: "sessions=" + cookies.get("sessions")}},
     )
-    return await me.json();
+
+    return {
+        me: await me.json(),
+        recent: await recent.json(),
+    };
 };
