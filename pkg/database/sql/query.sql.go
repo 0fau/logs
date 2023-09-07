@@ -23,7 +23,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT id, uploaded_by, visibility, raid, date, duration, total_damage_dealt, cleared, uploaded_at
+SELECT id, uploaded_by, visibility, title, description, raid, date, duration, total_damage_dealt, cleared, uploaded_at
 FROM encounters
 WHERE id = $1
 LIMIT 1
@@ -36,6 +36,8 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error)
 		&i.ID,
 		&i.UploadedBy,
 		&i.Visibility,
+		&i.Title,
+		&i.Description,
 		&i.Raid,
 		&i.Date,
 		&i.Duration,
@@ -127,7 +129,7 @@ const insertEncounter = `-- name: InsertEncounter :one
 INSERT
 INTO encounters (uploaded_by, raid, date, visibility, duration, total_damage_dealt, cleared)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, uploaded_by, visibility, raid, date, duration, total_damage_dealt, cleared, uploaded_at
+RETURNING id, uploaded_by, visibility, title, description, raid, date, duration, total_damage_dealt, cleared, uploaded_at
 `
 
 type InsertEncounterParams struct {
@@ -155,6 +157,8 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 		&i.ID,
 		&i.UploadedBy,
 		&i.Visibility,
+		&i.Title,
+		&i.Description,
 		&i.Raid,
 		&i.Date,
 		&i.Duration,
@@ -203,7 +207,7 @@ func (q *Queries) InsertEntity(ctx context.Context, arg InsertEntityParams) (Ent
 }
 
 const listRecentEncounters = `-- name: ListRecentEncounters :many
-SELECT id, uploaded_by, visibility, raid, date, duration, total_damage_dealt, cleared, uploaded_at
+SELECT id, uploaded_by, visibility, title, description, raid, date, duration, total_damage_dealt, cleared, uploaded_at
 FROM encounters
 ORDER BY date DESC
 LIMIT 5
@@ -222,6 +226,8 @@ func (q *Queries) ListRecentEncounters(ctx context.Context) ([]Encounter, error)
 			&i.ID,
 			&i.UploadedBy,
 			&i.Visibility,
+			&i.Title,
+			&i.Description,
 			&i.Raid,
 			&i.Date,
 			&i.Duration,

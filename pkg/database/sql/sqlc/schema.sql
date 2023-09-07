@@ -14,6 +14,8 @@ CREATE TABLE encounters
     id                 INT PRIMARY KEY,
     uploaded_by        UUID      NOT NULL REFERENCES users (id),
     visibility         STRING    NOT NULL,
+    title              STRING,
+    description        STRING,
     raid               STRING    NOT NULL,
     date               TIMESTAMP NOT NULL,
     duration           INT       NOT NULL,

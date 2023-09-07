@@ -8,8 +8,11 @@ import (
 	"time"
 )
 
-func (db *DB) SaveEncounter(uuid pgtype.UUID, raw *process.RawEncounter) (*sql.Encounter, error) {
-	ctx := context.Background()
+func (db *DB) SaveEncounter(
+	ctx context.Context,
+	uuid pgtype.UUID,
+	raw *process.RawEncounter,
+) (*sql.Encounter, error) {
 	tx, err := db.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -52,6 +55,26 @@ func (db *DB) SaveEncounter(uuid pgtype.UUID, raw *process.RawEncounter) (*sql.E
 	return &enc, nil
 }
 
-func (db *DB) RecentEncounters() {
+func (db *DB) RecentEncounters(ctx context.Context) ([]*sql.Encounter, error) {
+	encounters, err := db.queries.ListRecentEncounters(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*sql.Encounter, len(encounters))
+	for i := 0; i < len(encounters); i++ {
+		ret[i] = &encounters[i]
+	}
+	return ret, nil
+}
 
+func (db *DB) ListEntities(ctx context.Context, id int32) ([]*sql.Entity, error) {
+	entities, err := db.queries.GetEntities(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]*sql.Entity, len(entities))
+	for i := 0; i < len(entities); i++ {
+		ret[i] = &entities[i]
+	}
+	return ret, nil
 }

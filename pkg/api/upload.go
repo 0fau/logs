@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/0fau/logs/pkg/process"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
@@ -36,6 +37,15 @@ func (s *Server) generateToken(c *gin.Context) {
 	c.JSON(http.StatusOK, token)
 }
 
+func hasRole(user *sql.User, role string) bool {
+	for _, has := range user.Roles {
+		if has == role {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) uploadHandler(c *gin.Context) {
 	token := c.GetHeader("access_token")
 	if token == "" {
@@ -55,6 +65,11 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
+	if !hasRole(user, "trusted") {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	raw, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		log.Println(errors.WithStack(err))
@@ -70,8 +85,7 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
-	log.Println("saving encounter")
-	if _, err := s.conn.SaveEncounter(user.ID, enc); err != nil {
+	if _, err := s.conn.SaveEncounter(ctx, user.ID, enc); err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

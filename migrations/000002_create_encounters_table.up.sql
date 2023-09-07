@@ -1,9 +1,11 @@
-CREATE SEQUENCE encounter_id_seq START 1 INCREMENT 1;
+CREATE SEQUENCE IF NOT EXISTS encounter_id_seq START 1 INCREMENT 1;
 
-CREATE TABLE encounters
+CREATE TABLE IF NOT EXISTS encounters
 (
     id                 INT                DEFAULT nextval('encounter_id_seq'),
     uploaded_by        UUID      NOT NULL REFERENCES users (id),
+    title              STRING,
+    description        STRING,
     visibility         STRING    NOT NULL,
     raid               STRING    NOT NULL,
     date               TIMESTAMP NOT NULL,
@@ -17,7 +19,7 @@ CREATE TABLE encounters
     INDEX (raid)
 );
 
-CREATE TABLE entities
+CREATE TABLE IF NOT EXISTS entities
 (
     encounter INTEGER NOT NULL REFERENCES encounters (id),
     class     STRING  NOT NULL,

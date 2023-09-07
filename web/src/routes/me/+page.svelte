@@ -64,7 +64,7 @@
                         </p>
                         <p>{formatDamage(encounter.damage)} damage dealt in {formatDuration(encounter.duration)}</p>
                         {#if toggled[encounter.id]}
-                            <table class="table-auto">
+                            <table class="table-auto inline-block">
                                 <thead>
                                 <tr>
                                     <th>Name</th>

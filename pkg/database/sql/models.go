@@ -12,6 +12,8 @@ type Encounter struct {
 	ID               int32
 	UploadedBy       pgtype.UUID
 	Visibility       string
+	Title            pgtype.Text
+	Description      pgtype.Text
 	Raid             string
 	Date             pgtype.Timestamp
 	Duration         int32
