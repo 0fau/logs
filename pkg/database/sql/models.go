@@ -8,6 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Buff struct {
+	Encounter int32
+	Player    string
+	BuffID    int32
+	Percent   pgtype.Numeric
+	Damage    int64
+}
+
 type Encounter struct {
 	ID               int32
 	UploadedBy       pgtype.UUID
@@ -20,6 +28,8 @@ type Encounter struct {
 	TotalDamageDealt int64
 	Cleared          bool
 	UploadedAt       pgtype.Timestamp
+	Tags             []string
+	LocalPlayer      string
 }
 
 type Entity struct {
@@ -28,7 +38,20 @@ type Entity struct {
 	Enttype   string
 	Name      string
 	Damage    int64
-	Dps       int32
+	Dps       int64
+}
+
+type Skill struct {
+	Encounter   int32
+	Player      string
+	SkillID     int32
+	Casts       int32
+	Crits       int32
+	Dps         int64
+	Hits        int32
+	MaxDamage   int64
+	TotalDamage int64
+	Name        string
 }
 
 type User struct {

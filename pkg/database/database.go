@@ -2,8 +2,8 @@ package database
 
 import (
 	"context"
-	"errors"
 	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"net/url"
@@ -43,12 +43,12 @@ func Connect(ctx context.Context, dbURL string) (*DB, error) {
 
 	config, err := pgxpool.ParseConfig(dbURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "parsing db url")
 	}
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "creating pgxpool")
 	}
 
 	return &DB{

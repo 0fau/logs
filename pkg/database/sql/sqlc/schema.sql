@@ -21,7 +21,9 @@ CREATE TABLE encounters
     duration           INT       NOT NULL,
     total_damage_dealt BIGINT    NOT NULL,
     cleared            BOOLEAN   NOT NULL,
-    uploaded_at        TIMESTAMP NOT NULL
+    uploaded_at        TIMESTAMP NOT NULL,
+    tags               STRING[],
+    local_player       STRING    NOT NULL
 );
 
 CREATE TABLE entities
@@ -31,5 +33,28 @@ CREATE TABLE entities
     enttype   STRING  NOT NULL,
     name      STRING  NOT NULL,
     damage    BIGINT  NOT NULL,
-    dps       INT     NOT NULL
+    dps       BIGINT  NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS buffs
+(
+    encounter INT           NOT NULL,
+    player    STRING        NOT NULL,
+    buff_id   INT           NOT NULL,
+    percent   DECIMAL(2, 2) NOT NULL,
+    damage    BIGINT        NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS skills
+(
+    encounter    INT    NOT NULL,
+    player       STRING NOT NULL,
+    skill_id     INT    NOT NULL,
+    casts        INT    NOT NULL,
+    crits        INT    NOT NULL,
+    dps          BIGINT NOT NULL,
+    hits         INT    NOT NULL,
+    max_damage   BIGINT NOT NULL,
+    total_damage BIGINT NOT NULL,
+    name         STRING NOT NULL
 );

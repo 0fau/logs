@@ -7,6 +7,7 @@
     export let data: PageData;
     let toggled = {};
     let details = {};
+    let view = {};
 
     function formatDate(date: number): string {
         return formatDistance(new Date(date), new Date(), {addSuffix: true})
@@ -25,12 +26,17 @@
         return async () => {
             if (details[enc] == undefined) {
                 let resp = await fetch("/api/logs/" + enc)
-                details[enc] =  await resp.json()
+                details[enc] = await resp.json()
                 details[enc] = details[enc].filter((ent) => ent.enttype == "PLAYER")
+                details[enc].sort((a, b) => b.damage - a.damage)
             }
 
             toggled[enc] = !toggled[enc]
         }
+    }
+
+    function inspect(enc: number, selected: string) {
+        return () => view[enc] = selected
     }
 </script>
 
@@ -53,35 +59,51 @@
                     <div>
                         <p>
                             <button on:click={toggleEncounter(encounter.id)}>
-                                {#if toggled[encounter.id]}
-                                    <IconArrow width=1em height=0.9em style="margin-top:-0.1em; display: inline; transform: rotate(180deg)"/>
-                                {:else}
-                                    <IconArrow width=1em height=0.9em style="margin-top:-0.1em; display: inline; transform: rotate(90deg)"/>
-                                {/if}
+                                <IconArrow width=1em height=0.9em
+                                           style="margin-top:-0.1em; display: inline; transform: rotate({toggled[encounter.id] ? 180 : 90}deg)"/>
                                 [#{encounter.id}]
                             </button>
                             <span class="underline">Raid: {encounter.raid}</span> {formatDate(encounter.date)}
                         </p>
                         <p>{formatDamage(encounter.damage)} damage dealt in {formatDuration(encounter.duration)}</p>
                         {#if toggled[encounter.id]}
-                            <table class="table-auto inline-block">
-                                <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Class</th>
-                                    <th>DPS</th>
-                                    <th>Damage</th>
-                                </tr>
-                                </thead>
-                                {#each details[encounter.id] as player}
+                            <span class="font-semibold">Inspect:</span>
+                            <button on:click={inspect(encounter.id, "")}
+                                    class="text-red-600"
+                                    class:underline={!view[encounter.id]}
+                                    class:font-semibold={!view[encounter.id]}>
+                                DMG
+                            </button>
+                            <span class="font-semibold">|</span>
+                            <button on:click={inspect(encounter.id, "buff")}
+                                    class="text-purple-600"
+                                    class:underline={view[encounter.id] === "buff"}
+                                    class:font-semibold={view[encounter.id] === "buff"}>
+                                BUFF
+                            </button>
+                            <br/>
+                            {#if !view[encounter.id]}
+                                <table class="table-auto inline-block">
+                                    <thead>
                                     <tr>
-                                        <td>{player.name}</td>
-                                        <td>{player.class}</td>
-                                        <td>{formatDamage(player.dps)}</td>
-                                        <td>{formatDamage(player.damage)}</td>
+                                        <th>Name</th>
+                                        <th>Class</th>
+                                        <th>DPS</th>
+                                        <th>Damage</th>
                                     </tr>
-                                {/each}
-                            </table>
+                                    </thead>
+                                    {#each details[encounter.id] as player}
+                                        <tr>
+                                            <td>{player.name}</td>
+                                            <td>{player.class}</td>
+                                            <td>{formatDamage(player.dps)}</td>
+                                            <td>{formatDamage(player.damage)}</td>
+                                        </tr>
+                                    {/each}
+                                </table>
+                            {:else if view[encounter.id] === "buff"}
+                                hello
+                            {/if}
                             <div id="encounter-{encounter.id}"></div>
                         {/if}
                     </div>

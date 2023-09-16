@@ -19,11 +19,23 @@ type ReturnedEncounterShort struct {
 }
 
 type ReturnedEntity struct {
-	Class   string `json:"class"`
-	EntType string `json:"enttype"`
-	Name    string `json:"name"`
-	Damage  int64  `json:"damage"`
-	Dps     int32  `json:"dps"`
+	Class   string          `json:"class"`
+	EntType string          `json:"enttype"`
+	Name    string          `json:"name"`
+	Damage  int64           `json:"damage"`
+	Dps     int64           `json:"dps"`
+	Skills  []ReturnedSkill `json:"skills"`
+}
+
+type ReturnedSkill struct {
+	SkillID     int32  `json:"id"`
+	Casts       int32  `json:"casts"`
+	Crits       int32  `json:"crits"`
+	DPS         int64  `json:"dps"`
+	Hits        int32  `json:"hits"`
+	MaxDamage   int64  `json:"maxDamage"`
+	TotalDamage int64  `json:"totalDamage"`
+	Name        string `json:"name"`
 }
 
 func (s *Server) recentLogs(c *gin.Context) {
@@ -63,10 +75,19 @@ func (s *Server) logHandler(c *gin.Context) {
 			return
 		}
 
-		log.Println(errors.WithStack(err))
+		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	skills, err := s.conn.ListSkills(ctx, int32(id))
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	m := map[string]*ReturnedEntity{}
 	ret := make([]ReturnedEntity, len(entities))
 	for i, ent := range entities {
 		ret[i] = ReturnedEntity{
@@ -76,6 +97,24 @@ func (s *Server) logHandler(c *gin.Context) {
 			Damage:  ent.Damage,
 			Dps:     ent.Dps,
 		}
+		m[ent.Name] = &ret[i]
 	}
+
+	for _, skill := range skills {
+		m[skill.Player].Skills = append(
+			m[skill.Player].Skills,
+			ReturnedSkill{
+				SkillID:     skill.SkillID,
+				Casts:       skill.Casts,
+				Crits:       skill.Crits,
+				DPS:         skill.Dps,
+				Hits:        skill.Hits,
+				MaxDamage:   skill.MaxDamage,
+				TotalDamage: skill.TotalDamage,
+				Name:        skill.Name,
+			},
+		)
+	}
+
 	c.JSON(http.StatusOK, ret)
 }

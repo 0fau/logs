@@ -13,21 +13,26 @@ CREATE TABLE IF NOT EXISTS encounters
     total_damage_dealt BIGINT    NOT NULL,
     cleared            BOOLEAN   NOT NULL,
     uploaded_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tags               STRING ARRAY,
+    local_player       STRING    NOT NULL,
     PRIMARY KEY (id) USING HASH,
+    INDEX (tags),
     INDEX (uploaded_by),
     INDEX (date),
-    INDEX (raid)
+    INDEX (raid),
+    INDEX (local_player)
 );
 
 CREATE TABLE IF NOT EXISTS entities
 (
-    encounter INTEGER NOT NULL REFERENCES encounters (id),
-    class     STRING  NOT NULL,
-    name      STRING  NOT NULL,
-    enttype   STRING  NOT NULL,
-    damage    BIGINT  NOT NULL,
-    dps       INT     NOT NULL,
-    PRIMARY KEY (encounter, enttype, name) USING HASH,
+    encounter INT    NOT NULL REFERENCES encounters (id) ON DELETE CASCADE,
+    class     STRING NOT NULL,
+    name      STRING NOT NULL,
+    enttype   STRING NOT NULL,
+    damage    BIGINT NOT NULL,
+    dps       BIGINT NOT NULL,
+    UNIQUE (encounter, enttype, name),
+    INDEX (encounter, name),
     INDEX (name),
     INDEX (class),
     INDEX (dps)

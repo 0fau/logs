@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/gob"
 	"github.com/0fau/logs/pkg/database"
+	"github.com/0fau/logs/pkg/process"
+	"github.com/cockroachdb/errors"
 	gincors "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
@@ -26,7 +28,8 @@ type Server struct {
 	conf   *ServerConfig
 	router *gin.Engine
 
-	conn *database.DB
+	processor *process.LogProcessor
+	conn      *database.DB
 }
 
 func cors() gin.HandlerFunc {
@@ -48,15 +51,20 @@ func NewServer(conf *ServerConfig) *Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
+	s.processor = process.NewLogProcessor()
+	if err := s.processor.Initialize(); err != nil {
+		return errors.Wrap(err, "initializing log processor")
+	}
+
 	conn, err := database.Connect(ctx, s.conf.DatabaseURL)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "connecting to database")
 	}
 	s.conn = conn
 
 	store, err := redis.NewStore(10, "tcp", s.conf.RedisAddress, s.conf.RedisPassword, []byte(s.conf.SessionSecret))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "creating redis sessions store")
 	}
 	store.Options(sessions.Options{MaxAge: 604800}) // seven days
 	s.router.Use(sessions.Sessions("sessions", store))

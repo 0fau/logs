@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/process"
+	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -78,10 +78,16 @@ func (s *Server) uploadHandler(c *gin.Context) {
 	}
 	defer c.Request.Body.Close()
 
-	enc := &process.RawEncounter{}
+	enc := &meter.Encounter{}
 	if err := json.Unmarshal(raw, &enc); err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if err := s.processor.Lint(enc); err != nil {
+		log.Println(errors.WithStack(err))
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 

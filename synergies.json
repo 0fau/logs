@@ -1,0 +1,261 @@
+{
+  "dataType": "Map",
+  "value": [
+    [
+      "arcanist_290202",
+      {
+        "dataType": "Map",
+        "value": [
+          [
+            192612,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "debuff",
+              "source": {
+                "desc": "Crit Resistance -<FONT COLOR='#ff9999'>10.0%</FONT>.",
+                "icon": "buff_62.png",
+                "name": "Party: Weakness Exposure",
+                "setName": null,
+                "skill": {
+                  "classId": 202,
+                  "desc": "Throw a card toward the target location to inflict <$MACRO magic @1:192600/> Damage and <FONT COLOR='#ffff99'>Counterattack</FONT>. Use the skill again to inflict <$MACRO magic @1:192601/> Damage and slam foes onto the ground.",
+                  "icon": "ac_skill_01_15.png",
+                  "id": 19260,
+                  "name": "Return",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 290202
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "gunslinger_380503",
+      {
+        "dataType": "Map",
+        "value": [
+          [
+            381820,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "debuff",
+              "source": {
+                "desc": "Crit Resistance -<FONT COLOR='#ff9999'>10.0%</FONT>.",
+                "icon": "buff_62.png",
+                "name": "Party: Weakness Exposure",
+                "setName": null,
+                "skill": {
+                  "classId": 512,
+                  "desc": "Throw a spinning handgun at the target location within <FONT COLOR='#ffff99'>8 meters</FONT>, inflicting up to <FONT COLOR='#ffbb00'><$CALC ((<$PLAYER_INFO STAT STAT_ATTACK_POWER/>)* (<$TABLE_SKILLEFFECT ValueF 381802/>/10000)+((<$TABLE_SKILLEFFECT ValueA 381802/> + <$TABLE_SKILLEFFECT ValueB 381802/>)/2))*5/></FONT> Damage over </FONT>15<FONT COLOR='#ffff99'> hits.",
+                  "icon": "dh_skill_01_9.png",
+                  "id": 38180,
+                  "name": "Spiral Tracker",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 380503
+            }
+          ],
+          [
+            382220,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "debuff",
+              "source": {
+                "desc": "Crit Resistance -<FONT COLOR='#ff9999'>10.0%</FONT>.",
+                "icon": "buff_62.png",
+                "name": "Party: Weakness Exposure",
+                "setName": null,
+                "skill": {
+                  "classId": 512,
+                  "desc": "Fires your handgun across a broad area, inflicting up to <FONT COLOR='#ffbb00'><$CALC ((<$PLAYER_INFO STAT STAT_ATTACK_POWER/>)* (<$TABLE_SKILLEFFECT ValueF 382200/>/10000)+((<$TABLE_SKILLEFFECT ValueA 382200/> + <$TABLE_SKILLEFFECT ValueB 382200/>)/2))*4/></FONT> Damage.",
+                  "icon": "dh_skill_01_20.png",
+                  "id": 38220,
+                  "name": "Equilibrium",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 380503
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "paladin_101105",
+      {
+        "dataType": "Map",
+        "value": [
+          [
+            361708,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "buff",
+              "source": {
+                "desc": "Atk. Power +<FONT COLOR='#99ff99'>15.0%</FONT> of the caster's basic Atk. Power, raising overall Atk. Power by <FONT COLOR='#99ff99'>6.0%</FONT>.",
+                "icon": "buff_15.png",
+                "name": "Express Fury",
+                "setName": null,
+                "skill": {
+                  "classId": 105,
+                  "desc": "Call forth the energy of sacred thunder into your weapon and inflict <$MACRO magic @1:361700/> Damage to nearby foes.",
+                  "icon": "hk_skill_01_14.png",
+                  "id": 36170,
+                  "name": "Wrath of God",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 101105
+            }
+          ],
+          [
+            362006,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "buff",
+              "source": {
+                "desc": "Atk. Power +<FONT COLOR='#99ff99'>15.0%</FONT> of the caster's basic Atk. Power, raising overall Atk. Power by <FONT COLOR='#99ff99'>6.0%</FONT>.",
+                "icon": "buff_15.png",
+                "name": "Valor",
+                "setName": null,
+                "skill": {
+                  "classId": 105,
+                  "desc": "Summon the Solar Guardian and inflict <$MACRO magic @1:362002/> Damage to nearby foes. The guardian blesses all party members within a <FONT COLOR='#ffff99'>24-meter</FONT> radius. Damage received -<FONT COLOR='#99ff99'><$MACRO buffstat0_100 @1:362000/>%</FONT> for <$MACRO bufftime @1:362000/>s.",
+                  "icon": "hk_skill_01_17.png",
+                  "id": 36200,
+                  "name": "Heavenly Blessings",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 101105
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "paladin_210230",
+      {
+        "dataType": "Map",
+        "value": [
+          [
+            360804,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "debuff",
+              "source": {
+                "desc": "Damage from foes +<FONT COLOR='#ff9999'>10.0%</FONT>.",
+                "icon": "buff_67.png",
+                "name": "Light's Vestige",
+                "setName": null,
+                "skill": {
+                  "classId": 105,
+                  "desc": "Drop a sword made of light at the target location to inflict <$MACRO magic @1:360801/> Damage to your foe and thrust the sword into the ground.",
+                  "icon": "hk_skill_01_5.png",
+                  "id": 36080,
+                  "name": "Sword of Justice",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 210230
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "paladin_360102",
+      {
+        "dataType": "Map",
+        "value": [
+          [
+            500153,
+            {
+              "buffCategory": "ability",
+              "buffType": 1,
+              "category": "buff",
+              "source": {
+                "desc": "Damage to foes +<FONT COLOR='#99ff99'>10%</FONT>. Damage received -<FONT COLOR='#99ff99'>20%</FONT>. Recovers HP equal to <FONT COLOR='#99ff99'>2%</FONT> of Max HP every 1.5s.",
+                "icon": "hk_skill_01_21.png",
+                "name": "Blessed Aura III",
+                "setName": null,
+                "skill": {
+                  "classId": 105,
+                  "desc": "",
+                  "icon": "",
+                  "id": 36010,
+                  "name": "Unarmed Basic Attack",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 360102
+            }
+          ]
+        ]
+      }
+    ],
+    [
+      "sorceress_372020",
+      {
+        "dataType": "Map",
+        "value": [
+          [
+            372020,
+            {
+              "buffCategory": "classskill",
+              "buffType": 1,
+              "category": "debuff",
+              "source": {
+                "desc": "Damage from foes +<FONT COLOR='#ff9999'>6.0%</FONT>.",
+                "icon": "buff_26.png",
+                "name": "Party: Damage Amplification",
+                "setName": null,
+                "skill": {
+                  "classId": 205,
+                  "desc": "Creates a rectangular flame forward, dealing <$MACRO magic @1:372004/> [Fire] Damage and paralyzing foes. Inflicts <$MACRO magic @1:372002/> [Fire] Damage for <FONT COLOR='#ffff99'>5</FONT>s.",
+                  "icon": "scs_skill_01_3.png",
+                  "id": 37200,
+                  "name": "Blaze",
+                  "sourceSkill": null,
+                  "summonIds": null,
+                  "summonSourceSkill": null
+                }
+              },
+              "target": "PARTY",
+              "uniqueGroup": 372020
+            }
+          ]
+        ]
+      }
+    ]
+  ]
+}
