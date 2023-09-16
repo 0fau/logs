@@ -8,6 +8,8 @@
     let toggled = {};
     let details = {};
     let view = {};
+    let focused = {};
+    let sort = {};
 
     function formatDate(date: number): string {
         return formatDistance(new Date(date), new Date(), {addSuffix: true})
@@ -26,13 +28,27 @@
         return async () => {
             if (details[enc] == undefined) {
                 let resp = await fetch("/api/logs/" + enc)
-                details[enc] = await resp.json()
-                details[enc] = details[enc].filter((ent) => ent.enttype == "PLAYER")
-                details[enc].sort((a, b) => b.damage - a.damage)
+                let entities = await resp.json()
+                details[enc] = new Map<string, object>();
+                entities.forEach((entity) => {
+                    if (entity.enttype !== "PLAYER") {
+                        return
+                    }
+
+                    entity.skills = entity.skills.filter((skill) => skill.totalDamage > 0)
+                    entity.skills.sort((a, b) => b.totalDamage - a.totalDamage)
+                    details[enc].set(entity.name, entity)
+                })
+                sort[enc] = [...details[enc].keys()]
+                sort[enc].sort((a, b) => details[enc].get(b).damage - details[enc].get(a).damage)
             }
 
             toggled[enc] = !toggled[enc]
         }
+    }
+
+    function focus(enc: number, selected: string) {
+        return () => focused[enc] = selected
     }
 
     function inspect(enc: number, selected: string) {
@@ -52,6 +68,8 @@
                 <button class="underline">Login</button>
             </form>
         {/if}
+        <br />
+        <p class="font-semibold text-pink-600">THE UI IS TEMP DURING DEV</p>
         {#if data.recent.length !== 0}
             <div class="m-5">
                 <p>[<span class="font-semibold">Recent Logs</span>]</p>
@@ -81,26 +99,61 @@
                                     class:font-semibold={view[encounter.id] === "buff"}>
                                 BUFF
                             </button>
+                            <span class="font-semibold ml-2">Focus: </span>
+                            {#if !focused[encounter.id]}
+                                <span class="text-yellow-600 font-semibold">Party</span>
+                            {:else}
+                                <span class="text-green-600 font-medium">{focused[encounter.id]}</span>
+                                <button class="font-thin" on:click={focus(encounter.id, "")}>(back)</button>
+                            {/if}
                             <br/>
                             {#if !view[encounter.id]}
-                                <table class="table-auto inline-block">
-                                    <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Class</th>
-                                        <th>DPS</th>
-                                        <th>Damage</th>
-                                    </tr>
-                                    </thead>
-                                    {#each details[encounter.id] as player}
+                                {#if !focused[encounter.id]}
+                                    <table class="table-auto inline-block">
+                                        <thead>
                                         <tr>
-                                            <td>{player.name}</td>
-                                            <td>{player.class}</td>
-                                            <td>{formatDamage(player.dps)}</td>
-                                            <td>{formatDamage(player.damage)}</td>
+                                            <th>Name</th>
+                                            <th>Class</th>
+                                            <th>DPS</th>
+                                            <th>Damage</th>
                                         </tr>
-                                    {/each}
-                                </table>
+                                        </thead>
+                                        {#each sort[encounter.id] as player}
+                                            <tr>
+                                                <td class="text-green-600 font-medium"><button on:click={focus(encounter.id, player)}>{player}</button></td>
+                                                <td>{details[encounter.id].get(player).class}</td>
+                                                <td>{formatDamage(details[encounter.id].get(player).dps)}</td>
+                                                <td>{formatDamage(details[encounter.id].get(player).damage)}</td>
+                                            </tr>
+                                        {/each}
+                                    </table>
+                                {:else}
+                                    <table class="table-auto inline-block">
+                                        <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>DPS</th>
+                                            <th>Damage</th>
+                                            <th>Casts</th>
+                                            <th>Hits</th>
+                                        </tr>
+                                        </thead>
+                                        <tr>
+                                            <td class="text-green-600 font-medium">{focused[encounter.id]}</td>
+                                            <td>{formatDamage(details[encounter.id].get(focused[encounter.id]).dps)}</td>
+                                            <td>{formatDamage(details[encounter.id].get(focused[encounter.id]).damage)}</td>
+                                        </tr>
+                                        {#each details[encounter.id].get(focused[encounter.id]).skills as skill}
+                                            <tr>
+                                                <td>{skill.name}</td>
+                                                <td>{formatDamage(skill.dps)}</td>
+                                                <td>{formatDamage(skill.totalDamage)}</td>
+                                                <td>{skill.casts}</td>
+                                                <td>{skill.hits}</td>
+                                            </tr>
+                                        {/each}
+                                    </table>
+                                {/if}
                             {:else if view[encounter.id] === "buff"}
                                 hello
                             {/if}
