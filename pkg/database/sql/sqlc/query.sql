@@ -30,14 +30,14 @@ WHERE id = $1;
 
 -- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, raid, date, visibility, duration, total_damage_dealt, cleared, local_player)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INTO encounters (uploaded_by, raid, date, visibility, duration, damage, cleared, local_player, fields)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: InsertEntity :one
 INSERT
-INTO entities (encounter, class, enttype, name, damage, dps)
-VALUES ($1, $2, $3, $4, $5, $6)
+INTO entities (encounter, class, enttype, name, damage, dps, dead, fields)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: GetEncounter :one
@@ -47,7 +47,15 @@ WHERE id = $1
 LIMIT 1;
 
 -- name: ListRecentEncounters :many
-SELECT *
+SELECT id,
+       uploaded_by,
+       raid,
+       date,
+       visibility,
+       duration,
+       damage,
+       cleared,
+       local_player
 FROM encounters
 ORDER BY date DESC
 LIMIT 5;
@@ -57,18 +65,14 @@ SELECT *
 FROM entities
 WHERE encounter = $1;
 
--- name: InsertBuff :copyfrom
-INSERT INTO buffs (encounter, player, buff_id, percent, damage)
-VALUES ($1, $2, $3, $4, $5);
-
 -- name: InsertSkill :copyfrom
-INSERT INTO skills (encounter, player, skill_id, casts, crits, dps, hits, max_damage, total_damage, name)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
+INSERT INTO skills (encounter, player, skill_id, dps, damage, name, tripods, fields)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
--- name: GetBuffs :many
-SELECT *
-FROM buffs
-WHERE encounter = $1;
+-- name: GetFields :one
+SELECT fields
+FROM encounters
+WHERE id = $1;
 
 -- name: GetSkills :many
 SELECT *

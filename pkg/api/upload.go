@@ -80,8 +80,7 @@ func (s *Server) uploadHandler(c *gin.Context) {
 
 	enc := &meter.Encounter{}
 	if err := json.Unmarshal(raw, &enc); err != nil {
-		log.Println(errors.WithStack(err))
-		c.AbortWithStatus(http.StatusInternalServerError)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 

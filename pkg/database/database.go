@@ -32,8 +32,8 @@ func doMigrate(dbURL string) error {
 }
 
 type DB struct {
-	pool    *pgxpool.Pool
-	queries *sql.Queries
+	Pool    *pgxpool.Pool
+	Queries *sql.Queries
 }
 
 func Connect(ctx context.Context, dbURL string) (*DB, error) {
@@ -45,6 +45,7 @@ func Connect(ctx context.Context, dbURL string) (*DB, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing db url")
 	}
+	config.MinConns = 6
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
@@ -52,8 +53,8 @@ func Connect(ctx context.Context, dbURL string) (*DB, error) {
 	}
 
 	return &DB{
-		pool:    pool,
-		queries: sql.New(pool),
+		Pool:    pool,
+		Queries: sql.New(pool),
 	}, nil
 }
 

@@ -10,7 +10,7 @@ func (db *DB) SaveUser(
 	ctx context.Context,
 	discordID, discordName string,
 ) (*sql.User, error) {
-	user, err := db.queries.UpsertUser(ctx, sql.UpsertUserParams{
+	user, err := db.Queries.UpsertUser(ctx, sql.UpsertUserParams{
 		DiscordID:   discordID,
 		DiscordName: discordName,
 	})
@@ -29,7 +29,7 @@ func (db *DB) SetUserAccessToken(
 		return err
 	}
 
-	return db.queries.SetAccessToken(ctx, sql.SetAccessTokenParams{
+	return db.Queries.SetAccessToken(ctx, sql.SetAccessTokenParams{
 		ID:          uuid,
 		AccessToken: pgtext(token),
 	})
@@ -39,7 +39,7 @@ func (db *DB) UserByAccessToken(
 	ctx context.Context,
 	token string,
 ) (*sql.User, error) {
-	user, err := db.queries.GetUserByToken(ctx, pgtext(token))
+	user, err := db.Queries.GetUserByToken(ctx, pgtext(token))
 	if err != nil {
 		return nil, err
 	}

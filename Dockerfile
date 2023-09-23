@@ -19,9 +19,13 @@ WORKDIR /
 
 COPY --from=build-stage /apiserver /apiserver
 
-CMD mkdir -p migrations
+CMD mkdir migrations
 
 COPY migrations/* migrations/
+
+CMD mkdir meter-data
+
+COPY meter-data/* meter-data/
 
 EXPOSE 3001
 

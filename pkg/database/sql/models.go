@@ -5,53 +5,47 @@
 package sql
 
 import (
+	meter "github.com/0fau/logs/pkg/process/meter"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Buff struct {
-	Encounter int32
-	Player    string
-	BuffID    int32
-	Percent   pgtype.Numeric
-	Damage    int64
-}
-
 type Encounter struct {
-	ID               int32
-	UploadedBy       pgtype.UUID
-	Visibility       string
-	Title            pgtype.Text
-	Description      pgtype.Text
-	Raid             string
-	Date             pgtype.Timestamp
-	Duration         int32
-	TotalDamageDealt int64
-	Cleared          bool
-	UploadedAt       pgtype.Timestamp
-	Tags             []string
-	LocalPlayer      string
+	ID          int32
+	UploadedBy  pgtype.UUID
+	Visibility  string
+	Title       pgtype.Text
+	Description pgtype.Text
+	Raid        string
+	Date        pgtype.Timestamp
+	Duration    int32
+	Damage      int64
+	Fields      meter.StoredEncounterFields
+	Cleared     bool
+	UploadedAt  pgtype.Timestamp
+	Tags        []string
+	LocalPlayer string
 }
 
 type Entity struct {
 	Encounter int32
-	Class     string
 	Enttype   string
 	Name      string
+	Class     string
 	Damage    int64
 	Dps       int64
+	Dead      bool
+	Fields    meter.StoredEntityFields
 }
 
 type Skill struct {
-	Encounter   int32
-	Player      string
-	SkillID     int32
-	Casts       int32
-	Crits       int32
-	Dps         int64
-	Hits        int32
-	MaxDamage   int64
-	TotalDamage int64
-	Name        string
+	Encounter int32
+	Player    string
+	SkillID   int32
+	Name      string
+	Dps       int64
+	Damage    int64
+	Tripods   meter.TripodRows
+	Fields    meter.StoredSkillFields
 }
 
 type User struct {

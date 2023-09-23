@@ -92,3 +92,7 @@ func (p *LogProcessor) Lint(raw *meter.Encounter) error {
 func (p *LogProcessor) Fetch(db *database.DB, encounter int32) (*Encounter, error) {
 	return nil, nil
 }
+
+func (p *LogProcessor) Process() {
+
+}
