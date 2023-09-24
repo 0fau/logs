@@ -40,10 +40,27 @@
                     hpLog: resp.hpLog,
                     partyInfo: resp.partyInfo,
                 };
-                console.log(details[enc]);
+
+                let partyLookup = new Map<string, string>();
+                if (details[enc].partyInfo) {
+                    let parties = Object.keys(details[enc].partyInfo);
+
+                    for (let i = 0; i < parties.length; i++) {
+                        let party = details[enc].partyInfo[parties[i]];
+                        for (let j = 0; j < party.length; j++) {
+                            partyLookup.set(party[j], parties[i]);
+                        }
+                    }
+                }
+                console.log(partyLookup)
+
                 resp.entities.forEach((entity) => {
                     if (entity.enttype !== "PLAYER") {
                         return
+                    }
+
+                    if (details[enc].partyInfo) {
+                        entity.party = partyLookup.get(entity.name)
                     }
 
                     // entity.skills = entity.skills.filter((skill) => skill.totalDamage > 0)
@@ -53,9 +70,23 @@
                 })
                 sort[enc] = [...details[enc].players.keys()]
                 sort[enc].sort((a, b) => details[enc].players.get(b).damage - details[enc].players.get(a).damage)
+
+                groupSynergies(enc)
             }
 
             toggled[enc] = !toggled[enc]
+        }
+    }
+
+    function getPartyColor(enc, name) {
+        let player = details[enc].players.get(name);
+        switch (player.party) {
+            case "0":
+                return "text-fuchsia-700"
+            case "1":
+                return "text-teal-700"
+            default:
+                return "text-amber-700"
         }
     }
 
@@ -66,7 +97,8 @@
             if (skill.id === 0
                 || skill.name.includes("(Summon)")
                 || skill.name === "Stand Up"
-                || skill.name === "Weapon Attack") {
+                || skill.name === "Weapon Attack"
+                || skill.name.includes("Basic Attack")) {
                 continue;
             }
             for (let j = 0; j < skill.castLog.length; j++) {
@@ -82,8 +114,41 @@
         return opener;
     }
 
+    function groupSynergiesAdd(synergies, buffId, buff) {
+        if (!["classskill", "identity", "ability"].includes(buff.buffCategory) || buff.target !== "PARTY") {
+            return
+        }
+
+        if (![1, 2, 4, 128].includes(buff.buffType)) {
+            return
+        }
+
+        let key = buff.uniqueGroup ? buff.uniqueGroup : buff.source.skill?.classId + "_" + buff.source.skill?.name;
+        if (!synergies.has(key)) {
+            synergies.set(key, new Map<string, object>());
+        }
+        synergies.get(key).set(buffId, buff);
+    }
+
     function groupSynergies(enc: number) {
         let encounter = details[enc];
+        let buffs = Object.keys(encounter.buffs);
+        let debuffs = Object.keys(encounter.debuffs)
+
+        let synergies = new Map<string, Map<string, object>>();
+        for (let i = 0; i < buffs.length; i++) {
+            let buff = encounter.buffs[buffs[i]];
+            groupSynergiesAdd(synergies, buffs[i], buff);
+        }
+        for (let i = 0; i < debuffs.length; i++) {
+            let debuff = encounter.debuffs[debuffs[i]];
+            groupSynergiesAdd(synergies, debuffs[i], debuff);
+        }
+
+        return synergies
+    }
+
+    function calculateSynergies(players, synergies) {
 
     }
 
@@ -145,7 +210,7 @@
                                 {#if !focused[encounter.id]}
                                     <span class="text-yellow-600 font-semibold">Party</span>
                                 {:else}
-                                    <span class="text-green-700 font-medium">{focused[encounter.id]}</span>
+                                    <span class="{getPartyColor(encounter.id, focused[encounter.id])} font-medium">{focused[encounter.id]}</span>
                                     <button on:click={focus(encounter.id, "")}>(back)</button>
                                 {/if}
                                 <br/>
@@ -162,7 +227,7 @@
                                             </thead>
                                             {#each sort[encounter.id] as player}
                                                 <tr>
-                                                    <td class="text-green-700 font-medium">
+                                                    <td class="{getPartyColor(encounter.id, player)} font-medium">
                                                         <button on:click={focus(encounter.id, player)}>{player}</button>
                                                     </td>
                                                     <td>{details[encounter.id].players.get(player).class}</td>
@@ -188,7 +253,7 @@
                                             </tr>
                                             </thead>
                                             <tr>
-                                                <td class="text-green-700 font-medium">{focused[encounter.id]}</td>
+                                                <td class="{getPartyColor(encounter.id, focused[encounter.id])} font-medium">{focused[encounter.id]}</td>
                                                 <td>{formatDamage(details[encounter.id].players.get(focused[encounter.id]).dps)}</td>
                                                 <td>{formatDamage(details[encounter.id].players.get(focused[encounter.id]).damage)}</td>
                                             </tr>

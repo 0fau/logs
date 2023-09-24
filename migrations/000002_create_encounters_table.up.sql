@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS entities
     damage    BIGINT NOT NULL,
     dps       BIGINT NOT NULL,
     dead      BOOL   NOT NULL,
-    tag       STRING ARRAY,
+    tags      STRING ARRAY,
     fields    JSON   NOT NULL,
     UNIQUE (encounter, enttype, name),
     INDEX (encounter, name),

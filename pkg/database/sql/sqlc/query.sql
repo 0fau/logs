@@ -32,7 +32,7 @@ WHERE id = $1;
 INSERT
 INTO encounters (uploaded_by, raid, date, visibility, duration, damage, cleared, local_player, fields)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING *;
+RETURNING id;
 
 -- name: InsertEntity :one
 INSERT
@@ -58,7 +58,7 @@ SELECT id,
        local_player
 FROM encounters
 ORDER BY date DESC
-LIMIT 5;
+LIMIT 6;
 
 -- name: GetEntities :many
 SELECT *

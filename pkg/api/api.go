@@ -41,7 +41,7 @@ func cors() gin.HandlerFunc {
 
 func NewServer(conf *ServerConfig) *Server {
 	router := gin.Default()
-	router.MaxMultipartMemory = 8 << 20 // 8 MiB
+	router.MaxMultipartMemory = 2 << 20 // 2 MiB
 	router.Use(cors())
 
 	return &Server{

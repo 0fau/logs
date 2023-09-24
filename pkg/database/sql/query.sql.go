@@ -183,7 +183,7 @@ const insertEncounter = `-- name: InsertEncounter :one
 INSERT
 INTO encounters (uploaded_by, raid, date, visibility, duration, damage, cleared, local_player, fields)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, uploaded_by, visibility, title, description, raid, date, duration, damage, fields, cleared, uploaded_at, tags, local_player
+RETURNING id
 `
 
 type InsertEncounterParams struct {
@@ -198,7 +198,7 @@ type InsertEncounterParams struct {
 	Fields      meter.StoredEncounterFields
 }
 
-func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams) (Encounter, error) {
+func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams) (int32, error) {
 	row := q.db.QueryRow(ctx, insertEncounter,
 		arg.UploadedBy,
 		arg.Raid,
@@ -210,24 +210,9 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 		arg.LocalPlayer,
 		arg.Fields,
 	)
-	var i Encounter
-	err := row.Scan(
-		&i.ID,
-		&i.UploadedBy,
-		&i.Visibility,
-		&i.Title,
-		&i.Description,
-		&i.Raid,
-		&i.Date,
-		&i.Duration,
-		&i.Damage,
-		&i.Fields,
-		&i.Cleared,
-		&i.UploadedAt,
-		&i.Tags,
-		&i.LocalPlayer,
-	)
-	return i, err
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
 const insertEntity = `-- name: InsertEntity :one
@@ -296,7 +281,7 @@ SELECT id,
        local_player
 FROM encounters
 ORDER BY date DESC
-LIMIT 5
+LIMIT 6
 `
 
 type ListRecentEncountersRow struct {

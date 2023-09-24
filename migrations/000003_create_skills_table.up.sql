@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS skills
     fields    JSON   NOT NULL,
     UNIQUE (encounter, player, skill_id),
     FOREIGN KEY (encounter) REFERENCES encounters (id) ON DELETE CASCADE,
-    INDEX (encounter),
     INDEX (name),
-    INDEX (dps)
+    INDEX (dps),
+    INDEX (encounter) STORING (player, skill_id, name, dps, damage, tripods, fields)
 );

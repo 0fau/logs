@@ -14,10 +14,10 @@ func (db *DB) SaveEncounter(
 	ctx context.Context,
 	uuid pgtype.UUID,
 	raw *meter.Encounter,
-) (*sql.Encounter, error) {
+) (int32, error) {
 	tx, err := db.Pool.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	defer tx.Rollback(ctx)
 	qtx := db.Queries.WithTx(tx)
@@ -40,13 +40,13 @@ func (db *DB) SaveEncounter(
 		Date:        pgtype.Timestamp{Time: date, Valid: true},
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "inserting encounter")
+		return 0, errors.Wrap(err, "inserting encounter")
 	}
 
 	var skills []sql.InsertSkillParams
 	for _, entity := range raw.Entities {
 		_, err := qtx.InsertEntity(ctx, sql.InsertEntityParams{
-			Encounter: enc.ID,
+			Encounter: enc,
 			Class:     entity.Class,
 			Enttype:   entity.EntityType,
 			Name:      entity.Name,
@@ -66,7 +66,7 @@ func (db *DB) SaveEncounter(
 			},
 		})
 		if err != nil {
-			return nil, errors.Wrap(err, "inserting entity")
+			return 0, errors.Wrap(err, "inserting entity")
 		}
 
 		if entity.EntityType != "PLAYER" {
@@ -76,11 +76,11 @@ func (db *DB) SaveEncounter(
 		for idstr, skill := range entity.Skills {
 			id, err := strconv.Atoi(idstr)
 			if err != nil {
-				return nil, errors.Wrap(err, "parsing skill id")
+				return 0, errors.Wrap(err, "parsing skill id")
 			}
 
 			skills = append(skills, sql.InsertSkillParams{
-				Encounter: enc.ID,
+				Encounter: enc,
 				Player:    entity.Name,
 				SkillID:   int32(id),
 				Tripods:   skill.TripodIndex,
@@ -103,14 +103,14 @@ func (db *DB) SaveEncounter(
 		}
 	}
 	if _, err := qtx.InsertSkill(ctx, skills); err != nil {
-		return nil, errors.Wrap(err, "inserting skills")
+		return 0, errors.Wrap(err, "inserting skills")
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return nil, errors.Wrap(err, "committing transaction")
+		return 0, errors.Wrap(err, "committing transaction")
 	}
 
-	return &enc, nil
+	return enc, nil
 }
 
 func (db *DB) RecentEncounters(ctx context.Context) ([]*sql.ListRecentEncountersRow, error) {
