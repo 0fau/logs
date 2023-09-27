@@ -12,7 +12,7 @@ type Buff struct {
 
 type BuffSource struct {
 	Description       string     `json:"desc"`
-	Icon              string     `json:"string"`
+	Icon              string     `json:"icon"`
 	Name              string     `json:"name"`
 	SetName           *string    `json:"setName"`
 	Skill             *BuffSkill `json:"skill"`

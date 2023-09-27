@@ -11,6 +11,7 @@
     let view = {};
     let focused = {};
     let sort = {};
+    let hovered = {};
 
     function formatDate(date: number): string {
         return formatDistance(new Date(date), new Date(), {addSuffix: true})
@@ -26,7 +27,8 @@
     }
 
     function formatPercent(percent: number): string {
-        return numeral(percent * 100).format('0.0')
+        let ret = numeral(percent * 100).format('0.0');
+        return ret == "0.0" ? "" : ret;
     }
 
     function toggleEncounter(enc: number): Promise<Response> {
@@ -39,6 +41,7 @@
                     debuffs: resp.debuffs,
                     hpLog: resp.hpLog,
                     partyInfo: resp.partyInfo,
+                    partyBuffs: {},
                 };
 
                 let partyLookup = new Map<string, string>();
@@ -52,26 +55,38 @@
                         }
                     }
                 }
-                console.log(partyLookup)
 
                 resp.entities.forEach((entity) => {
                     if (entity.enttype !== "PLAYER") {
-                        return
+                        return;
                     }
 
                     if (details[enc].partyInfo) {
-                        entity.party = partyLookup.get(entity.name)
+                        entity.party = partyLookup.get(entity.name);
                     }
 
                     // entity.skills = entity.skills.filter((skill) => skill.totalDamage > 0)
-                    entity.skills.sort((a, b) => b.totalDamage - a.totalDamage)
-                    entity.opener = getOpener(entity)
-                    details[enc].players.set(entity.name, entity)
+                    entity.skills.sort((a, b) => b.totalDamage - a.totalDamage);
+                    entity.opener = getOpener(entity);
+                    details[enc].players.set(entity.name, entity);
                 })
-                sort[enc] = [...details[enc].players.keys()]
-                sort[enc].sort((a, b) => details[enc].players.get(b).damage - details[enc].players.get(a).damage)
+                sort[enc] = [...details[enc].players.keys()];
+                sort[enc].sort((a, b) => details[enc].players.get(b).damage - details[enc].players.get(a).damage);
 
-                groupSynergies(enc)
+                details[enc].synergies = groupSynergies(enc);
+                console.log(details[enc].synergies)
+
+                if (details[enc].partyInfo) {
+                    let parties = Object.keys(details[enc].partyInfo);
+                    parties.forEach((p) => {
+                        details[enc].partyInfo[parties[p]].sort((a, b) => details[enc].players.get(b).damage - details[enc].players.get(a).damage);
+                        details[enc].partyBuffs[p] = calculateSynergies(enc, details[enc].partyInfo[parties[p]], details[enc].synergies);
+                    })
+                } else {
+                    details[enc].partyInfo = {"0": sort[enc]}
+                    details[enc].partyBuffs["0"] = calculateSynergies(enc, Array.from(details[enc].players.keys()), details[enc].synergies);
+                }
+                console.log(details[enc].partyBuffs)
             }
 
             toggled[enc] = !toggled[enc]
@@ -123,7 +138,7 @@
             return
         }
 
-        let key = buff.uniqueGroup ? buff.uniqueGroup : buff.source.skill?.classId + "_" + buff.source.skill?.name;
+        let key = (buff.source.skill?.classId ?? 0) + "_" + (buff.uniqueGroup ? buff.uniqueGroup : buff.source.skill?.name);
         if (!synergies.has(key)) {
             synergies.set(key, new Map<string, object>());
         }
@@ -148,8 +163,100 @@
         return synergies
     }
 
-    function calculateSynergies(players, synergies) {
+    function calculateSynergies(enc, players, synergies) {
+        let syns = new Map<string, Map<string, number>>();
+        // synergy player dmg
 
+        let encounter = details[enc];
+        for (let i = 0; i < players.length; i++) {
+            let player = encounter.players.get(players[i]);
+
+            let buffed = player.buffed;
+            let debuffed = player.debuffed;
+            synergies.forEach((buffs, key) => {
+                buffs.forEach((buff, id) => {
+                    if (buffed[id]) {
+                        if (!syns.has(key)) {
+                            syns.set(key, new Map<string, number>([
+                                [player.name, buffed[id]]
+                            ]));
+                        } else {
+                            let val = syns.get(key).get(player.name) ?? 0;
+                            syns.get(key).set(player.name, val + buffed[id]);
+                        }
+                    } else if (debuffed[id]) {
+                        if (!syns.has(key)) {
+                            syns.set(key, new Map<string, number>([
+                                [player.name, debuffed[id]]
+                            ]));
+                        } else {
+                            let val = syns.get(key).get(player.name) ?? 0;
+                            syns.get(key).set(player.name, val + debuffed[id]);
+                        }
+                    }
+                })
+            })
+        }
+
+        return syns
+    }
+
+    const classesMap = {
+        0: "Unknown",
+        101: "Warrior (Male)",
+        102: "Berserker",
+        103: "Destroyer",
+        104: "Gunlancer",
+        105: "Paladin",
+        111: "Female Warrior",
+        112: "Slayer",
+        201: "Mage",
+        202: "Arcanist",
+        203: "Summoner",
+        204: "Bard",
+        205: "Sorceress",
+        301: "Martial Artist (Female)",
+        302: "Wardancer",
+        303: "Scrapper",
+        304: "Soulfist",
+        305: "Glaivier",
+        311: "Martial Artist (Male)",
+        312: "Striker",
+        401: "Assassin",
+        402: "Deathblade",
+        403: "Shadowhunter",
+        404: "Reaper",
+        501: "Gunner (Male)",
+        502: "Sharpshooter",
+        503: "Deadeye",
+        504: "Artillerist",
+        505: "Machinist",
+        511: "Gunner (Female)",
+        512: "Gunslinger",
+        601: "Specialist",
+        602: "Artist",
+        603: "Aeromancer",
+        604: "Alchemist"
+    };
+
+    function sortSyn(synergies) {
+        let sorted = [...synergies.keys()]
+        sorted.sort((a, b) => {
+            let asplit = a.split("_");
+            let bsplit = b.split("_");
+
+            if (Number(asplit[0]) == Number(bsplit[0])) {
+                return Number(asplit[1]) - Number(bsplit[1]);
+            } else {
+                return Number(bsplit[0]) - Number(asplit[0])
+            }
+
+        })
+        return sorted;
+    }
+
+    function sanitizeSynergyDesc(desc) {
+        return desc.replaceAll(/<FONT.*>(.*)<\/FONT>/g, "$1")
     }
 
     function focus(enc: number, selected: string) {
@@ -158,6 +265,12 @@
 
     function inspect(enc: number, selected: string) {
         return () => view[enc] = selected
+    }
+
+    function hoverBuff(enc: number, buff: object) {
+        return () => {
+            hovered[enc] = buff
+        }
     }
 </script>
 
@@ -287,7 +400,68 @@
                                         </div>
                                     {/if}
                                 {:else if view[encounter.id] === "buff"}
-                                    coming soon
+                                    {#if !focused[encounter.id]}
+                                        {@const parties = Object.keys(details[encounter.id].partyInfo)}
+                                        {#each parties as p}
+                                            {#if parties.length > 0}
+                                                <p class="font-semibold">Party {Number(p) + 1}</p>
+                                            {/if}
+                                            {@const buffInfo = details[encounter.id].synergies}
+                                            {@const buffs = details[encounter.id].partyBuffs[p]}
+                                            {@const sortedSyns = sortSyn(buffs)}
+                                            <table class="table-auto inline-block">
+                                                <thead>
+                                                <th>Player</th>
+                                                {#each sortedSyns as buff}
+                                                    {@const syns = buffInfo.get(buff)}
+                                                    <th>
+                                                        {#each [...syns.values()] as syn}
+                                                            <img class="inline w-6 h-6 m-0.5 border-2 border-red-600 rounded"
+                                                                 src="/icons/skills/{syn.source.icon}"
+                                                                 alt="{syn.source.name}"
+                                                                 on:mouseenter={hoverBuff(
+                                                                     encounter.id, syn
+                                                                 )}
+                                                                 on:mouseleave={hoverBuff(encounter.id, null)}
+                                                            />
+                                                        {/each}
+                                                    </th>
+                                                {/each}
+                                                </thead>
+                                                {#each details[encounter.id].partyInfo[p] as player}
+                                                    <tr>
+                                                        <td class="{getPartyColor(encounter.id, player)} font-medium">
+                                                            <button on:click={focus(encounter.id, player)}>{player}</button>
+                                                        </td>
+                                                        {#each sortedSyns as syn}
+                                                            <td>
+                                                                {
+                                                                    formatPercent(
+                                                                        details[encounter.id].partyBuffs[p].get(syn).get(player) /
+                                                                        details[encounter.id].players.get(player).damage
+                                                                    )
+                                                                }
+                                                            </td>
+                                                        {/each}
+                                                    </tr>
+                                                {/each}
+                                            </table>
+                                        {/each}
+
+                                        {#if hovered[encounter.id]}
+                                            {@const buff = hovered[encounter.id]}
+                                            <p class="font-semibold underline">Tooltip</p>
+                                            <p>[{classesMap[buff.source.skill.classId]}] <span class="text-purple-600 font-semibold">{buff.source.name}</span></p>
+                                            <p>{sanitizeSynergyDesc(buff.source.desc)}</p>
+                                            <img src="/icons/skills/{buff.source.skill.icon}"
+                                                 class="w-5 h-5 mx-auto border-2 border-red-600 rounded inline"
+                                                 alt="{buff.source.skill.name}"/>
+                                            <span>{buff.source.skill.name}</span>
+                                        {/if}
+
+                                    {:else}
+                                        coming soon
+                                    {/if}
                                 {/if}
                             </div>
                         {/if}
