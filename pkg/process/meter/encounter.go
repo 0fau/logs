@@ -41,7 +41,15 @@ type Entity struct {
 	Name        string            `json:"name"`
 	EntityType  string            `json:"entityType"`
 	DamageStats EntityDamageStats `json:"damageStats"`
+	SkillStats  EntitySkillStats  `json:"skillStats"`
 	Skills      map[string]Skill  `json:"skills"`
+}
+
+type EntitySkillStats struct {
+	BA    int32 `json:"backAttacks"`
+	FA    int32 `json:"frontAttacks"`
+	Crits int32 `json:"crits"`
+	Hits  int32 `json:"hits"`
 }
 
 type BuffDamage map[string]int64

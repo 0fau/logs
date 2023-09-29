@@ -89,6 +89,7 @@ func (db *DB) SaveEncounter(
 					CastLog:      skill.CastLog,
 					Crits:        skill.Crits,
 					Hits:         skill.Hits,
+					Icon:         skill.Icon,
 					Buffed:       skill.BuffedBy,
 					Debuffed:     skill.DebuffedBy,
 					MaxDamage:    skill.MaxDamage,

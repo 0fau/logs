@@ -187,6 +187,7 @@ func (s *Server) logHandler(c *gin.Context) {
 				MaxDamage:   skill.Fields.MaxDamage,
 				TripodLevel: skill.Fields.TripodLevels,
 				TripodIndex: skill.Tripods,
+				Icon:        skill.Fields.Icon,
 				DPS:         skill.Dps,
 				TotalDamage: skill.Damage,
 				Name:        skill.Name,

@@ -20,6 +20,7 @@ type StoredEntityFields struct {
 }
 
 type StoredSkillFields struct {
+	Icon         string     `json:"icon"`
 	Hits         int32      `json:"hits"`
 	Casts        int32      `json:"casts"`
 	CastLog      []int32    `json:"castLog"`
