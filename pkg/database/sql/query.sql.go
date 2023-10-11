@@ -24,29 +24,44 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT id, uploaded_by, visibility, title, description, raid, date, duration, damage, fields, cleared, uploaded_at, tags, local_player
+SELECT id,
+       uploaded_by,
+       raid,
+       date,
+       visibility,
+       duration,
+       damage,
+       cleared,
+       local_player
 FROM encounters
 WHERE id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error) {
+type GetEncounterRow struct {
+	ID          int32
+	UploadedBy  pgtype.UUID
+	Raid        string
+	Date        pgtype.Timestamp
+	Visibility  string
+	Duration    int32
+	Damage      int64
+	Cleared     bool
+	LocalPlayer string
+}
+
+func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, error) {
 	row := q.db.QueryRow(ctx, getEncounter, id)
-	var i Encounter
+	var i GetEncounterRow
 	err := row.Scan(
 		&i.ID,
 		&i.UploadedBy,
-		&i.Visibility,
-		&i.Title,
-		&i.Description,
 		&i.Raid,
 		&i.Date,
+		&i.Visibility,
 		&i.Duration,
 		&i.Damage,
-		&i.Fields,
 		&i.Cleared,
-		&i.UploadedAt,
-		&i.Tags,
 		&i.LocalPlayer,
 	)
 	return i, err
@@ -154,6 +169,25 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const getUserByName = `-- name: GetUserByName :one
+SELECT id, created_at
+FROM users
+WHERE discord_name = $1
+LIMIT 1
+`
+
+type GetUserByNameRow struct {
+	ID        pgtype.UUID
+	CreatedAt pgtype.Timestamp
+}
+
+func (q *Queries) GetUserByName(ctx context.Context, discordName string) (GetUserByNameRow, error) {
+	row := q.db.QueryRow(ctx, getUserByName, discordName)
+	var i GetUserByNameRow
+	err := row.Scan(&i.ID, &i.CreatedAt)
 	return i, err
 }
 
@@ -280,9 +314,18 @@ SELECT id,
        cleared,
        local_player
 FROM encounters
+WHERE ($1::TIMESTAMP IS NULL
+   OR $1 > date)
+    AND ($2::UUID IS NULL
+   OR $2 = uploaded_by)
 ORDER BY date DESC
-LIMIT 6
+LIMIT 5
 `
+
+type ListRecentEncountersParams struct {
+	Date pgtype.Timestamp
+	User pgtype.UUID
+}
 
 type ListRecentEncountersRow struct {
 	ID          int32
@@ -296,8 +339,8 @@ type ListRecentEncountersRow struct {
 	LocalPlayer string
 }
 
-func (q *Queries) ListRecentEncounters(ctx context.Context) ([]ListRecentEncountersRow, error) {
-	rows, err := q.db.Query(ctx, listRecentEncounters)
+func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncountersParams) ([]ListRecentEncountersRow, error) {
+	rows, err := q.db.Query(ctx, listRecentEncounters, arg.Date, arg.User)
 	if err != nil {
 		return nil, err
 	}

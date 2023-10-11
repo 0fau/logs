@@ -53,7 +53,7 @@ func NewServer(conf *ServerConfig) *Server {
 func (s *Server) Run(ctx context.Context) error {
 	s.processor = process.NewLogProcessor()
 	if err := s.processor.Initialize(); err != nil {
-		return errors.Wrap(err, "initializing log processor")
+		return errors.Wrap(err, "initializing e processor")
 	}
 
 	conn, err := database.Connect(ctx, s.conf.DatabaseURL)
@@ -73,11 +73,13 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.POST("oauth2", s.oauth2)
 	s.router.GET("oauth2/redirect", s.oauth2Redirect)
 	s.router.GET("api/users/@me", s.meHandler)
+	s.router.GET("api/users/:user", s.userHandler)
 	s.router.POST("logout", s.logout)
 
 	s.router.POST("api/logs/upload", s.uploadHandler)
 	s.router.GET("api/logs/recent", s.recentLogs)
 	s.router.GET("api/logs/:log", s.logHandler)
+	s.router.GET("api/logs/:log/details", s.detailsHandler)
 	s.router.POST("api/users/@me/token", s.generateToken)
 
 	return s.router.Run(s.conf.Address)

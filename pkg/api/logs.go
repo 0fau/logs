@@ -10,14 +10,16 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 type ReturnedEncounterShort struct {
-	ID       int    `json:"id"`
+	ID       int32  `json:"id"`
 	Raid     string `json:"raid"`
 	Date     int64  `json:"date"`
-	Duration int    `json:"duration"`
+	Duration int32  `json:"duration"`
 	Damage   int64  `json:"damage"`
 }
 
@@ -67,19 +69,35 @@ type ReturnedSkill struct {
 
 func (s *Server) recentLogs(c *gin.Context) {
 	ctx := context.Background()
-	encs, err := s.conn.RecentEncounters(ctx)
+
+	var date time.Time
+	if c.Query("past") != "" {
+		num, err := strconv.ParseInt(c.Query("past"), 0, 64)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		date = time.UnixMilli(num)
+	}
+
+	encs, err := s.conn.RecentEncounters(ctx, c.Query("user"), date)
 	if err != nil {
-		log.Println(errors.WithStack(err))
+		if strings.Contains(err.Error(), "scanning user uuid") {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+
+		log.Println(errors.Wrap(err, "listing recent encounters"))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	ret := make([]ReturnedEncounterShort, len(encs))
 	for i, enc := range encs {
 		ret[i] = ReturnedEncounterShort{
-			ID:       int(enc.ID),
+			ID:       enc.ID,
 			Raid:     enc.Raid,
 			Date:     enc.Date.Time.UnixMilli(),
-			Duration: int(enc.Duration),
+			Duration: enc.Duration,
 			Damage:   enc.Damage,
 		}
 	}
@@ -87,6 +105,39 @@ func (s *Server) recentLogs(c *gin.Context) {
 }
 
 func (s *Server) logHandler(c *gin.Context) {
+	if c.Param("log") == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("log"))
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	enc, err := s.conn.Queries.GetEncounter(ctx, int32(id))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.AbortWithStatus(http.StatusNotFound)
+		} else {
+			log.Println(errors.Wrap(err, "fetching [encounter]"))
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, ReturnedEncounterShort{
+		ID:       enc.ID,
+		Raid:     enc.Raid,
+		Date:     enc.Date.Time.UnixMilli(),
+		Duration: enc.Duration,
+		Damage:   enc.Damage,
+	})
+}
+
+func (s *Server) detailsHandler(c *gin.Context) {
 	param := c.Param("log")
 	id, err := strconv.Atoi(param)
 	if err != nil {
@@ -127,7 +178,7 @@ func (s *Server) logHandler(c *gin.Context) {
 		fields, err = s.conn.Queries.GetFields(ctx, int32(id))
 		if err != nil && !errors.IsAny(err, pgx.ErrNoRows, context.Canceled) {
 			cancel()
-			log.Println(errors.Wrap(err, "getting encounter buff info"))
+			log.Println(errors.Wrap(err, "getting [encounter] buff info"))
 			return
 		}
 	}()
@@ -138,7 +189,7 @@ func (s *Server) logHandler(c *gin.Context) {
 		skills, err = s.conn.ListSkills(ctx, int32(id))
 		if err != nil && !errors.IsAny(err, pgx.ErrNoRows, context.Canceled) {
 			cancel()
-			log.Println(errors.Wrap(err, "listing encounter skills"))
+			log.Println(errors.Wrap(err, "listing [encounter] skills"))
 			return
 		}
 	}()
@@ -165,8 +216,8 @@ func (s *Server) logHandler(c *gin.Context) {
 			DPSRolling: ent.Fields.DPSRolling,
 			Dead:       ent.Dead,
 			DeathTime:  ent.Fields.DeathTime,
-			Buffed:     ent.Fields.Buffed,
-			Debuffed:   ent.Fields.Debuffed,
+			Buffed:     ent.Fields.BuffedBy,
+			Debuffed:   ent.Fields.DebuffedBy,
 		}
 		m[ent.Name] = &ret[i]
 	}

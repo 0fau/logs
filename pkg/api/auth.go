@@ -27,12 +27,13 @@ type SessionUser struct {
 }
 
 type ReturnedUser struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func redirectLoggedIn(c *gin.Context) {
-	c.Redirect(http.StatusFound, "/me")
+	c.Redirect(http.StatusFound, "/logs")
 }
 
 func (s *Server) oauth2(c *gin.Context) {
@@ -139,6 +140,7 @@ func (s *Server) meHandler(c *gin.Context) {
 		user := val.(*SessionUser)
 		u.ID = user.ID
 		u.Username = user.DiscordName
+		u.CreatedAt = user.CreatedAt
 	}
 	fmt.Println(u)
 

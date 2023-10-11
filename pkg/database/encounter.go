@@ -50,19 +50,21 @@ func (db *DB) SaveEncounter(
 			Class:     entity.Class,
 			Enttype:   entity.EntityType,
 			Name:      entity.Name,
-			Damage:    entity.DamageStats.DamageDealt,
+			Damage:    entity.DamageStats.Damage,
 			Dps:       entity.DamageStats.DPS,
 			Dead:      entity.Dead,
 			Fields: meter.StoredEntityFields{
-				Buffed:         entity.DamageStats.BuffedBy,
-				Debuffed:       entity.DamageStats.DebuffedBy,
-				BuffedDamage:   entity.DamageStats.BuffedDamage,
-				DebuffedDamage: entity.DamageStats.DebuffedDamage,
-				FADamage:       entity.DamageStats.FADamage,
-				BADamage:       entity.DamageStats.BADamage,
-				DeathTime:      entity.DamageStats.DeathTime,
-				DPSAverage:     entity.DamageStats.DPSAverage,
-				DPSRolling:     entity.DamageStats.DPSRolling,
+				BuffedBy:   entity.DamageStats.BuffedBy,
+				DebuffedBy: entity.DamageStats.DebuffedBy,
+				Buffed:     entity.DamageStats.Buffed,
+				Debuffed:   entity.DamageStats.Debuffed,
+				FA:         entity.SkillStats.FA,
+				BA:         entity.SkillStats.BA,
+				FADamage:   entity.DamageStats.FADamage,
+				BADamage:   entity.DamageStats.BADamage,
+				DeathTime:  entity.DamageStats.DeathTime,
+				DPSAverage: entity.DamageStats.DPSAverage,
+				DPSRolling: entity.DamageStats.DPSRolling,
 			},
 		})
 		if err != nil {
@@ -90,15 +92,15 @@ func (db *DB) SaveEncounter(
 					Crits:        skill.Crits,
 					Hits:         skill.Hits,
 					Icon:         skill.Icon,
-					Buffed:       skill.BuffedBy,
-					Debuffed:     skill.DebuffedBy,
-					MaxDamage:    skill.MaxDamage,
+					Buffed:       skill.Buffed,
+					Debuffed:     skill.Debuffed,
+					MaxDamage:    skill.Max,
 					FADamage:     skill.FADamage,
 					BADamage:     skill.BADamage,
 					TripodLevels: skill.TripodLevel,
 				},
 				Dps:    skill.DPS,
-				Damage: skill.TotalDamage,
+				Damage: skill.Damage,
 				Name:   skill.Name,
 			})
 		}
@@ -114,16 +116,23 @@ func (db *DB) SaveEncounter(
 	return enc, nil
 }
 
-func (db *DB) RecentEncounters(ctx context.Context) ([]*sql.ListRecentEncountersRow, error) {
-	encounters, err := db.Queries.ListRecentEncounters(ctx)
-	if err != nil {
-		return nil, err
+func (db *DB) RecentEncounters(ctx context.Context, user string, date time.Time) ([]sql.ListRecentEncountersRow, error) {
+	args := sql.ListRecentEncountersParams{
+		Date: pgtype.Timestamp{
+			Time:  date,
+			Valid: !date.IsZero(),
+		},
+		User: pgtype.UUID{},
 	}
-	ret := make([]*sql.ListRecentEncountersRow, len(encounters))
-	for i := 0; i < len(encounters); i++ {
-		ret[i] = &encounters[i]
+
+	if user != "" {
+		err := args.User.Scan(user)
+		if err != nil {
+			return nil, errors.Wrap(err, "scanning user uuid")
+		}
 	}
-	return ret, nil
+
+	return db.Queries.ListRecentEncounters(ctx, args)
 }
 
 func (db *DB) ListEntities(ctx context.Context, enc int32) ([]*sql.Entity, error) {
@@ -141,7 +150,7 @@ func (db *DB) ListEntities(ctx context.Context, enc int32) ([]*sql.Entity, error
 func (db *DB) ListSkills(ctx context.Context, enc int32) ([]*sql.Skill, error) {
 	skills, err := db.Queries.GetSkills(ctx, enc)
 	if err != nil {
-		return nil, errors.Wrapf(err, "getting skills for encounter %d", enc)
+		return nil, errors.Wrapf(err, "getting skills for [encounter] %d", enc)
 	}
 	ret := make([]*sql.Skill, len(skills))
 	for i := 0; i < len(skills); i++ {

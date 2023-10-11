@@ -2,7 +2,8 @@
     import type {PageData} from './$types';
     import {formatDistance} from 'date-fns';
     import numeral from 'numeral';
-    import IconArrow from '~icons/bxs/up-arrow'
+    import IconArrow from '~icons/bxs/up-arrow';
+    import {formatSeconds} from "$lib/components/meter/print";
 
     export let data: PageData;
     console.log(data);
@@ -12,6 +13,8 @@
     let focused = {};
     let sort = {};
     let hovered = {};
+
+    let more = data.recent.length == 5;
 
     function formatDate(date: number): string {
         return formatDistance(new Date(date), new Date(), {addSuffix: true})
@@ -34,7 +37,7 @@
     function toggleEncounter(enc: number): Promise<Response> {
         return async () => {
             if (details[enc] == undefined) {
-                let resp = await (await fetch("/api/logs/" + enc)).json()
+                let resp = await (await fetch("/api/logs/" + enc + "/details")).json()
                 details[enc] = {
                     players: new Map<string, object>(),
                     buffs: resp.buffs,
@@ -76,13 +79,13 @@
                 sort[enc].sort((a, b) => details[enc].players.get(b).damage - details[enc].players.get(a).damage);
 
                 details[enc].synergies = groupSynergies(enc);
-                console.log(details[enc].synergies)
 
                 if (details[enc].partyInfo) {
                     let parties = Object.keys(details[enc].partyInfo);
                     parties.forEach((p) => {
                         details[enc].partyInfo[parties[p]].sort((a, b) => details[enc].players.get(b).damage - details[enc].players.get(a).damage);
                         details[enc].partyBuffs[p] = calculateSynergies(enc, details[enc].partyInfo[parties[p]], details[enc].synergies);
+
                     })
                 } else {
                     details[enc].partyInfo = {"0": sort[enc]}
@@ -90,10 +93,14 @@
                 }
 
                 for (let [name, player] of details[enc].players) {
-                    player.skillBuffs = calculateSkillSynergies(details[enc].synergies, details[enc].partyBuffs[player.party], player)
-                }
-                console.log(details[enc].players.values())
+                    if (!player.party) {
+                        player.skillBuffs = new Map<string, Map<string, number>>();
+                        continue;
+                    }
 
+                    player.skillBuffs = calculateSkillSynergies(details[enc].synergies, details[enc].partyBuffs[player.party ?? "0"], player)
+                }
+                console.log(details[enc].players);
             }
 
             toggled[enc] = !toggled[enc]
@@ -122,7 +129,8 @@
                 || skill.name.includes("(Summon)")
                 || skill.name === "Stand Up"
                 || skill.name === "Weapon Attack"
-                || skill.name.includes("Basic Attack")) {
+                || skill.name.includes("Basic Attack")
+                || skill.icon === "") {
                 continue;
             }
             for (let j = 0; j < skill.castLog.length; j++) {
@@ -130,6 +138,7 @@
                     opener.push({
                         name: player.skills[i].name,
                         time: skill.castLog[j],
+                        icon: skill.icon,
                     })
                 }
             }
@@ -287,6 +296,26 @@
         return sorted;
     }
 
+    async function expand() {
+        if (data.recent.length === 0) {
+            return
+        }
+
+        let past = data.recent[data.recent.length - 1].date
+
+        let url = location.protocol + '//' + location.host;
+
+        const recent = await (await fetch(
+            url + "/api/logs/recent?past=" + past
+        )).json()
+
+        if (recent.length < 5) {
+            more = false
+        }
+
+        data.recent = data.recent.concat(recent)
+    }
+
     function sanitizeSynergyDesc(desc) {
         return desc.replaceAll(/<FONT.*>(.*)<\/FONT>/g, "$1")
     }
@@ -315,6 +344,10 @@
         }
     }
 </script>
+
+<svelte:head>
+    <title>logs by faust</title>
+</svelte:head>
 
 <div class="mx-3 my-14 mx-auto">
     <div class="columns-1 text-center ...">
@@ -434,13 +467,20 @@
                                         </table>
                                         <br/>
                                         {@const player = details[encounter.id].players.get(focused[encounter.id])}
-                                        <div class="w-1/2 mx-auto">
-                                            <p class="text-center">
-                                                <span class="font-semibold">Opener: </span>
+                                        <div class="w-1/2 mx-auto text-center">
+                                            <p class="font-semibold">Opener</p>
+                                            <div class="leading-4">
                                                 {#each player.opener as skill, i}
-                                                    {skill.name} {i === player.opener.length - 1 ? "" : "→ "}
+                                                    <div class="inline-block w-12 h-12">
+                                                        <span class="text-xs font-medium">{formatSeconds(skill.time)}
+                                                            s</span>
+                                                        <img on:mouseenter={() => console.log(skill.name)}
+                                                             class="w-8 h-8 m-auto inline border-2 rounded border-black"
+                                                             src="/icons/skills/{skill.icon !== "" ? skill.icon : 'unknown.png'}"/>
+                                                    </div>
+                                                    {i === player.opener.length - 1 ? "" : "→ "}
                                                 {/each}
-                                            </p>
+                                            </div>
                                         </div>
                                     {/if}
                                 {:else if view[encounter.id] === "buff"}
@@ -460,7 +500,7 @@
                                                     {@const syns = buffInfo.get(buff)}
                                                     <th>
                                                         {#each [...syns.values()] as syn}
-                                                            <button on:click={hoverBuff( encounter.id, syn)}>
+                                                            <button on:click={hoverBuff(encounter.id, syn)}>
                                                                 <img class="inline w-6 h-6 m-0.5 border-2 border-red-600 rounded"
                                                                      src="/icons/skills/{syn.source.icon}"
                                                                      alt="{syn.source.name}"
@@ -489,22 +529,10 @@
                                                 {/each}
                                             </table>
                                         {/each}
-
-                                        {#if hovered[encounter.id]}
-                                            {@const buff = hovered[encounter.id]}
-                                            <p class="font-semibold underline">Tooltip</p>
-                                            <p>[{classesMap[buff.source.skill.classId]}] <span
-                                                    class="text-purple-600 font-semibold">{buff.source.name}</span></p>
-                                            <p>{sanitizeSynergyDesc(buff.source.desc)}</p>
-                                            <img src="/icons/skills/{buff.source.skill.icon}"
-                                                 class="w-5 h-5 mx-auto border-2 border-red-600 rounded inline"
-                                                 alt="{buff.source.skill.name}"/>
-                                            <span>{buff.source.skill.name}</span>
-                                        {/if}
                                     {:else}
                                         {@const player = details[encounter.id].players.get(focused[encounter.id])}
                                         {@const buffInfo = details[encounter.id].synergies}
-                                        {@const buffs = details[encounter.id].partyBuffs[player.party]}
+                                        {@const buffs = details[encounter.id].partyBuffs[player.party ?? "0"]}
                                         {@const sortedSyns = sortSyn(buffs)}
                                         <table class="table-auto inline-block">
                                             <thead>
@@ -546,36 +574,35 @@
                                                 {/if}
                                             {/each}
                                         </table>
-                                        {#if hovered[encounter.id]}
-                                            {@const buff = hovered[encounter.id]}
-                                            <p class="font-semibold underline">Tooltip</p>
-                                            <p>[{classesMap[buff.source.skill.classId]}] <span
-                                                    class="text-purple-600 font-semibold">{buff.source.name}</span></p>
-                                            <p>{sanitizeSynergyDesc(buff.source.desc)}</p>
-                                            <img src="/icons/skills/{buff.source.skill.icon}"
-                                                 class="w-5 h-5 mx-auto border-2 border-red-600 rounded inline"
-                                                 alt="{buff.source.skill.name}"/>
-                                            <span>{buff.source.skill.name}</span>
-                                        {/if}
+                                    {/if}
+                                    {#if hovered[encounter.id]}
+                                        {@const buff = hovered[encounter.id]}
+                                        <p class="font-semibold underline">Tooltip</p>
+                                        <p>[{classesMap[buff.source.skill.classId]}] <span
+                                                class="text-purple-600 font-semibold">{buff.source.name}</span></p>
+                                        <p>{sanitizeSynergyDesc(buff.source.desc)}</p>
+                                        <img src="/icons/skills/{buff.source.skill.icon}"
+                                             class="w-5 h-5 mx-auto border-2 border-red-600 rounded inline"
+                                             alt="{buff.source.skill.name}"/>
+                                        <span>{buff.source.skill.name}</span>
                                     {/if}
                                 {/if}
                             </div>
                         {/if}
                     </div>
-                    {#if i !== data.recent.length - 1}
-                        <p>---</p>
-                    {/if}
+                    <p>---</p>
                 {/each}
+                {#if more}
+                    <button class="underline" on:click={expand}>show more</button>
+                {:else}
+                    end
+                {/if}
             </div>
         {/if}
     </div>
 </div>
 
 <style lang="postcss">
-    :global(html) {
-        background-color: theme(colors.gray.100);
-    }
-
     td {
         padding: 0 0.5em;
     }

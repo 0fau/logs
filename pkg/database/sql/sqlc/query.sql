@@ -4,6 +4,12 @@ FROM users
 WHERE id = $1
 LIMIT 1;
 
+-- name: GetUserByName :one
+SELECT id, created_at
+FROM users
+WHERE discord_name = $1
+LIMIT 1;
+
 -- name: GetUserByToken :one
 SELECT *
 FROM users
@@ -41,7 +47,15 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: GetEncounter :one
-SELECT *
+SELECT id,
+       uploaded_by,
+       raid,
+       date,
+       visibility,
+       duration,
+       damage,
+       cleared,
+       local_player
 FROM encounters
 WHERE id = $1
 LIMIT 1;
@@ -57,8 +71,12 @@ SELECT id,
        cleared,
        local_player
 FROM encounters
+WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
+   OR sqlc.narg('date') > date)
+    AND (sqlc.narg('user')::UUID IS NULL
+   OR sqlc.narg('user') = uploaded_by)
 ORDER BY date DESC
-LIMIT 6;
+LIMIT 5;
 
 -- name: GetEntities :many
 SELECT *

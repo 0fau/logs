@@ -31,7 +31,7 @@ func config() {
 
 func main() {
 	cmd := &cobra.Command{
-		Use: "logs-api",
+		Use: "e-api",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config()
 

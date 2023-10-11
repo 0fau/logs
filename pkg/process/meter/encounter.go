@@ -4,6 +4,7 @@ type BuffInfo map[string]Buff
 
 type Encounter struct {
 	CurrentBossName string               `json:"currentBossName"`
+	Difficulty      string               `json:"difficulty"`
 	Duration        int32                `json:"duration"`
 	Entities        map[string]Entity    `json:"entities"`
 	FightStart      int64                `json:"fightStart"`
@@ -46,24 +47,25 @@ type Entity struct {
 }
 
 type EntitySkillStats struct {
+	Hits  int32 `json:"hits"`
+	Casts int32 `json:"casts"`
 	BA    int32 `json:"backAttacks"`
 	FA    int32 `json:"frontAttacks"`
 	Crits int32 `json:"crits"`
-	Hits  int32 `json:"hits"`
 }
 
 type BuffDamage map[string]int64
 
 type EntityDamageStats struct {
-	DamageDealt    int64      `json:"damageDealt"`
-	DPS            int64      `json:"dps"`
-	DeathTime      int64      `json:"deathTime"`
-	DPSAverage     []int64    `json:"dpsAverage"`
-	DPSRolling     []int64    `json:"dpsRolling10sAvg"`
-	BuffedDamage   int64      `json:"buffedBySupport"`
-	DebuffedDamage int64      `json:"debuffedBySupport"`
-	BADamage       int64      `json:"backAttackDamage"`
-	FADamage       int64      `json:"frontAttackDamage"`
-	BuffedBy       BuffDamage `json:"buffedBy"`
-	DebuffedBy     BuffDamage `json:"debuffedBy"`
+	Damage     int64      `json:"damageDealt"`
+	DPS        int64      `json:"dps"`
+	DPSAverage []int64    `json:"dpsAverage"`
+	DPSRolling []int64    `json:"dpsRolling10sAvg"`
+	BADamage   int64      `json:"backAttackDamage"`
+	FADamage   int64      `json:"frontAttackDamage"`
+	Buffed     int64      `json:"buffedBySupport"`
+	Debuffed   int64      `json:"debuffedBySupport"`
+	BuffedBy   BuffDamage `json:"buffedBy"`
+	DebuffedBy BuffDamage `json:"debuffedBy"`
+	DeathTime  int64      `json:"deathTime"`
 }
