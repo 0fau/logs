@@ -13,23 +13,15 @@ export const load: PageServerLoad = async ({params, cookies}) => {
         headers.cookies = "sessions=" + cookies.get("sessions")
     }
 
-    const [enc, details] = await Promise.all([
-        fetch(
-            url + "/api/logs/" + params.log,
-            {headers: headers},
-        ),
-        fetch(
-            url + "/api/logs/" + params.log + "/details",
-            {headers: headers},
-        )
-    ]);
-
-    if (!enc.ok || !details.ok) {
+    const enc = await fetch(
+        url + "/api/logs/" + params.log,
+        {headers: headers},
+    );
+    if (!enc.ok) {
         return {};
     }
 
     return {
         encounter: await enc.json(),
-        details: await details.json(),
     };
 };
