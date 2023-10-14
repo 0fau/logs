@@ -8,6 +8,7 @@ package sql
 import (
 	"context"
 
+	structs "github.com/0fau/logs/pkg/database/sql/structs"
 	meter "github.com/0fau/logs/pkg/process/meter"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -23,45 +24,40 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const getData = `-- name: GetData :one
+SELECT data
+FROM encounters
+WHERE id = $1
+`
+
+func (q *Queries) GetData(ctx context.Context, id int32) (structs.EncounterData, error) {
+	row := q.db.QueryRow(ctx, getData, id)
+	var data structs.EncounterData
+	err := row.Scan(&data)
+	return data, err
+}
+
 const getEncounter = `-- name: GetEncounter :one
-SELECT id,
-       uploaded_by,
-       raid,
-       date,
-       visibility,
-       duration,
-       damage,
-       cleared,
-       local_player
+SELECT id, uploaded_by, uploaded_at, settings, tags, header, data, boss, date, duration, local_player
 FROM encounters
 WHERE id = $1
 LIMIT 1
 `
 
-type GetEncounterRow struct {
-	ID          int32
-	UploadedBy  pgtype.UUID
-	Raid        string
-	Date        pgtype.Timestamp
-	Visibility  string
-	Duration    int32
-	Damage      int64
-	Cleared     bool
-	LocalPlayer string
-}
-
-func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, error) {
+func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error) {
 	row := q.db.QueryRow(ctx, getEncounter, id)
-	var i GetEncounterRow
+	var i Encounter
 	err := row.Scan(
 		&i.ID,
 		&i.UploadedBy,
-		&i.Raid,
+		&i.UploadedAt,
+		&i.Settings,
+		&i.Tags,
+		&i.Header,
+		&i.Data,
+		&i.Boss,
 		&i.Date,
-		&i.Visibility,
 		&i.Duration,
-		&i.Damage,
-		&i.Cleared,
 		&i.LocalPlayer,
 	)
 	return i, err
@@ -69,19 +65,19 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 
 const getEntities = `-- name: GetEntities :many
 SELECT encounter, enttype, name, class, damage, dps, dead, fields
-FROM entities
+FROM players
 WHERE encounter = $1
 `
 
-func (q *Queries) GetEntities(ctx context.Context, encounter int32) ([]Entity, error) {
+func (q *Queries) GetEntities(ctx context.Context, encounter int32) ([]Player, error) {
 	rows, err := q.db.Query(ctx, getEntities, encounter)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Entity
+	var items []Player
 	for rows.Next() {
-		var i Entity
+		var i Player
 		if err := rows.Scan(
 			&i.Encounter,
 			&i.Enttype,
@@ -100,19 +96,6 @@ func (q *Queries) GetEntities(ctx context.Context, encounter int32) ([]Entity, e
 		return nil, err
 	}
 	return items, nil
-}
-
-const getFields = `-- name: GetFields :one
-SELECT fields
-FROM encounters
-WHERE id = $1
-`
-
-func (q *Queries) GetFields(ctx context.Context, id int32) (meter.StoredEncounterFields, error) {
-	row := q.db.QueryRow(ctx, getFields, id)
-	var fields meter.StoredEncounterFields
-	err := row.Scan(&fields)
-	return fields, err
 }
 
 const getSkills = `-- name: GetSkills :many
@@ -151,48 +134,53 @@ func (q *Queries) GetSkills(ctx context.Context, encounter int32) ([]Skill, erro
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, discord_id, discord_name, access_token, roles, created_at, updated_at
+SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 FROM users
-WHERE id = $1
+WHERE discord_tag = $1
 LIMIT 1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+func (q *Queries) GetUser(ctx context.Context, discordTag string) (User, error) {
+	row := q.db.QueryRow(ctx, getUser, discordTag)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.DiscordID,
-		&i.DiscordName,
-		&i.AccessToken,
-		&i.Roles,
+		&i.Username,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccessToken,
+		&i.DiscordID,
+		&i.DiscordTag,
+		&i.Avatar,
+		&i.Friends,
+		&i.Settings,
+		&i.Titles,
+		&i.Roles,
 	)
 	return i, err
 }
 
-const getUserByName = `-- name: GetUserByName :one
+const getUserByID = `-- name: GetUserByID :one
 SELECT id, created_at
 FROM users
-WHERE discord_name = $1
+WHERE discord_tag = $1
 LIMIT 1
 `
 
-type GetUserByNameRow struct {
+type GetUserByIDRow struct {
 	ID        pgtype.UUID
 	CreatedAt pgtype.Timestamp
 }
 
-func (q *Queries) GetUserByName(ctx context.Context, discordName string) (GetUserByNameRow, error) {
-	row := q.db.QueryRow(ctx, getUserByName, discordName)
-	var i GetUserByNameRow
+func (q *Queries) GetUserByID(ctx context.Context, discordTag string) (GetUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserByID, discordTag)
+	var i GetUserByIDRow
 	err := row.Scan(&i.ID, &i.CreatedAt)
 	return i, err
 }
 
 const getUserByToken = `-- name: GetUserByToken :one
-SELECT id, discord_id, discord_name, access_token, roles, created_at, updated_at
+SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 FROM users
 WHERE access_token = $1
 LIMIT 1
@@ -203,46 +191,51 @@ func (q *Queries) GetUserByToken(ctx context.Context, accessToken pgtype.Text) (
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.DiscordID,
-		&i.DiscordName,
-		&i.AccessToken,
-		&i.Roles,
+		&i.Username,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccessToken,
+		&i.DiscordID,
+		&i.DiscordTag,
+		&i.Avatar,
+		&i.Friends,
+		&i.Settings,
+		&i.Titles,
+		&i.Roles,
 	)
 	return i, err
 }
 
 const insertEncounter = `-- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, raid, date, visibility, duration, damage, cleared, local_player, fields)
+INTO encounters (uploaded_by, settings, tags, header, data, boss, date, duration, local_player)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING id
 `
 
 type InsertEncounterParams struct {
 	UploadedBy  pgtype.UUID
-	Raid        string
+	Settings    structs.EncounterSettings
+	Tags        []string
+	Header      structs.EncounterHeader
+	Data        structs.EncounterData
+	Boss        string
 	Date        pgtype.Timestamp
-	Visibility  string
 	Duration    int32
-	Damage      int64
-	Cleared     bool
 	LocalPlayer string
-	Fields      meter.StoredEncounterFields
 }
 
 func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams) (int32, error) {
 	row := q.db.QueryRow(ctx, insertEncounter,
 		arg.UploadedBy,
-		arg.Raid,
+		arg.Settings,
+		arg.Tags,
+		arg.Header,
+		arg.Data,
+		arg.Boss,
 		arg.Date,
-		arg.Visibility,
 		arg.Duration,
-		arg.Damage,
-		arg.Cleared,
 		arg.LocalPlayer,
-		arg.Fields,
 	)
 	var id int32
 	err := row.Scan(&id)
@@ -251,7 +244,7 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 
 const insertEntity = `-- name: InsertEntity :one
 INSERT
-INTO entities (encounter, class, enttype, name, damage, dps, dead, fields)
+INTO players (encounter, class, enttype, name, damage, dps, dead, fields)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING encounter, enttype, name, class, damage, dps, dead, fields
 `
@@ -264,10 +257,10 @@ type InsertEntityParams struct {
 	Damage    int64
 	Dps       int64
 	Dead      bool
-	Fields    meter.StoredEntityFields
+	Fields    []byte
 }
 
-func (q *Queries) InsertEntity(ctx context.Context, arg InsertEntityParams) (Entity, error) {
+func (q *Queries) InsertEntity(ctx context.Context, arg InsertEntityParams) (Player, error) {
 	row := q.db.QueryRow(ctx, insertEntity,
 		arg.Encounter,
 		arg.Class,
@@ -278,7 +271,7 @@ func (q *Queries) InsertEntity(ctx context.Context, arg InsertEntityParams) (Ent
 		arg.Dead,
 		arg.Fields,
 	)
-	var i Entity
+	var i Player
 	err := row.Scan(
 		&i.Encounter,
 		&i.Enttype,
@@ -306,18 +299,19 @@ type InsertSkillParams struct {
 const listRecentEncounters = `-- name: ListRecentEncounters :many
 SELECT id,
        uploaded_by,
-       raid,
+       uploaded_at,
+       settings,
+       tags,
+       header,
+       boss,
        date,
-       visibility,
        duration,
-       damage,
-       cleared,
        local_player
 FROM encounters
 WHERE ($1::TIMESTAMP IS NULL
-   OR $1 > date)
-    AND ($2::UUID IS NULL
-   OR $2 = uploaded_by)
+    OR $1 > date)
+  AND ($2::UUID IS NULL
+    OR $2 = uploaded_by)
 ORDER BY date DESC
 LIMIT 5
 `
@@ -330,12 +324,13 @@ type ListRecentEncountersParams struct {
 type ListRecentEncountersRow struct {
 	ID          int32
 	UploadedBy  pgtype.UUID
-	Raid        string
+	UploadedAt  pgtype.Timestamp
+	Settings    structs.EncounterSettings
+	Tags        []string
+	Header      structs.EncounterHeader
+	Boss        string
 	Date        pgtype.Timestamp
-	Visibility  string
 	Duration    int32
-	Damage      int64
-	Cleared     bool
 	LocalPlayer string
 }
 
@@ -351,12 +346,13 @@ func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncoun
 		if err := rows.Scan(
 			&i.ID,
 			&i.UploadedBy,
-			&i.Raid,
+			&i.UploadedAt,
+			&i.Settings,
+			&i.Tags,
+			&i.Header,
+			&i.Boss,
 			&i.Date,
-			&i.Visibility,
 			&i.Duration,
-			&i.Damage,
-			&i.Cleared,
 			&i.LocalPlayer,
 		); err != nil {
 			return nil, err
@@ -387,29 +383,42 @@ func (q *Queries) SetAccessToken(ctx context.Context, arg SetAccessTokenParams) 
 
 const upsertUser = `-- name: UpsertUser :one
 INSERT
-INTO users (discord_id, discord_name)
-VALUES ($1, $2)
+INTO users (discord_id, discord_tag, avatar, settings)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (discord_id)
-    DO UPDATE SET discord_name = excluded.discord_name
-RETURNING id, discord_id, discord_name, access_token, roles, created_at, updated_at
+    DO UPDATE SET discord_tag = excluded.discord_tag,
+                  avatar      = excluded.avatar
+RETURNING id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 `
 
 type UpsertUserParams struct {
-	DiscordID   string
-	DiscordName string
+	DiscordID  string
+	DiscordTag string
+	Avatar     pgtype.Text
+	Settings   structs.UserSettings
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, upsertUser, arg.DiscordID, arg.DiscordName)
+	row := q.db.QueryRow(ctx, upsertUser,
+		arg.DiscordID,
+		arg.DiscordTag,
+		arg.Avatar,
+		arg.Settings,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.DiscordID,
-		&i.DiscordName,
-		&i.AccessToken,
-		&i.Roles,
+		&i.Username,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AccessToken,
+		&i.DiscordID,
+		&i.DiscordTag,
+		&i.Avatar,
+		&i.Friends,
+		&i.Settings,
+		&i.Titles,
+		&i.Roles,
 	)
 	return i, err
 }

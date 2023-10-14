@@ -3,16 +3,31 @@ package database
 import (
 	"context"
 	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/0fau/logs/pkg/database/sql/structs"
+	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func (db *DB) SaveUser(
 	ctx context.Context,
-	discordID, discordName string,
+	discordID, discordTag string, avatar *string,
 ) (*sql.User, error) {
+	var a pgtype.Text
+	if avatar != nil {
+		if err := a.Scan(*avatar); err != nil {
+			return nil, errors.Wrap(err, "scanning avatar pgtype.Text")
+		}
+	}
+
 	user, err := db.Queries.UpsertUser(ctx, sql.UpsertUserParams{
-		DiscordID:   discordID,
-		DiscordName: discordName,
+		DiscordID:  discordID,
+		DiscordTag: discordTag,
+		Avatar:     a,
+		Settings: structs.UserSettings{
+			SkipLanding:       false,
+			LogVisibility:     "unlisted",
+			ProfileVisibility: "unlisted",
+		},
 	})
 	if err != nil {
 		return nil, err

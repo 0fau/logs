@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-gonic/gin"
@@ -11,16 +11,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
 type ReturnedEncounterShort struct {
 	ID       int32  `json:"id"`
-	Raid     string `json:"raid"`
+	Boss     string `json:"boss"`
 	Date     int64  `json:"date"`
 	Duration int32  `json:"duration"`
-	Damage   int64  `json:"damage"`
+	structs.EncounterHeader
+	structs.EncounterData
 }
 
 type ReturnedEncounterDetails struct {
@@ -29,6 +29,8 @@ type ReturnedEncounterDetails struct {
 	HPLog     meter.HPLog      `json:"hpLog"`
 	PartyInfo meter.PartyInfo  `json:"partyInfo"`
 	Entities  []ReturnedEntity `json:"entities"`
+
+	structs.EncounterData
 }
 
 type ReturnedEntity struct {
@@ -94,11 +96,11 @@ func (s *Server) recentLogs(c *gin.Context) {
 	ret := make([]ReturnedEncounterShort, len(encs))
 	for i, enc := range encs {
 		ret[i] = ReturnedEncounterShort{
-			ID:       enc.ID,
-			Raid:     enc.Raid,
-			Date:     enc.Date.Time.UnixMilli(),
-			Duration: enc.Duration,
-			Damage:   enc.Damage,
+			ID:              enc.ID,
+			Boss:            enc.Boss,
+			Date:            enc.Date.Time.UnixMilli(),
+			Duration:        enc.Duration,
+			EncounterHeader: enc.Header,
 		}
 	}
 	c.JSON(http.StatusOK, ret)
@@ -122,135 +124,17 @@ func (s *Server) logHandler(c *gin.Context) {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.AbortWithStatus(http.StatusNotFound)
 		} else {
-			log.Println(errors.Wrap(err, "fetching [encounter]"))
+			log.Println(errors.Wrap(err, "fetching encounter"))
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 		return
 	}
 
 	c.JSON(http.StatusOK, ReturnedEncounterShort{
-		ID:       enc.ID,
-		Raid:     enc.Raid,
-		Date:     enc.Date.Time.UnixMilli(),
-		Duration: enc.Duration,
-		Damage:   enc.Damage,
-	})
-}
-
-func (s *Server) detailsHandler(c *gin.Context) {
-	param := c.Param("log")
-	id, err := strconv.Atoi(param)
-	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
-		return
-	}
-
-	var (
-		entities []*sql.Entity
-		fields   meter.StoredEncounterFields
-		skills   []*sql.Skill
-	)
-
-	var wg sync.WaitGroup
-	wg.Add(3)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		defer wg.Done()
-		var err error
-		entities, err = s.conn.ListEntities(ctx, int32(id))
-		if err != nil && !errors.Is(err, context.Canceled) {
-			if errors.Is(err, pgx.ErrNoRows) {
-				c.AbortWithStatus(http.StatusNotFound)
-				return
-			}
-			cancel()
-
-			log.Println(errors.Wrap(err, "listing entities"))
-			return
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		var err error
-		fields, err = s.conn.Queries.GetFields(ctx, int32(id))
-		if err != nil && !errors.IsAny(err, pgx.ErrNoRows, context.Canceled) {
-			cancel()
-			log.Println(errors.Wrap(err, "getting [encounter] buff info"))
-			return
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		var err error
-		skills, err = s.conn.ListSkills(ctx, int32(id))
-		if err != nil && !errors.IsAny(err, pgx.ErrNoRows, context.Canceled) {
-			cancel()
-			log.Println(errors.Wrap(err, "listing [encounter] skills"))
-			return
-		}
-	}()
-
-	wg.Wait()
-
-	if errors.Is(ctx.Err(), context.Canceled) {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	m := map[string]*ReturnedEntity{}
-	ret := make([]ReturnedEntity, len(entities))
-	for i, ent := range entities {
-		ret[i] = ReturnedEntity{
-			Class:      ent.Class,
-			EntType:    ent.Enttype,
-			Name:       ent.Name,
-			Damage:     ent.Damage,
-			FADamage:   ent.Fields.FADamage,
-			BADamage:   ent.Fields.BADamage,
-			Dps:        ent.Dps,
-			DPSAverage: ent.Fields.DPSAverage,
-			DPSRolling: ent.Fields.DPSRolling,
-			Dead:       ent.Dead,
-			DeathTime:  ent.Fields.DeathTime,
-			Buffed:     ent.Fields.BuffedBy,
-			Debuffed:   ent.Fields.DebuffedBy,
-		}
-		m[ent.Name] = &ret[i]
-	}
-
-	for _, skill := range skills {
-		m[skill.Player].Skills = append(
-			m[skill.Player].Skills,
-			ReturnedSkill{
-				SkillID:     skill.SkillID,
-				Casts:       skill.Fields.Casts,
-				CastLog:     skill.Fields.CastLog,
-				Crits:       skill.Fields.Crits,
-				Buffed:      skill.Fields.Buffed,
-				Debuffed:    skill.Fields.Debuffed,
-				Hits:        skill.Fields.Hits,
-				FADamage:    skill.Fields.FADamage,
-				BADamage:    skill.Fields.BADamage,
-				MaxDamage:   skill.Fields.MaxDamage,
-				TripodLevel: skill.Fields.TripodLevels,
-				TripodIndex: skill.Tripods,
-				Icon:        skill.Fields.Icon,
-				DPS:         skill.Dps,
-				TotalDamage: skill.Damage,
-				Name:        skill.Name,
-			},
-		)
-	}
-
-	c.JSON(http.StatusOK, ReturnedEncounterDetails{
-		Buffs:     fields.Buffs,
-		Debuffs:   fields.Debuffs,
-		HPLog:     fields.HPLog,
-		PartyInfo: fields.PartyInfo,
-		Entities:  ret,
+		ID:              enc.ID,
+		Boss:            enc.Boss,
+		Date:            enc.Date.Time.UnixMilli(),
+		Duration:        enc.Duration,
+		EncounterHeader: enc.Header,
 	})
 }

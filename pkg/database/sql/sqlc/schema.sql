@@ -1,33 +1,40 @@
 CREATE TABLE users
 (
     id           UUID PRIMARY KEY,
-    discord_id   TEXT      NOT NULL,
-    discord_name STRING(32) NOT NULL,
-    access_token STRING(64),
-    roles        STRING[],
+    username     STRING,
     created_at   TIMESTAMP NOT NULL,
-    updated_at   TIMESTAMP NOT NULL
+    updated_at   TIMESTAMP NOT NULL,
+    access_token STRING(64),
+
+    discord_id   STRING    NOT NULL,
+    discord_tag  STRING    NOT NULL,
+    avatar       STRING,
+
+    friends      UUID ARRAY,
+    settings     JSONB     NOT NULL,
+
+    titles       STRING[],
+    roles        STRING[]
 );
 
 CREATE TABLE encounters
 (
     id           INT PRIMARY KEY,
     uploaded_by  UUID      NOT NULL REFERENCES users (id),
-    visibility   STRING    NOT NULL,
-    title        STRING,
-    description  STRING,
-    raid         STRING    NOT NULL,
+    uploaded_at  TIMESTAMP NOT NULL,
+    settings     JSONB     NOT NULL,
+    tags         STRING[],
+
+    header       JSONB     NOT NULL,
+    data         JSON      NOT NULL,
+
+    boss         STRING    NOT NULL,
     date         TIMESTAMP NOT NULL,
     duration     INT       NOT NULL,
-    damage       BIGINT    NOT NULL,
-    fields       JSON      NOT NULL,
-    cleared      BOOLEAN   NOT NULL,
-    uploaded_at  TIMESTAMP NOT NULL,
-    tags         STRING[],
     local_player STRING    NOT NULL
 );
 
-CREATE TABLE entities
+CREATE TABLE players
 (
     encounter INTEGER NOT NULL REFERENCES encounters (id),
     enttype   STRING  NOT NULL,

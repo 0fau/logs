@@ -9,11 +9,26 @@ sql:
         sql_package: "pgx/v5"
         out: ".."
         overrides:
-          - column: "encounters.fields"
+          - column: "users.settings"
             go_type:
-              import: "github.com/0fau/logs/pkg/process/meter"
-              package: "meter"
-              type: "StoredEncounterFields"
+              import: "github.com/0fau/logs/pkg/database/sql/structs"
+              package: "structs"
+              type: "UserSettings"
+          - column: "encounters.settings"
+            go_type:
+              import: "github.com/0fau/logs/pkg/database/sql/structs"
+              package: "structs"
+              type: "EncounterSettings"
+          - column: "encounters.header"
+            go_type:
+              import: "github.com/0fau/logs/pkg/database/sql/structs"
+              package: "structs"
+              type: "EncounterHeader"
+          - column: "encounters.data"
+            go_type:
+              import: "github.com/0fau/logs/pkg/database/sql/structs"
+              package: "structs"
+              type: "EncounterData"
           - column: "entities.fields"
             go_type:
               import: "github.com/0fau/logs/pkg/process/meter"

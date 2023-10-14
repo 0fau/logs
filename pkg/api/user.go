@@ -11,7 +11,7 @@ import (
 
 func (s *Server) userHandler(c *gin.Context) {
 	ctx := context.Background()
-	user, err := s.conn.Queries.GetUserByName(ctx, c.Param("user"))
+	user, err := s.conn.Queries.GetUser(ctx, c.Param("user"))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			c.AbortWithStatus(http.StatusNotFound)
@@ -24,8 +24,7 @@ func (s *Server) userHandler(c *gin.Context) {
 
 	uuid, _ := user.ID.Value()
 	c.JSON(http.StatusOK, ReturnedUser{
-		ID:        uuid.(string),
-		Username:  c.Param("user"),
-		CreatedAt: user.CreatedAt.Time,
+		ID:       uuid.(string),
+		Username: c.Param("user"),
 	})
 }

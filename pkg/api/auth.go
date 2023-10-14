@@ -11,25 +11,29 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"time"
 )
 
 type DiscordUser struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
+	ID            string  `json:"id"`
+	Username      string  `json:"username"`
+	Discriminator string  `json:"discriminator"`
+	Avatar        *string `json:"avatar"`
 }
 
 type SessionUser struct {
-	ID          string
-	DiscordName string
-	CreatedAt   time.Time
-	Roles       []string
+	ID         string
+	DiscordTag string
+	DiscordID  string
+	Username   string
+	Avatar     string
 }
 
 type ReturnedUser struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         string `json:"id"`
+	DiscordTag string `json:"discord_tag"`
+	DiscordID  string `json:"discord_id"`
+	Avatar     string `json:"avatar"`
+	Username   string `json:"username"`
 }
 
 func redirectLoggedIn(c *gin.Context) {
@@ -99,6 +103,8 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
+	log.Println(string(body))
+
 	u := DiscordUser{}
 	if err := json.Unmarshal(body, &u); err != nil {
 		log.Println(errors.WithStack(err))
@@ -106,7 +112,12 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
-	user, err := s.conn.SaveUser(ctx, u.ID, u.Username)
+	username := u.Username
+	if u.Discriminator != "0" {
+		username += "#" + u.Discriminator
+	}
+
+	user, err := s.conn.SaveUser(ctx, u.ID, username, u.Avatar)
 	if err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -116,10 +127,11 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	uuid, _ := user.ID.Value()
 
 	seshUser := SessionUser{
-		ID:          uuid.(string),
-		DiscordName: user.DiscordName,
-		CreatedAt:   user.CreatedAt.Time,
-		Roles:       user.Roles,
+		ID:         uuid.(string),
+		DiscordTag: user.DiscordTag,
+		DiscordID:  user.DiscordID,
+		Avatar:     user.Avatar.String,
+		Username:   user.Username.String,
 	}
 
 	sesh.Set("user", seshUser)
@@ -139,10 +151,12 @@ func (s *Server) meHandler(c *gin.Context) {
 	if val := sesh.Get("user"); val != nil {
 		user := val.(*SessionUser)
 		u.ID = user.ID
-		u.Username = user.DiscordName
-		u.CreatedAt = user.CreatedAt
+		u.Username = user.Username
+		u.DiscordTag = user.DiscordTag
+		u.DiscordID = user.DiscordID
+		u.Avatar = user.Avatar
+		fmt.Println(u)
 	}
-	fmt.Println(u)
 
 	c.JSON(http.StatusOK, u)
 }

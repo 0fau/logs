@@ -3,118 +3,116 @@ package database
 import (
 	"context"
 	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
-	"strconv"
 	"time"
 )
 
-func (db *DB) SaveEncounter(
-	ctx context.Context,
-	uuid pgtype.UUID,
-	raw *meter.Encounter,
-) (int32, error) {
-	tx, err := db.Pool.Begin(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback(ctx)
-	qtx := db.Queries.WithTx(tx)
-
-	date := time.UnixMilli(raw.FightStart)
-	enc, err := qtx.InsertEncounter(ctx, sql.InsertEncounterParams{
-		UploadedBy: uuid,
-		Visibility: "unlisted",
-		Raid:       raw.CurrentBossName,
-		Damage:     raw.DamageStats.TotalDamageDealt,
-		Cleared:    raw.DamageStats.Misc.Cleared,
-		Duration:   raw.Duration,
-		Fields: meter.StoredEncounterFields{
-			Buffs:     raw.DamageStats.Buffs,
-			Debuffs:   raw.DamageStats.Debuffs,
-			PartyInfo: raw.DamageStats.Misc.PartyInfo,
-			HPLog:     raw.DamageStats.Misc.HPLog,
-		},
-		LocalPlayer: raw.LocalPlayer,
-		Date:        pgtype.Timestamp{Time: date, Valid: true},
-	})
-	if err != nil {
-		return 0, errors.Wrap(err, "inserting encounter")
-	}
-
-	var skills []sql.InsertSkillParams
-	for _, entity := range raw.Entities {
-		_, err := qtx.InsertEntity(ctx, sql.InsertEntityParams{
-			Encounter: enc,
-			Class:     entity.Class,
-			Enttype:   entity.EntityType,
-			Name:      entity.Name,
-			Damage:    entity.DamageStats.Damage,
-			Dps:       entity.DamageStats.DPS,
-			Dead:      entity.Dead,
-			Fields: meter.StoredEntityFields{
-				BuffedBy:   entity.DamageStats.BuffedBy,
-				DebuffedBy: entity.DamageStats.DebuffedBy,
-				Buffed:     entity.DamageStats.Buffed,
-				Debuffed:   entity.DamageStats.Debuffed,
-				FA:         entity.SkillStats.FA,
-				BA:         entity.SkillStats.BA,
-				FADamage:   entity.DamageStats.FADamage,
-				BADamage:   entity.DamageStats.BADamage,
-				DeathTime:  entity.DamageStats.DeathTime,
-				DPSAverage: entity.DamageStats.DPSAverage,
-				DPSRolling: entity.DamageStats.DPSRolling,
-			},
-		})
-		if err != nil {
-			return 0, errors.Wrap(err, "inserting entity")
-		}
-
-		if entity.EntityType != "PLAYER" {
-			continue
-		}
-
-		for idstr, skill := range entity.Skills {
-			id, err := strconv.Atoi(idstr)
-			if err != nil {
-				return 0, errors.Wrap(err, "parsing skill id")
-			}
-
-			skills = append(skills, sql.InsertSkillParams{
-				Encounter: enc,
-				Player:    entity.Name,
-				SkillID:   int32(id),
-				Tripods:   skill.TripodIndex,
-				Fields: meter.StoredSkillFields{
-					Casts:        skill.Casts,
-					CastLog:      skill.CastLog,
-					Crits:        skill.Crits,
-					Hits:         skill.Hits,
-					Icon:         skill.Icon,
-					Buffed:       skill.Buffed,
-					Debuffed:     skill.Debuffed,
-					MaxDamage:    skill.Max,
-					FADamage:     skill.FADamage,
-					BADamage:     skill.BADamage,
-					TripodLevels: skill.TripodLevel,
-				},
-				Dps:    skill.DPS,
-				Damage: skill.Damage,
-				Name:   skill.Name,
-			})
-		}
-	}
-	if _, err := qtx.InsertSkill(ctx, skills); err != nil {
-		return 0, errors.Wrap(err, "inserting skills")
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return 0, errors.Wrap(err, "committing transaction")
-	}
-
-	return enc, nil
-}
+//func (db *DB) SaveEncounter(
+//	ctx context.Context,
+//	uuid pgtype.UUID,
+//	raw *meter.Encounter,
+//) (int32, error) {
+//	tx, err := db.Pool.Begin(ctx)
+//	if err != nil {
+//		return 0, err
+//	}
+//	defer tx.Rollback(ctx)
+//	qtx := db.Queries.WithTx(tx)
+//
+//	date := time.UnixMilli(raw.FightStart)
+//	enc, err := qtx.InsertEncounter(ctx, sql.InsertEncounterParams{
+//		UploadedBy: uuid,
+//		Visibility: "unlisted",
+//		Boss:       raw.CurrentBossName,
+//		Damage:     raw.DamageStats.TotalDamageDealt,
+//		Cleared:    raw.DamageStats.Misc.Cleared,
+//		Duration:   raw.Duration,
+//		Fields: meter.StoredEncounterFields{
+//			Buffs:     raw.DamageStats.Buffs,
+//			Debuffs:   raw.DamageStats.Debuffs,
+//			PartyInfo: raw.DamageStats.Misc.PartyInfo,
+//			HPLog:     raw.DamageStats.Misc.HPLog,
+//		},
+//		LocalPlayer: raw.LocalPlayer,
+//		Date:        pgtype.Timestamp{Time: date, Valid: true},
+//	})
+//	if err != nil {
+//		return 0, errors.Wrap(err, "inserting encounter")
+//	}
+//
+//	var skills []sql.InsertSkillParams
+//	for _, entity := range raw.Entities {
+//		_, err := qtx.InsertEntity(ctx, sql.InsertEntityParams{
+//			Encounter: enc,
+//			Class:     entity.Class,
+//			Enttype:   entity.EntityType,
+//			Name:      entity.Name,
+//			Damage:    entity.DamageStats.Damage,
+//			Dps:       entity.DamageStats.DPS,
+//			Dead:      entity.Dead,
+//			Fields: meter.StoredEntityFields{
+//				BuffedBy:   entity.DamageStats.BuffedBy,
+//				DebuffedBy: entity.DamageStats.DebuffedBy,
+//				Buffed:     entity.DamageStats.Buffed,
+//				Debuffed:   entity.DamageStats.Debuffed,
+//				FA:         entity.SkillStats.FA,
+//				BA:         entity.SkillStats.BA,
+//				FADamage:   entity.DamageStats.FADamage,
+//				BADamage:   entity.DamageStats.BADamage,
+//				DeathTime:  entity.DamageStats.DeathTime,
+//				DPSAverage: entity.DamageStats.DPSAverage,
+//				DPSRolling: entity.DamageStats.DPSRolling,
+//			},
+//		})
+//		if err != nil {
+//			return 0, errors.Wrap(err, "inserting entity")
+//		}
+//
+//		if entity.EntityType != "PLAYER" {
+//			continue
+//		}
+//
+//		for idstr, skill := range entity.Skills {
+//			id, err := strconv.Atoi(idstr)
+//			if err != nil {
+//				return 0, errors.Wrap(err, "parsing skill id")
+//			}
+//
+//			skills = append(skills, sql.InsertSkillParams{
+//				Encounter: enc,
+//				Player:    entity.Name,
+//				SkillID:   int32(id),
+//				Tripods:   skill.TripodIndex,
+//				Fields: meter.StoredSkillFields{
+//					Casts:        skill.Casts,
+//					CastLog:      skill.CastLog,
+//					Crits:        skill.Crits,
+//					Hits:         skill.Hits,
+//					Icon:         skill.Icon,
+//					Buffed:       skill.Buffed,
+//					Debuffed:     skill.Debuffed,
+//					MaxDamage:    skill.Max,
+//					FADamage:     skill.FADamage,
+//					BADamage:     skill.BADamage,
+//					TripodLevels: skill.TripodLevel,
+//				},
+//				Dps:    skill.DPS,
+//				Damage: skill.Damage,
+//				Name:   skill.Name,
+//			})
+//		}
+//	}
+//	if _, err := qtx.InsertSkill(ctx, skills); err != nil {
+//		return 0, errors.Wrap(err, "inserting skills")
+//	}
+//
+//	if err := tx.Commit(ctx); err != nil {
+//		return 0, errors.Wrap(err, "committing transaction")
+//	}
+//
+//	return enc, nil
+//}
 
 func (db *DB) RecentEncounters(ctx context.Context, user string, date time.Time) ([]sql.ListRecentEncountersRow, error) {
 	args := sql.ListRecentEncountersParams{
@@ -135,12 +133,12 @@ func (db *DB) RecentEncounters(ctx context.Context, user string, date time.Time)
 	return db.Queries.ListRecentEncounters(ctx, args)
 }
 
-func (db *DB) ListEntities(ctx context.Context, enc int32) ([]*sql.Entity, error) {
+func (db *DB) ListEntities(ctx context.Context, enc int32) ([]*sql.Player, error) {
 	entities, err := db.Queries.GetEntities(ctx, enc)
 	if err != nil {
 		return nil, err
 	}
-	ret := make([]*sql.Entity, len(entities))
+	ret := make([]*sql.Player, len(entities))
 	for i := 0; i < len(entities); i++ {
 		ret[i] = &entities[i]
 	}

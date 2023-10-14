@@ -2,12 +2,12 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	json "github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5"
 	"github.com/thanhpk/randstr"
 	"io"
@@ -85,13 +85,12 @@ func (s *Server) uploadHandler(c *gin.Context) {
 	}
 
 	if err := s.processor.Lint(enc); err != nil {
-		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	if _, err := s.conn.SaveEncounter(ctx, user.ID, enc); err != nil {
-		log.Println(errors.WithStack(err))
+	if _, err := s.processor.Save(ctx, s.conn, user.ID, enc); err != nil {
+		log.Println(errors.Wrap(err, "saving encounter"))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}

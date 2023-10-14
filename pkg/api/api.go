@@ -28,7 +28,7 @@ type Server struct {
 	conf   *ServerConfig
 	router *gin.Engine
 
-	processor *process.LogProcessor
+	processor *process.Processor
 	conn      *database.DB
 }
 
@@ -79,7 +79,6 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.POST("api/logs/upload", s.uploadHandler)
 	s.router.GET("api/logs/recent", s.recentLogs)
 	s.router.GET("api/logs/:log", s.logHandler)
-	s.router.GET("api/logs/:log/details", s.detailsHandler)
 	s.router.POST("api/users/@me/token", s.generateToken)
 
 	return s.router.Run(s.conf.Address)

@@ -3,7 +3,7 @@ FROM --platform=linux/amd64 golang:1.21 AS build-stage
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN CGO_ENABLED=0 GOOS=linux go mod download
 
 COPY . ./
 

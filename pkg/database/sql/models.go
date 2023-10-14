@@ -5,6 +5,7 @@
 package sql
 
 import (
+	structs "github.com/0fau/logs/pkg/database/sql/structs"
 	meter "github.com/0fau/logs/pkg/process/meter"
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -12,21 +13,18 @@ import (
 type Encounter struct {
 	ID          int32
 	UploadedBy  pgtype.UUID
-	Visibility  string
-	Title       pgtype.Text
-	Description pgtype.Text
-	Raid        string
+	UploadedAt  pgtype.Timestamp
+	Settings    structs.EncounterSettings
+	Tags        []string
+	Header      structs.EncounterHeader
+	Data        structs.EncounterData
+	Boss        string
 	Date        pgtype.Timestamp
 	Duration    int32
-	Damage      int64
-	Fields      meter.StoredEncounterFields
-	Cleared     bool
-	UploadedAt  pgtype.Timestamp
-	Tags        []string
 	LocalPlayer string
 }
 
-type Entity struct {
+type Player struct {
 	Encounter int32
 	Enttype   string
 	Name      string
@@ -34,7 +32,7 @@ type Entity struct {
 	Damage    int64
 	Dps       int64
 	Dead      bool
-	Fields    meter.StoredEntityFields
+	Fields    []byte
 }
 
 type Skill struct {
@@ -50,10 +48,15 @@ type Skill struct {
 
 type User struct {
 	ID          pgtype.UUID
-	DiscordID   string
-	DiscordName string
-	AccessToken pgtype.Text
-	Roles       []string
+	Username    pgtype.Text
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
+	AccessToken pgtype.Text
+	DiscordID   string
+	DiscordTag  string
+	Avatar      pgtype.Text
+	Friends     []pgtype.UUID
+	Settings    structs.UserSettings
+	Titles      []string
+	Roles       []string
 }
