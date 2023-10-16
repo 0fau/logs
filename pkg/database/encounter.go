@@ -114,11 +114,15 @@ import (
 //	return enc, nil
 //}
 
-func (db *DB) RecentEncounters(ctx context.Context, user string, date time.Time) ([]sql.ListRecentEncountersRow, error) {
+func (db *DB) RecentEncounters(ctx context.Context, user string, id int32, date time.Time) ([]sql.ListRecentEncountersRow, error) {
 	args := sql.ListRecentEncountersParams{
 		Date: pgtype.Timestamp{
 			Time:  date,
 			Valid: !date.IsZero(),
+		},
+		ID: pgtype.Int4{
+			Int32: id,
+			Valid: id != 0,
 		},
 		User: pgtype.UUID{},
 	}

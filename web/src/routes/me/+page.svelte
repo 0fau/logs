@@ -302,7 +302,6 @@
         }
 
         let past = data.recent[data.recent.length - 1].date
-
         let url = location.protocol + '//' + location.host;
 
         const recent = await (await fetch(

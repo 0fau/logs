@@ -15,15 +15,15 @@ import (
 )
 
 type ReturnedEncounterShort struct {
-	ID       int32  `json:"id"`
-	Boss     string `json:"boss"`
-	Date     int64  `json:"date"`
-	Duration int32  `json:"duration"`
+	ID          int32  `json:"id"`
+	Boss        string `json:"boss"`
+	Date        int64  `json:"date"`
+	Duration    int32  `json:"duration"`
+	LocalPlayer string `json:"localPlayer"`
 	structs.EncounterHeader
-	structs.EncounterData
 }
 
-type ReturnedEncounterDetails struct {
+type ReturnedEncounter struct {
 	Buffs     meter.BuffInfo   `json:"buffs"`
 	Debuffs   meter.BuffInfo   `json:"debuffs"`
 	HPLog     meter.HPLog      `json:"hpLog"`
@@ -79,10 +79,21 @@ func (s *Server) recentLogs(c *gin.Context) {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
-		date = time.UnixMilli(num)
+		date = time.UnixMilli(num).UTC()
+		log.Println(date)
 	}
 
-	encs, err := s.conn.RecentEncounters(ctx, c.Query("user"), date)
+	var id int32
+	if c.Query("id") != "" {
+		num, err := strconv.Atoi(c.Query("id"))
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		id = int32(num)
+	}
+
+	encs, err := s.conn.RecentEncounters(ctx, c.Query("user"), id, date)
 	if err != nil {
 		if strings.Contains(err.Error(), "scanning user uuid") {
 			c.AbortWithStatus(http.StatusBadRequest)
@@ -100,6 +111,7 @@ func (s *Server) recentLogs(c *gin.Context) {
 			Boss:            enc.Boss,
 			Date:            enc.Date.Time.UnixMilli(),
 			Duration:        enc.Duration,
+			LocalPlayer:     enc.LocalPlayer,
 			EncounterHeader: enc.Header,
 		}
 	}

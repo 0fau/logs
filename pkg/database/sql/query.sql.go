@@ -309,15 +309,18 @@ SELECT id,
        local_player
 FROM encounters
 WHERE ($1::TIMESTAMP IS NULL
-    OR $1 > date)
-  AND ($2::UUID IS NULL
-    OR $2 = uploaded_by)
-ORDER BY date DESC
+    OR $1 >= date)
+  AND ($2 < id
+    OR $2 IS NULL)
+  AND ($3::UUID IS NULL
+    OR $3 = uploaded_by)
+ORDER BY date DESC, id ASC
 LIMIT 5
 `
 
 type ListRecentEncountersParams struct {
 	Date pgtype.Timestamp
+	ID   pgtype.Int4
 	User pgtype.UUID
 }
 
@@ -335,7 +338,7 @@ type ListRecentEncountersRow struct {
 }
 
 func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncountersParams) ([]ListRecentEncountersRow, error) {
-	rows, err := q.db.Query(ctx, listRecentEncounters, arg.Date, arg.User)
+	rows, err := q.db.Query(ctx, listRecentEncounters, arg.Date, arg.ID, arg.User)
 	if err != nil {
 		return nil, err
 	}

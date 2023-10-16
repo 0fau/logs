@@ -87,7 +87,7 @@ func (p *Processor) Save(ctx context.Context, db *database.DB, user pgtype.UUID,
 		return 0, errors.Wrap(err, "processing encounter")
 	}
 
-	start := time.UnixMilli(raw.FightStart)
+	start := time.UnixMilli(raw.FightStart).UTC()
 	var date pgtype.Timestamp
 	if err := date.Scan(start); err != nil {
 		return 0, errors.Wrap(err, "scanning duration pgtype.Timstamp")

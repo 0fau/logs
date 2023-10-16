@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({request, cookies}) => {
     url += "://" + env.LBF_API_SERVER_ADDRESS
 
     const recent = await fetch(
-        url + "/api/logs/recent",
+        url + "/api/logs/@recent",
     )
 
     const sessions = cookies.get("sessions")

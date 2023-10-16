@@ -10,8 +10,8 @@
     <title>logs by faust</title>
 </svelte:head>
 
-<div class="w-[1512px] h-[860px] bg-[#faf4ed] flex justify-center items-center">
-    <div class="w-[86%] h-[86%] flex flex-row shadow rounded-lg">
+<div class="w-screen h-screen min-w-[1512px] min-h-[860px] bg-[#faf4ed] flex justify-center items-center">
+    <div class="w-[1300px] h-[740px] flex flex-row shadow rounded-lg">
         <div class="w-[20%] min-w-[220px] border-l-[1px] border-y-[1px] border-[#efdcc5] h-full bg-[#b4637a] rounded-l-lg flex flex-col">
             <Sidebar user={data.me}/>
         </div>

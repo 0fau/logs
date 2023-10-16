@@ -15,11 +15,11 @@
 <div class="w-screen h-screen min-w-[1512px] min-h-[860px] bg-[#faf4ed] flex justify-center items-center">
     <div class="w-[1300px] h-[740px] flex flex-row shadow rounded-lg">
         <div class="w-[20%] min-w-[220px] border-l-[1px] border-y-[1px] border-[#efdcc5] h-full bg-[#b4637a] rounded-l-lg flex flex-col">
-            <Sidebar selected="logs" user={data.me}/>
+            <Sidebar user={data.me}/>
         </div>
         <div class="w-[35%] min-w-[400px] border-y-[1px] border-[#efdcc5] h-full bg-[#d6adb9]">
             <div class="w-4/5 border-[1px] border-[#efdcc5] h-[46px] text-[#575279] mx-auto mt-10 rounded-2xl bg-[#F4EDE9] flex justify-center items-center flex-row">
-                <input placeholder="owo owo owo" class="bg-[#F4EDE9] w-4/5 outline-0"/>
+                <input placeholder="owo owo owo" class="bg-[#F4EDE9] placeholder-[#a7a3c1] w-4/5 outline-0"/>
                 <button>
                     <IconSearch class="w-6 h-6"/>
                 </button>

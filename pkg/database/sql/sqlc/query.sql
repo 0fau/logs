@@ -66,10 +66,12 @@ SELECT id,
        local_player
 FROM encounters
 WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
-    OR sqlc.narg('date') > date)
+    OR sqlc.narg('date') >= date)
+  AND (sqlc.narg('id') < id
+    OR sqlc.narg('id') IS NULL)
   AND (sqlc.narg('user')::UUID IS NULL
     OR sqlc.narg('user') = uploaded_by)
-ORDER BY date DESC
+ORDER BY date DESC, id ASC
 LIMIT 5;
 
 -- name: GetEntities :many
