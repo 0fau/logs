@@ -22,3 +22,8 @@ export function formatPercent(percent: number): string {
     const ret = numeral(percent * 100).format('0.0');
     return ret == "0.0" ? "" : ret;
 }
+
+export function formatPercentFlat(percent: number): string {
+    const ret = numeral(percent * 100).format('0');
+    return ret == "0" ? "" : ret;
+}

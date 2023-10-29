@@ -27,14 +27,19 @@ func (s *Server) generateToken(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	token := randstr.String(64)
+	token := ""
+	if c.Query("revoke") != "true" {
+		token = randstr.String(64)
+	}
 	if err := s.conn.SetUserAccessToken(ctx, u.ID, token); err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, token)
+	c.JSON(http.StatusOK, struct {
+		Token string `json:"token"`
+	}{token})
 }
 
 func hasRole(user *sql.User, role string) bool {

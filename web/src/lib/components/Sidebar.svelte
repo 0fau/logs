@@ -1,4 +1,8 @@
 <script lang="ts">
+    import {blur} from 'svelte/transition';
+    import {settingsUI} from '$lib/menu'
+    import {user} from '$lib/store'
+
     import IconAnalytics from '~icons/material-symbols/analytics-outline'
     import IconAnalytics2 from '~icons/carbon/analytics'
     import IconCommunity from '~icons/iconoir/community'
@@ -10,11 +14,14 @@
     import IconAbout from '~icons/mdi/about-circle-outline'
     import IconDiscord from '~icons/prime/discord'
     import IconStar from '~icons/ph/shooting-star'
+    import IconOpen from '~icons/nimbus/ellipsis'
+    import IconLogout from '~icons/material-symbols/logout-sharp'
 
-    import { page } from '$app/stores';
+    import IconSetting from '~icons/uil/setting'
+
+    import {page} from '$app/stores';
+
     $: selected = $page.url.pathname.substring(1).split("/")[0];
-
-    export let user;
 
     function style(select, item) {
         if (select == item) {
@@ -22,6 +29,28 @@
         } else {
             return "w-[65%] mb-2 opacity-95"
         }
+    }
+
+    let toggle;
+    let panelOpen = false;
+
+    function unfocus(box) {
+        const click = (event) => {
+            if (!box.contains(event.target) && !toggle.contains(event.target)) {
+                panelOpen = false;
+            }
+        }
+
+        document.addEventListener('click', click, true)
+        return {
+            destroy() {
+                document.removeEventListener('click', click, true)
+            }
+        }
+    }
+
+    function openSettings() {
+        settingsUI.set(true)
     }
 </script>
 
@@ -74,11 +103,36 @@
     </a>
 </div>
 
-{#if user && user.id}
-    <div class="mx-auto mt-auto mb-10 flex items-center justify-center bg-[#9a4a61] py-2 px-4 rounded">
-<!--        <img class="mr-1.5 w-6 h-6 inline rounded-lg"-->
-<!--             src="https://cdn.discordapp.com/avatars/{user.discord_id}/{user.avatar}.png"/>-->
-            <span class="text-[#fcf9f6] text-xs">{user.username ? user.username : user.discord_tag}</span>
+{#if $user && $user.id}
+    <div class="flex flex-row mt-auto mb-10 items-center justify-center">
+        <div class="bg-[#9a4a61] m-1 rounded py-1 shadow-sm opacity-0">
+            <IconOpen class="text-[#fcf9f6]"/>
+        </div>
+        <div class="flex items-center justify-center bg-[#9a4a61] py-2 px-4 rounded shadow-sm">
+            <span class="text-[#fcf9f6] text-xs">{$user.username ? $user.username : "@" + $user.discord_tag}</span>
+        </div>
+        <button bind:this={toggle} on:click={() => panelOpen = !panelOpen}
+                class="bg-[#9a4a61] m-1 rounded py-1 shadow-sm">
+            <IconOpen class="text-[#fcf9f6]"/>
+        </button>
+        {#if panelOpen}
+            <div transition:blur={{duration: 10}}
+                 class="absolute py-0.5 -translate-y-[52px] w-[120px] h-fit bg-[#9a4a61] shadow-sm rounded text-[#fcf9f6] text-center text-xs flex flex-col items-center justify-center"
+                 use:unfocus>
+                <button on:click={openSettings} class="w-[90%] h-[30px] flex justify-center items-center">
+                    <IconSetting class="inline mr-1"/>
+                    Settings
+                </button>
+                <div class="w-[90%] h-[30px] flex justify-center items-center">
+                    <form action="/logout" method="post">
+                        <button class="flex justify-center items-center">
+                            <IconLogout class="inline mr-1"/>
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+        {/if}
     </div>
 {:else}
     <div class="mt-auto mx-auto">

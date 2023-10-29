@@ -76,6 +76,9 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.GET("api/users/:user", s.userHandler)
 	s.router.POST("logout", s.logout)
 
+	s.router.GET("api/settings", s.settingsHandler)
+	s.router.PUT("api/settings/username", s.setUsername)
+
 	s.router.POST("api/logs/upload", s.uploadHandler)
 	s.router.GET("api/logs/@recent", s.recentLogs)
 	//s.router.GET("api/logs/:log", s.logHandler)

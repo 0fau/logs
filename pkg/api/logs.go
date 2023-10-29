@@ -16,6 +16,7 @@ import (
 
 type ReturnedEncounterShort struct {
 	ID          int32  `json:"id"`
+	Difficulty  string `json:"difficulty"`
 	Boss        string `json:"boss"`
 	Date        int64  `json:"date"`
 	Duration    int32  `json:"duration"`
@@ -108,6 +109,7 @@ func (s *Server) recentLogs(c *gin.Context) {
 	for i, enc := range encs {
 		ret[i] = ReturnedEncounterShort{
 			ID:              enc.ID,
+			Difficulty:      enc.Difficulty,
 			Boss:            enc.Boss,
 			Date:            enc.Date.Time.UnixMilli(),
 			Duration:        enc.Duration,

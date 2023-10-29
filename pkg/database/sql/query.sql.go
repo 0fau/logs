@@ -38,7 +38,7 @@ func (q *Queries) GetData(ctx context.Context, id int32) (structs.EncounterData,
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT id, uploaded_by, uploaded_at, settings, tags, header, data, boss, date, duration, local_player
+SELECT id, uploaded_by, uploaded_at, settings, tags, header, data, boss, difficulty, date, duration, local_player
 FROM encounters
 WHERE id = $1
 LIMIT 1
@@ -56,6 +56,7 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error)
 		&i.Header,
 		&i.Data,
 		&i.Boss,
+		&i.Difficulty,
 		&i.Date,
 		&i.Duration,
 		&i.LocalPlayer,
@@ -161,21 +162,29 @@ func (q *Queries) GetUser(ctx context.Context, discordTag string) (User, error) 
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, created_at
+SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 FROM users
-WHERE discord_tag = $1
+WHERE id = $1
 LIMIT 1
 `
 
-type GetUserByIDRow struct {
-	ID        pgtype.UUID
-	CreatedAt pgtype.Timestamp
-}
-
-func (q *Queries) GetUserByID(ctx context.Context, discordTag string) (GetUserByIDRow, error) {
-	row := q.db.QueryRow(ctx, getUserByID, discordTag)
-	var i GetUserByIDRow
-	err := row.Scan(&i.ID, &i.CreatedAt)
+func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AccessToken,
+		&i.DiscordID,
+		&i.DiscordTag,
+		&i.Avatar,
+		&i.Friends,
+		&i.Settings,
+		&i.Titles,
+		&i.Roles,
+	)
 	return i, err
 }
 
@@ -208,8 +217,8 @@ func (q *Queries) GetUserByToken(ctx context.Context, accessToken pgtype.Text) (
 
 const insertEncounter = `-- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, settings, tags, header, data, boss, date, duration, local_player)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id
 `
 
@@ -219,6 +228,7 @@ type InsertEncounterParams struct {
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
+	Difficulty  string
 	Boss        string
 	Date        pgtype.Timestamp
 	Duration    int32
@@ -232,6 +242,7 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 		arg.Tags,
 		arg.Header,
 		arg.Data,
+		arg.Difficulty,
 		arg.Boss,
 		arg.Date,
 		arg.Duration,
@@ -298,6 +309,7 @@ type InsertSkillParams struct {
 
 const listRecentEncounters = `-- name: ListRecentEncounters :many
 SELECT id,
+       difficulty,
        uploaded_by,
        uploaded_at,
        settings,
@@ -326,6 +338,7 @@ type ListRecentEncountersParams struct {
 
 type ListRecentEncountersRow struct {
 	ID          int32
+	Difficulty  string
 	UploadedBy  pgtype.UUID
 	UploadedAt  pgtype.Timestamp
 	Settings    structs.EncounterSettings
@@ -348,6 +361,7 @@ func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncoun
 		var i ListRecentEncountersRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Difficulty,
 			&i.UploadedBy,
 			&i.UploadedAt,
 			&i.Settings,
@@ -381,6 +395,22 @@ type SetAccessTokenParams struct {
 
 func (q *Queries) SetAccessToken(ctx context.Context, arg SetAccessTokenParams) error {
 	_, err := q.db.Exec(ctx, setAccessToken, arg.ID, arg.AccessToken)
+	return err
+}
+
+const setUsername = `-- name: SetUsername :exec
+UPDATE users
+SET username = $2
+WHERE id = $1
+`
+
+type SetUsernameParams struct {
+	ID       pgtype.UUID
+	Username pgtype.Text
+}
+
+func (q *Queries) SetUsername(ctx context.Context, arg SetUsernameParams) error {
+	_, err := q.db.Exec(ctx, setUsername, arg.ID, arg.Username)
 	return err
 }
 

@@ -40,6 +40,7 @@ type Entity struct {
 	Class       string            `json:"class"`
 	Dead        bool              `json:"isDead"`
 	Name        string            `json:"name"`
+	GearScore   float64           `json:"gearScore"`
 	EntityType  string            `json:"entityType"`
 	DamageStats EntityDamageStats `json:"damageStats"`
 	SkillStats  EntitySkillStats  `json:"skillStats"`

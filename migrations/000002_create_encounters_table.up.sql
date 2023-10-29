@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS encounters
     data         JSON      NOT NULL,
 
     boss         STRING    NOT NULL,
+    difficulty   STRING    NOT NULL,
     date         TIMESTAMP NOT NULL,
     duration     INT       NOT NULL,
     local_player STRING    NOT NULL,

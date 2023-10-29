@@ -30,6 +30,8 @@ func (p *Processor) Initialize() error {
 }
 
 type Encounter struct {
+	raw *meter.Encounter
+
 	Header structs.EncounterHeader
 	Data   structs.EncounterData
 }
@@ -38,24 +40,41 @@ func (p *Processor) Lint(enc *meter.Encounter) error {
 	return nil
 }
 
-func (p *Processor) Process(enc *meter.Encounter) (*Encounter, error) {
-	header := structs.EncounterHeader{
-		Players: make(map[string]structs.PlayerHeader),
-		Parties: make([][]string, len(enc.DamageStats.Misc.PartyInfo)),
-		Damage:  enc.DamageStats.TotalDamageDealt,
-		Cleared: enc.DamageStats.Misc.Cleared,
+func (p *Processor) Process(raw *meter.Encounter) (*Encounter, error) {
+	enc := &Encounter{raw: raw}
+	header, err := enc.processHeader()
+	if err != nil {
+		return nil, errors.Wrap(err, "processing encounter header")
+	}
+	data, err := enc.processData()
+	if err != nil {
+		return nil, errors.Wrap(err, "processing encounter data")
 	}
 
-	for party, players := range enc.DamageStats.Misc.PartyInfo {
+	enc.Header = header
+	enc.Data = data
+	enc.highlight()
+	return enc, nil
+}
+
+func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
+	header := structs.EncounterHeader{
+		Players: make(map[string]structs.PlayerHeader),
+		Parties: make([][]string, len(enc.raw.DamageStats.Misc.PartyInfo)),
+		Damage:  enc.raw.DamageStats.TotalDamageDealt,
+		Cleared: enc.raw.DamageStats.Misc.Cleared,
+	}
+
+	for party, players := range enc.raw.DamageStats.Misc.PartyInfo {
 		num, err := strconv.Atoi(party)
 		if err != nil {
-			return nil, errors.Wrapf(err, "converting party %s to number", party)
+			return structs.EncounterHeader{}, errors.Wrapf(err, "converting party %s to number", party)
 		}
 
 		header.Parties[num] = players
 	}
 
-	for _, entity := range enc.Entities {
+	for _, entity := range enc.raw.Entities {
 		if entity.EntityType == "ESTHER" {
 			continue
 		}
@@ -68,10 +87,31 @@ func (p *Processor) Process(enc *meter.Encounter) (*Encounter, error) {
 			Alive:  !entity.Dead,
 		}
 	}
+	return header, nil
+}
 
-	return &Encounter{
-		Header: header,
-	}, nil
+const (
+	PartyDamagePercentColumn = iota
+	PartyDamageCritColumn
+	PartyDamageCritDamageColumn
+	PartyDamageFAColumn
+	PartyDamageBAColumn
+	PartyDamageBuffPercentColumn
+	PartyDamageBrandPercentColumn
+)
+
+func (enc *Encounter) processData() (structs.EncounterData, error) {
+	data := structs.EncounterData{}
+
+	for _, entity := range enc.raw.Entities {
+
+	}
+
+	return data, nil
+}
+
+func (enc *Encounter) highlight() {
+
 }
 
 func (p *Processor) Save(ctx context.Context, db *database.DB, user pgtype.UUID, raw *meter.Encounter) (int32, error) {
@@ -96,6 +136,7 @@ func (p *Processor) Save(ctx context.Context, db *database.DB, user pgtype.UUID,
 	encID, err := qtx.InsertEncounter(ctx, sql.InsertEncounterParams{
 		UploadedBy:  user,
 		Boss:        raw.CurrentBossName,
+		Difficulty:  raw.Difficulty,
 		Date:        date,
 		Duration:    raw.Duration,
 		LocalPlayer: raw.LocalPlayer,

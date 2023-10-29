@@ -5,9 +5,9 @@ WHERE discord_tag = $1
 LIMIT 1;
 
 -- name: GetUserByID :one
-SELECT id, created_at
+SELECT *
 FROM users
-WHERE discord_tag = $1
+WHERE id = $1
 LIMIT 1;
 
 -- name: GetUserByToken :one
@@ -15,6 +15,11 @@ SELECT *
 FROM users
 WHERE access_token = $1
 LIMIT 1;
+
+-- name: SetUsername :exec
+UPDATE users
+SET username = $2
+WHERE id = $1;
 
 -- name: SetAccessToken :exec
 UPDATE users
@@ -37,8 +42,8 @@ WHERE id = $1;
 
 -- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, settings, tags, header, data, boss, date, duration, local_player)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id;
 
 -- name: InsertEntity :one
@@ -55,6 +60,7 @@ LIMIT 1;
 
 -- name: ListRecentEncounters :many
 SELECT id,
+       difficulty,
        uploaded_by,
        uploaded_at,
        settings,

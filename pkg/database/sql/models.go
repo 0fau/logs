@@ -19,6 +19,7 @@ type Encounter struct {
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
 	Boss        string
+	Difficulty  string
 	Date        pgtype.Timestamp
 	Duration    int32
 	LocalPlayer string

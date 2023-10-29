@@ -44,9 +44,16 @@ func (db *DB) SetUserAccessToken(
 		return err
 	}
 
+	at := pgtype.Text{}
+	if token != "" {
+		if err := at.Scan(token); err != nil {
+			return errors.Wrap(err, "scanning pgtype.Text access token")
+		}
+	}
+
 	return db.Queries.SetAccessToken(ctx, sql.SetAccessTokenParams{
 		ID:          uuid,
-		AccessToken: pgtext(token),
+		AccessToken: at,
 	})
 }
 

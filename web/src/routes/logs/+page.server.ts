@@ -12,6 +12,7 @@ export const load: PageServerLoad = async ({request, cookies}) => {
         url + "/api/logs/@recent",
     )
 
+
     const sessions = cookies.get("sessions")
     if (!sessions) {
         return {
