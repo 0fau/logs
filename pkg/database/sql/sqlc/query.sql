@@ -46,6 +46,12 @@ INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, da
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id;
 
+-- name: ProcessEncounter :exec
+UPDATE encounters
+SET header = $2,
+    data   = $3
+WHERE id = $1;
+
 -- name: InsertEntity :one
 INSERT
 INTO players (encounter, class, enttype, name, damage, dps, dead, fields)
@@ -72,9 +78,7 @@ SELECT id,
        local_player
 FROM encounters
 WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
-    OR sqlc.narg('date') >= date)
-  AND (sqlc.narg('id') < id
-    OR sqlc.narg('id') IS NULL)
+    OR (sqlc.narg('date') > date OR (sqlc.narg('date')::TIMESTAMP = date AND sqlc.narg('id')::INT < id)))
   AND (sqlc.narg('user')::UUID IS NULL
     OR sqlc.narg('user') = uploaded_by)
 ORDER BY date DESC, id ASC
@@ -98,3 +102,18 @@ WHERE id = $1;
 SELECT *
 FROM skills
 WHERE encounter = $1;
+
+-- name: GetRaidStats :many
+SELECT boss, difficulty, count(*)
+FROM encounters
+GROUP BY boss, difficulty;
+
+-- name: GetUniqueUploaders :one
+SELECT COUNT(DISTINCT jsonb_object_keys(header -> 'players'))
+FROM encounters;
+
+-- name: CountClasses :many
+SELECT (value ->> 'class')::STRING AS class, COUNT(*)
+FROM encounters,
+     jsonb_each(header -> 'players') AS player
+GROUP BY (value ->> 'class')::STRING;

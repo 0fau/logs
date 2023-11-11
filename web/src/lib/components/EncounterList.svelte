@@ -1,5 +1,6 @@
 <script lang="ts">
     import {formatDamage, formatDate, formatDuration} from "$lib/components/meter/print";
+    import {getBossIcon} from "$lib/raids";
     import IconArrow from '~icons/carbon/next-filled'
     import IconBack from '~icons/ion/arrow-back-outline'
     import IconScope from '~icons/mdi/telescope'
@@ -9,63 +10,11 @@
     export let encounters;
     scan(encounters)
     process(encounters)
-    console.log(encounters)
 
-    const raids = {
-        "Dark Mountain Predator": {
-            icon: "/icons/raids/valtan.png"
-        },
-        "Ravaged Tyrant of Beasts": {
-            icon: "/icons/raids/valtan.png"
-        },
-        "Saydon": {
-            icon: "/icons/raids/clown.png"
-        },
-        "Kakul": {
-            icon: "/icons/raids/clown.png"
-        },
-        "Encore-Desiring Kakul-Saydon": {
-            icon: "/icons/raids/clown.png"
-        },
-        "Incubus Morphe": {
-            icon: "/icons/raids/vykas.png"
-        },
-        "Nightmarish Morphe": {
-            icon: "/icons/raids/vykas.png"
-        },
-        "Covetous Devourer Vykas": {
-            icon: "/icons/raids/vykas.png"
-        },
-        "Covetous Legion Commander Vykas": {
-            icon: "/icons/raids/vykas.png"
-        },
-        "Ashtarot": {
-            icon: "/icons/raids/brelshaza.png"
-        },
-        "Primordial Nightmare": {
-            icon: "/icons/raids/brelshaza.png"
-        },
-        "Gehenna Helkasirs": {
-            icon: "/icons/raids/brelshaza.png"
-        },
-        "Evolved Maurug": {
-            icon: "/icons/raids/akkan.png"
-        },
-        "Lord of Degradation Akkan": {
-            icon: "/icons/raids/akkan.png"
-        },
-        "Plague Legion Commander Akkan": {
-            icon: "/icons/raids/akkan.png"
-        },
-    };
-    let focused = encounters[0];
+    let focused;
 
     function focus(encounter) {
         focused = encounter
-    }
-
-    function getRaidIcon(boss: string) {
-        return raids[boss] ? raids[boss].icon : "/icons/raids/surprised.png"
     }
 
     let page = 0;
@@ -153,8 +102,8 @@
 
 <div class="m-auto mt-10 flex flex-col justify-center items-center">
     <div class="flex flex-row w-[88%] justify-center items-center">
-        <div class="w-[270px] h-[36px] px-1 bg-[#b96d83] text-center text-[#F4EDE9] text-sm flex flex-row justify-center items-center rounded-sm mb-3">
-            <div class="w-[80%] h-[76%] rounded-sm flex justify-center items-center bg-[#F4EDE9] shadow-sm">
+        <div class="w-[270px] h-[40px] px-1 bg-[#b96d83] text-center text-[#F4EDE9] text-sm flex flex-row justify-center items-center rounded-xl mb-3">
+            <div class="w-[80%] h-[76%] rounded-lg flex justify-center items-center bg-[#F4EDE9] shadow-sm">
                 <button class="w-full font-medium text-[#b4637a]">Arkesia</button>
             </div>
             <div class="w-full h-full flex justify-center items-center">
@@ -165,7 +114,7 @@
             </div>
         </div>
     </div>
-    <div class="w-[88%] flex flex-col justify-center items-center bg-[#dec5cd] pt-4 mb-3 rounded-md">
+    <div class="w-[88%] flex flex-col overflow-hidden justify-center items-center bg-[#dec5cd] pt-4 mb-3 rounded-md">
         {#each display as encounter}
             <button
                     class="{focused ? '' : 'mb-5'} h-[80px] flex border-[0.5px] border-[#c58597] shadow-sm rounded-md w-[94%] bg-[#F4EDE9]"
@@ -175,7 +124,7 @@
                         <div class="self-start text-left text-[#575279]">
                             <div>
                                 <span class="font-medium">[#{encounter.id}]</span>
-                                <img alt={encounter.boss} src={getRaidIcon(encounter.boss)}
+                                <img alt={encounter.boss} src={getBossIcon(encounter.boss)}
                                      class="inline w-6 h-6 -translate-y-0.5"/>
                                 <span class="font-medium">{encounter.boss}</span>
                             </div>
@@ -201,12 +150,12 @@
                         Back
                     </button>
                 </div>
-                <div class="mx-auto mt-auto mb-1 p-0.5 px-6 rounded-md text-[#f7f2ef] bg-[#b96d83]">Recap</div>
+                <div class="mx-auto mt-auto mb-1 p-0.5 px-6 rounded-md text-[#f7f2ef] bg-[#b96d83]">Preview</div>
                 <div class="my-1">
                     <button class="flex items-center justify-center bg-[#f3eeec] p-0.5 px-1.5 border-[0.5px] border-[#575279] rounded-md text-[#575279]"
                             on:click={() => window.open("/log/" + focused.id, '_blank').focus()}>
                         <IconScope class="inline mr-0.5"/>
-                        Inspect
+                        Open
                     </button>
                 </div>
             </div>

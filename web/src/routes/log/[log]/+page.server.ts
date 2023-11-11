@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({params, cookies}) => {
     }
 
     const enc = await fetch(
-        url + "/api/logs/" + params.log,
+        url + "/api/log/" + params.log,
         {headers: headers},
     );
     if (!enc.ok) {

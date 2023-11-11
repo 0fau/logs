@@ -150,15 +150,17 @@ func (s *Server) meHandler(c *gin.Context) {
 	u := ReturnedUser{}
 	if val := sesh.Get("user"); val != nil {
 		user := val.(*SessionUser)
-		u.ID = user.ID
-		u.Username = user.Username
-		u.DiscordTag = user.DiscordTag
-		u.DiscordID = user.DiscordID
-		u.Avatar = user.Avatar
 		fmt.Println(u)
+		c.JSON(http.StatusOK, ReturnedUser{
+			ID:         user.ID,
+			Username:   user.Username,
+			DiscordTag: user.DiscordTag,
+			DiscordID:  user.DiscordID,
+			Avatar:     user.Avatar,
+		})
+	} else {
+		c.JSON(http.StatusUnauthorized, struct{}{})
 	}
-
-	c.JSON(http.StatusOK, u)
 }
 
 func (s *Server) logout(c *gin.Context) {

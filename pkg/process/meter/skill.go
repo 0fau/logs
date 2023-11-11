@@ -14,7 +14,7 @@ type BuffSource struct {
 	Description       string     `json:"desc"`
 	Icon              string     `json:"icon"`
 	Name              string     `json:"name"`
-	SetName           *string    `json:"setName"`
+	SetName           string     `json:"setName"`
 	Skill             *BuffSkill `json:"skill"`
 	SummonIDs         []int32    `json:"summonIds"`
 	SummonSourceSkill []int32    `json:"summonSourceSkill"`
@@ -36,8 +36,10 @@ type TripodRows struct {
 }
 
 type Skill struct {
-	Buffed   BuffDamage `json:"buffedBy"`
-	Debuffed BuffDamage `json:"debuffedBy"`
+	BuffedBy   BuffDamage `json:"buffedBy"`
+	DebuffedBy BuffDamage `json:"debuffedBy"`
+	Buffed     int64      `json:"buffedBySupport"`
+	Debuffed   int64      `json:"debuffedBySupport"`
 
 	CastLog []int32 `json:"castLog"`
 	Casts   int32   `json:"casts"`
@@ -46,11 +48,12 @@ type Skill struct {
 	BA      int32   `json:"backAttacks"`
 	FA      int32   `json:"frontAttacks"`
 
-	DPS      int64 `json:"dps"`
-	Max      int64 `json:"maxDamage"`
-	Damage   int64 `json:"totalDamage"`
-	BADamage int64 `json:"backAttackDamage"`
-	FADamage int64 `json:"frontAttackDamage"`
+	DPS        int64 `json:"dps"`
+	Max        int64 `json:"maxDamage"`
+	Damage     int64 `json:"totalDamage"`
+	CritDamage int64 `json:"critDamage"`
+	BADamage   int64 `json:"backAttackDamage"`
+	FADamage   int64 `json:"frontAttackDamage"`
 
 	TripodIndex TripodRows `json:"tripodIndex"`
 	TripodLevel TripodRows `json:"tripodLevel"`

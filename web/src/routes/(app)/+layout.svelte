@@ -1,9 +1,32 @@
 <script lang="ts">
     import type {LayoutData} from './$types';
     import Sidebar from '$lib/components/Sidebar.svelte';
+    import {user} from "$lib/store";
+    import {settingsUI} from "$lib/menu";
+    import Settings from "$lib/components/Settings.svelte";
 
     export let data: LayoutData;
     console.log(data)
+
+    if (data.me.id) {
+        user.set(data.me)
+    }
+
+    let settings;
+    settingsUI.subscribe(async (open) => {
+        if (open) {
+            let resp = await fetch("/api/settings", {
+                credentials: 'same-origin'
+            })
+            if (!resp.ok) {
+                return
+            }
+
+            settings = await resp.json()
+        } else {
+            settings = undefined
+        }
+    })
 </script>
 
 <svelte:head>
@@ -11,6 +34,11 @@
 </svelte:head>
 
 <div class="w-screen h-screen min-w-[1512px] min-h-[860px] bg-[#faf4ed] flex justify-center items-center">
+    {#if settings}
+        <div class="absolute text-[#413d5b] py-4 px-5 left-1/2 top-1/2 shadow-sm z-50 border-[#b4637a] border-[1px] rounded-xl -translate-x-[50%] -translate-y-[80%] w-[376px] h-[330px] bg-[#faf4ed]">
+            <Settings {settings}/>
+        </div>
+    {/if}
     <div class="w-[1300px] h-[740px] flex flex-row shadow rounded-lg">
         <div class="w-[20%] min-w-[220px] border-l-[1px] border-y-[1px] border-[#efdcc5] h-full bg-[#b4637a] rounded-l-lg flex flex-col">
             <Sidebar user={data.me}/>

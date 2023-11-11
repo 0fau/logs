@@ -51,6 +51,10 @@ func hasRole(user *sql.User, role string) bool {
 	return false
 }
 
+type Error struct {
+	Error string `json:"error"`
+}
+
 func (s *Server) uploadHandler(c *gin.Context) {
 	token := c.GetHeader("access_token")
 	if token == "" {
@@ -89,12 +93,19 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
+	if !enc.DamageStats.Misc.Cleared {
+		c.JSON(http.StatusBadRequest, Error{
+			Error: "Only clears are accepted at the moment.",
+		})
+		return
+	}
+
 	if err := s.processor.Lint(enc); err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	if _, err := s.processor.Save(ctx, s.conn, user.ID, enc); err != nil {
+	if _, err := s.processor.Save(ctx, user.ID, string(raw), enc); err != nil {
 		log.Println(errors.Wrap(err, "saving encounter"))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

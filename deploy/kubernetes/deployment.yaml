@@ -45,6 +45,26 @@ spec:
                 secretKeyRef:
                   name: redis
                   key: redis-password
+            - name: LBF_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: logsbyfaust
+                  key: AWS_ACCESS_KEY_ID
+            - name: LBF_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: logsbyfaust
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: LBF_S3_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: logsbyfaust
+                  key: BUCKET_HOST
+            - name: LBF_S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: logsbyfaust
+                  key: BUCKET_NAME
           envFrom:
             - configMapRef:
                 name: logs-api

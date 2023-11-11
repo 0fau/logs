@@ -8,26 +8,28 @@ export const load: PageServerLoad = async ({request, cookies}) => {
     }
     url += "://" + env.LBF_API_SERVER_ADDRESS
 
-    const recent = await fetch(
-        url + "/api/logs/@recent",
-    )
-
-
-    const sessions = cookies.get("sessions")
-    if (!sessions) {
-        return {
-            me: {},
-            recent: await recent.json(),
-        }
+    const token = cookies.get("sessions")
+    let header;
+    if (token) {
+        header = {cookie: "sessions=" + token}
     }
 
-    const me = await fetch(
-        url + "/api/users/@me",
-        {headers: {cookie: "sessions=" + cookies.get("sessions")}},
-    )
+    const fetches = []
+    for (const path of [
+        "/api/logs/@recent", "/api/logs/stats", "/api/users/@me"
+    ]) {
+        fetches.push(fetch(url + path, {
+            headers: header,
+        }).then(resp => {
+            return resp.ok ? resp.json() : {}
+        }))
+    }
+
+    const [recent, stats, me] = await Promise.all(fetches)
 
     return {
-        me: await me.json(),
-        recent: await recent.json(),
+        me: me,
+        stats: stats,
+        recent: recent,
     };
 };

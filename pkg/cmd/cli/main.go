@@ -1,13 +1,20 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"github.com/0fau/logs/pkg/admin"
 	"github.com/0fau/logs/pkg/process/meter"
+	"github.com/cockroachdb/errors"
 	"github.com/goccy/go-json"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
+	"strconv"
 )
 
 func main() {
@@ -15,8 +22,40 @@ func main() {
 		Use: "logs",
 	}
 	cmd.AddCommand(get())
+	cmd.AddCommand(process())
 	if err := cmd.Execute(); err != nil {
 		panic(err)
+	}
+}
+
+func process() *cobra.Command {
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("LCLI")
+
+	viper.MustBindEnv("ADMIN_ADDRESS")
+	addr := viper.GetString("ADMIN_ADDRESS")
+
+	return &cobra.Command{
+		Use:  "process",
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			encID, err := strconv.Atoi(args[0])
+			if err != nil {
+				log.Fatal(errors.Wrap(err, "convert encounter id"))
+			}
+
+			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Fatal(errors.Wrap(err, "grpc dial"))
+			}
+
+			ctx := context.Background()
+			cli := admin.NewAdminClient(conn)
+			_, err = cli.Process(ctx, &admin.ProcessRequest{Encounter: int32(encID)})
+			if err != nil {
+				log.Fatal(errors.Wrap(err, "process"))
+			}
+		},
 	}
 }
 

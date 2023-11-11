@@ -15,3 +15,7 @@ spec:
       protocol: TCP
       port: 3001
       targetPort: 3001
+    - name: admin
+      protocol: TCP
+      port: 3010
+      targetPort: 3010

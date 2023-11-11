@@ -3,14 +3,17 @@ package api
 import (
 	"context"
 	"encoding/gob"
+	"github.com/0fau/logs/pkg/admin"
 	"github.com/0fau/logs/pkg/database"
 	"github.com/0fau/logs/pkg/process"
+	"github.com/0fau/logs/pkg/s3"
 	"github.com/cockroachdb/errors"
 	gincors "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
+	"log"
 )
 
 type ServerConfig struct {
@@ -21,7 +24,10 @@ type ServerConfig struct {
 	RedisPassword string
 	SessionSecret string
 
+	S3     *s3.Config
 	OAuth2 *oauth2.Config
+
+	Admin *admin.Config
 }
 
 type Server struct {
@@ -30,6 +36,7 @@ type Server struct {
 
 	processor *process.Processor
 	conn      *database.DB
+	s3        *s3.Client
 }
 
 func cors() gin.HandlerFunc {
@@ -51,16 +58,28 @@ func NewServer(conf *ServerConfig) *Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	s.processor = process.NewLogProcessor()
-	if err := s.processor.Initialize(); err != nil {
-		return errors.Wrap(err, "initializing e processor")
-	}
-
 	conn, err := database.Connect(ctx, s.conf.DatabaseURL)
 	if err != nil {
 		return errors.Wrap(err, "connecting to database")
 	}
 	s.conn = conn
+
+	s.s3, err = s3.NewClient(s.conf.S3)
+	if err != nil {
+		return errors.Wrap(err, "creating minio s3 client")
+	}
+
+	s.processor = process.NewLogProcessor(s.conn, s.s3)
+	if err := s.processor.Initialize(); err != nil {
+		return errors.Wrap(err, "initializing e processor")
+	}
+
+	a := admin.NewServer(s.conf.Admin, conn, s.s3, s.processor)
+	go func() {
+		if err := a.Run(); err != nil {
+			log.Println(errors.Wrap(err, "running admin service"))
+		}
+	}()
 
 	store, err := redis.NewStore(10, "tcp", s.conf.RedisAddress, s.conf.RedisPassword, []byte(s.conf.SessionSecret))
 	if err != nil {
@@ -81,7 +100,9 @@ func (s *Server) Run(ctx context.Context) error {
 
 	s.router.POST("api/logs/upload", s.uploadHandler)
 	s.router.GET("api/logs/@recent", s.recentLogs)
-	//s.router.GET("api/logs/:log", s.logHandler)
+	s.router.GET("api/logs/stats", s.statsHandler)
+	s.router.GET("api/log/:log", s.logHandler)
+
 	s.router.POST("api/users/@me/token", s.generateToken)
 
 	return s.router.Run(s.conf.Address)

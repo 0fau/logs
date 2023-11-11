@@ -25,13 +25,8 @@ type ReturnedEncounterShort struct {
 }
 
 type ReturnedEncounter struct {
-	Buffs     meter.BuffInfo   `json:"buffs"`
-	Debuffs   meter.BuffInfo   `json:"debuffs"`
-	HPLog     meter.HPLog      `json:"hpLog"`
-	PartyInfo meter.PartyInfo  `json:"partyInfo"`
-	Entities  []ReturnedEntity `json:"entities"`
-
-	structs.EncounterData
+	ReturnedEncounterShort
+	Data structs.EncounterData `json:"data"`
 }
 
 type ReturnedEntity struct {
@@ -144,11 +139,16 @@ func (s *Server) logHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, ReturnedEncounterShort{
-		ID:              enc.ID,
-		Boss:            enc.Boss,
-		Date:            enc.Date.Time.UnixMilli(),
-		Duration:        enc.Duration,
-		EncounterHeader: enc.Header,
+	c.JSON(http.StatusOK, ReturnedEncounter{
+		ReturnedEncounterShort: ReturnedEncounterShort{
+			ID:              enc.ID,
+			Difficulty:      enc.Difficulty,
+			Boss:            enc.Boss,
+			Date:            enc.Date.Time.UnixMilli(),
+			Duration:        enc.Duration,
+			LocalPlayer:     enc.LocalPlayer,
+			EncounterHeader: enc.Header,
+		},
+		Data: enc.Data,
 	})
 }

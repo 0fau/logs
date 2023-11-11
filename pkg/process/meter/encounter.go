@@ -62,6 +62,7 @@ type EntityDamageStats struct {
 	DPS        int64      `json:"dps"`
 	DPSAverage []int64    `json:"dpsAverage"`
 	DPSRolling []int64    `json:"dpsRolling10sAvg"`
+	CritDamage int64      `json:"critDamage"`
 	BADamage   int64      `json:"backAttackDamage"`
 	FADamage   int64      `json:"frontAttackDamage"`
 	Buffed     int64      `json:"buffedBySupport"`

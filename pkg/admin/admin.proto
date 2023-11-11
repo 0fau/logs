@@ -1,0 +1,14 @@
+syntax = "proto3";
+package admin;
+option go_package = "github.com/0fau/logs/pkg/admin";
+
+message ProcessRequest {
+  int32 encounter = 1;
+}
+
+message ProcessResponse {
+}
+
+service Admin {
+  rpc Process(ProcessRequest) returns (ProcessResponse) {}
+}

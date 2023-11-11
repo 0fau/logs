@@ -19,20 +19,87 @@ type EncounterHeader struct {
 type PartyDamageRow []float64
 
 type EncounterData struct {
-	PartyDamage [][]int64
-	PartyBuffs  [][]string
-	PartyBuffed [][][]int64
+	BuffCatalog  map[string]BuffInfo  `json:"buffCatalog"`
+	SkillCatalog map[string]SkillInfo `json:"skillCatalog"`
 
-	PlayerDamage [][]int64
-	PlayerBuff   [][]int64
+	Synergies [][]Synergy           `json:"synergies"`
+	Players   map[string]PlayerData `json:"players"`
+}
 
-	PartySelfBuff   [][]string
-	PartySelfBuffed [][][]int64
+type Synergy struct {
+	Name  string   `json:"name"`
+	Buffs []string `json:"buffs"`
+}
 
-	PlayerSelfBuff   [][]string
-	PlayerSelfBuffed [][][]int64
+type BuffInfo struct {
+	Name        string     `json:"name"`
+	Icon        string     `json:"icon"`
+	Description string     `json:"description"`
+	Category    string     `json:"category"`
+	Set         string     `json:"set"`
+	Skill       *BuffSkill `json:"skill"`
+}
+
+type BuffSkill struct {
+	Class       int    `json:"class"`
+	Description string `json:"description"`
+	Name        string `json:"name"`
+	Icon        string `json:"icon"`
+	ID          int    `json:"id"`
+}
+
+type SkillInfo struct {
+	Name string `json:"name"`
+	Icon string `json:"icon"`
+}
+
+type Buffs map[string]*BuffGroup
+
+type PlayerData struct {
+	Damage      PlayerDamage           `json:"damage"`
+	SkillDamage map[string]SkillDamage `json:"skillDamage"`
+
+	Synergy      Buffs            `json:"synergy"`
+	SkillSynergy map[string]Buffs `json:"skillSynergy"`
+
+	SelfBuff      Buffs            `json:"selfBuff"`
+	SkillSelfBuff map[string]Buffs `json:"skillSelfBuff"`
+}
+
+type PlayerDamage struct {
+	Crit       string `json:"crit"`
+	CritDamage string `json:"critDamage"`
+	FA         string `json:"fa"`
+	BA         string `json:"ba"`
+	Buff       string `json:"buff"`
+	Brand      string `json:"brand"`
+}
+
+type SkillDamage struct {
+	Damage     int64  `json:"damage"`
+	DPS        int64  `json:"dps"`
+	Percent    string `json:"percent"`
+	Crit       string `json:"crit"`
+	CritDamage string `json:"critDamage"`
+	FA         string `json:"fa"`
+	BA         string `json:"ba"`
+	Buff       string `json:"buff"`
+	Brand      string `json:"brand"`
+	APH        string `json:"aph"`
+	APC        string `json:"apc"`
+	Max        int64  `json:"max"`
+	Casts      int32  `json:"casts"`
+	CPM        string `json:"cpm"`
+	Hits       int32  `json:"hits"`
+	HPM        string `json:"hpm"`
+}
+
+type BuffGroup struct {
+	Damage  int64            `json:"damage"`
+	Percent string           `json:"percent"`
+	Buffs   map[string]int64 `json:"buffs"`
 }
 
 type EncounterSettings struct {
-	Visibility []string
+	Visibility []string `json:"visibility"`
 }

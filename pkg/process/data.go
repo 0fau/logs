@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/cockroachdb/errors"
 	"github.com/goccy/go-json"
@@ -40,6 +41,53 @@ type PassiveOption struct {
 	KeyStat  string `json:"keystat"`
 	KeyIndex int32  `json:"keyindex"`
 	Value    int32  `json:"value"`
+}
+
+var Raids = map[string][][]string{
+	"Valtan": {
+		{"Dark Mountain Predator", "Destroyer Lucas", "Leader Lugaru"},
+		{"Demon Beast Commander Valtan", "Ravaged Tyrant of Beasts"},
+	},
+	"Vykas": {
+		{"Incubus Morphe", "Nightmarish Morphe"},
+		{"Covetous Devourer Vykas"},
+		{"Covetous Legion Commander Vykas"},
+	},
+	"Kakul Saydon": {
+		{"Saydon"},
+		{"Kakul"},
+		{"Kakul-Saydon", "Encore-Desiring Kakul-Saydon"},
+	},
+	"Brelshaza": {
+		{"Gehenna Helkasirs"},
+		{"Prokel", "Prokel's Spiritual Echo", "Ashtarot"},
+		{"Primordial Nightmare"},
+		{"Phantom Legion Commander Brelshaza"},
+		{"Brelshaza, Monarch of Nightmares", "Imagined Primordial Nightmare", "Pseudospace Primordial Nightmare"},
+		{"Phantom Legion Commander Brelshaza"},
+	},
+	"Kayangel": {
+		{"Tienis"},
+		{"Prunya"},
+		{"Lauriel"},
+	},
+	"Akkan": {
+		{"Griefbringer Maurug", "Evolved Maurug"},
+		{"Lord of Degradation Akkan"},
+		{"Plague Legion Commander Akkan", "Lord of Kartheon Akkan"},
+	},
+}
+
+var RaidLookup = make(map[string][2]string)
+
+func init() {
+	for raid, gates := range Raids {
+		for gate, bosses := range gates {
+			for _, boss := range bosses {
+				RaidLookup[boss] = [2]string{raid, strconv.Itoa(gate)}
+			}
+		}
+	}
 }
 
 func (p *Processor) loadMeterData() error {
