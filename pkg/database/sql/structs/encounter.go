@@ -22,11 +22,12 @@ type EncounterData struct {
 	BuffCatalog  map[string]BuffInfo  `json:"buffCatalog"`
 	SkillCatalog map[string]SkillInfo `json:"skillCatalog"`
 
-	Synergies [][]Synergy           `json:"synergies"`
+	Synergies [][]BuffGroupInfo     `json:"synergies"`
+	SelfBuffs []BuffGroupInfo       `json:"selfBuffs"`
 	Players   map[string]PlayerData `json:"players"`
 }
 
-type Synergy struct {
+type BuffGroupInfo struct {
 	Name  string   `json:"name"`
 	Buffs []string `json:"buffs"`
 }
@@ -62,8 +63,9 @@ type PlayerData struct {
 	Synergy      Buffs            `json:"synergy"`
 	SkillSynergy map[string]Buffs `json:"skillSynergy"`
 
-	SelfBuff      Buffs            `json:"selfBuff"`
-	SkillSelfBuff map[string]Buffs `json:"skillSelfBuff"`
+	SelfBuff       Buffs            `json:"selfBuff"`
+	SkillSelfBuffs []BuffGroupInfo  `json:"skillSelfBuffs"`
+	SkillSelfBuff  map[string]Buffs `json:"skillSelfBuff"`
 }
 
 type PlayerDamage struct {
@@ -73,6 +75,10 @@ type PlayerDamage struct {
 	BA         string `json:"ba"`
 	Buff       string `json:"buff"`
 	Brand      string `json:"brand"`
+	Casts      int32  `json:"casts"`
+	CPM        string `json:"cpm"`
+	Hits       int32  `json:"hits"`
+	HPM        string `json:"hpm"`
 }
 
 type SkillDamage struct {

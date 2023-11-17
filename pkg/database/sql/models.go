@@ -6,7 +6,6 @@ package sql
 
 import (
 	structs "github.com/0fau/logs/pkg/database/sql/structs"
-	meter "github.com/0fau/logs/pkg/process/meter"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -23,28 +22,6 @@ type Encounter struct {
 	Date        pgtype.Timestamp
 	Duration    int32
 	LocalPlayer string
-}
-
-type Player struct {
-	Encounter int32
-	Enttype   string
-	Name      string
-	Class     string
-	Damage    int64
-	Dps       int64
-	Dead      bool
-	Fields    []byte
-}
-
-type Skill struct {
-	Encounter int32
-	Player    string
-	SkillID   int32
-	Name      string
-	Dps       int64
-	Damage    int64
-	Tripods   meter.TripodRows
-	Fields    meter.StoredSkillFields
 }
 
 type User struct {

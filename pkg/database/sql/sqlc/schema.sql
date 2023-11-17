@@ -34,27 +34,3 @@ CREATE TABLE encounters
     duration     INT       NOT NULL,
     local_player STRING    NOT NULL
 );
-
-CREATE TABLE players
-(
-    encounter INTEGER NOT NULL REFERENCES encounters (id),
-    enttype   STRING  NOT NULL,
-    name      STRING  NOT NULL,
-    class     STRING  NOT NULL,
-    damage    BIGINT  NOT NULL,
-    dps       BIGINT  NOT NULL,
-    dead      BOOL    NOT NULL,
-    fields    JSON    NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS skills
-(
-    encounter INT    NOT NULL,
-    player    STRING NOT NULL,
-    skill_id  INT    NOT NULL,
-    name      STRING NOT NULL,
-    dps       BIGINT NOT NULL,
-    damage    BIGINT NOT NULL,
-    tripods   JSONB  NOT NULL,
-    fields    JSON   NOT NULL
-);

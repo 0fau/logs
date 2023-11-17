@@ -15,6 +15,10 @@ export function formatSeconds(milli: number): string {
 }
 
 export function formatDamage(damage: number): string {
+    if (damage < 1000) {
+        return damage.toString()
+    }
+
     return numeral(damage).format('0.0a')
 }
 

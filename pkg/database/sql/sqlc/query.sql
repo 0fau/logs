@@ -52,12 +52,6 @@ SET header = $2,
     data   = $3
 WHERE id = $1;
 
--- name: InsertEntity :one
-INSERT
-INTO players (encounter, class, enttype, name, damage, dps, dead, fields)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING *;
-
 -- name: GetEncounter :one
 SELECT *
 FROM encounters
@@ -84,24 +78,10 @@ WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
 ORDER BY date DESC, id ASC
 LIMIT 5;
 
--- name: GetEntities :many
-SELECT *
-FROM players
-WHERE encounter = $1;
-
--- name: InsertSkill :copyfrom
-INSERT INTO skills (encounter, player, skill_id, dps, damage, name, tripods, fields)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
-
 -- name: GetData :one
 SELECT data
 FROM encounters
 WHERE id = $1;
-
--- name: GetSkills :many
-SELECT *
-FROM skills
-WHERE encounter = $1;
 
 -- name: GetRaidStats :many
 SELECT boss, difficulty, count(*)

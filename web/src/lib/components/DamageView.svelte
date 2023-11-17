@@ -3,6 +3,7 @@
     import {formatDamage, formatPercent} from "$lib/components/meter/print";
 
     export let encounter;
+    export let focus;
 
     let players = Object.keys(encounter.players)
     players.sort((a, b) => encounter.players[b].damage - encounter.players[a].damage)
@@ -28,13 +29,29 @@
             break
         }
     }
+
+    let barColors = ["#eedede", "#eedede"];
+
+    let rows = [];
+    let bars = [];
+
+    let most = encounter.players[players[0]].damage
+    $: {
+        for (let i = 0; i < rows.length; i++) {
+            let percent = encounter.players[players[i]].damage / most;
+            bars[i].style.height = rows[i].clientHeight + "px";
+            bars[i].style.width = percent * rows[i].clientWidth + "px";
+            bars[i].style.backgroundColor = barColors[i % 2]
+        }
+    }
 </script>
 
-<div class="bg-[#F4EDE9] w-full h-full rounded-lg">
-    <table class="table-auto w-full inline-block">
+<div on:contextmenu|preventDefault={() => {}}
+     class="bg-[#F4EDE9] overflow-hidden w-full h-full">
+    <table class="table-auto w-full">
         <thead class="bg-[#b96d83]">
         <tr>
-            <th class="w-full rounded-tl-lg"></th>
+            <th class="rounded-tl-lg"></th>
             <th>DMG</th>
             <th>DPS</th>
             <th>D%</th>
@@ -52,23 +69,27 @@
             <th class="rounded-tr-lg">B%</th>
         </tr>
         </thead>
-        <tbody>
-        {#each players as name}
+        {#each players as name, i}
             {@const player = encounter.players[name]}
             {@const data = encounter.data.players[name]}
-            <tr class="relative">
+            <tr bind:this={rows[i]}>
+                <div bind:this={bars[i]}
+                     class="absolute z-0"
+                     class:rounded-bl-lg={i === players.length - 1}>
+                </div>
                 <td class="float-left">
-                    <div class="mt-1">
+                    <button class="py-1 z-50 flex justify-center items-center"
+                            on:click={() => focus.set(name)}>
                         <img alt={player.class}
                              src="{getClassIcon(player.class)}"
-                             class="h-6 mr-1 inline -translate-y-0.5 opacity-95"
+                             class="h-6 w-6 mr-1.5 z-50 inline"
                         />
-                        {name}
-                    </div>
+                        <span class="z-50">{name}</span>
+                    </button>
                 </td>
                 <td>{formatDamage(player.damage)}</td>
                 <td>{formatDamage(player.dps)}</td>
-                <td>{formatPercent(player.damage / encounter.damage)}
+                <td>{formatPercent(player.damage / encounter.damage)}</td>
                 <td>{formatPercent(data.damage.crit / 100)}</td>
                 {#if hasCritDamage}
                     <td>
@@ -92,10 +113,9 @@
                     </td>
                 {/if}
                 <td>{formatPercent(data.damage.buff / 100)}</td>
-                <td>{formatPercent(data.damage.brand / 100)}</td>
+                <td class="rounded-b-xl">{formatPercent(data.damage.brand / 100)}</td>
             </tr>
         {/each}
-        </tbody>
     </table>
 </div>
 
@@ -109,6 +129,8 @@
 
     td {
         padding: 0 5px;
+        z-index: 10;
+        position: relative;
         color: #524d72;
     }
 </style>

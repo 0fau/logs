@@ -19,7 +19,6 @@
 
 <div class="my-14 w-full min-w-[1512px] flex flex-col justify-center items-center text-center">
     {#if encounter}
-        <p class="mb-1 text-[#524d72]">THIS PAGE IS A WORK IN PROGRESS</p>
         <div class="'h-[80px] w-[462px] flex border-[0.5px] border-[#c58597] shadow-sm rounded-md bg-[#F4EDE9]">
             <div class="w-full h-full flex flex-row ml-5 items-center">
                 <div>

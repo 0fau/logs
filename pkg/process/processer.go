@@ -118,31 +118,31 @@ func round(dec float64) string {
 	return fmt.Sprintf("%.1f", dec)
 }
 
-type Synergies map[string]Synergy
+type BuffGroups map[string]BuffGroup
 
-type Synergy struct {
+type BuffGroup struct {
 	Name  string
 	Buffs map[string]struct{}
 }
 
-func (s Synergies) Collect(group, buff string) {
-	syn, ok := s[group]
+func (bgs BuffGroups) Collect(group, buff string) {
+	bg, ok := bgs[group]
 	if !ok {
-		syn.Name = group
-		syn.Buffs = make(map[string]struct{})
+		bg.Name = group
+		bg.Buffs = make(map[string]struct{})
 	}
-	syn.Buffs[buff] = struct{}{}
-	s[group] = syn
+	bg.Buffs[buff] = struct{}{}
+	bgs[group] = bg
 }
 
-func (s Synergies) Serialize() []structs.Synergy {
-	arr := make([]structs.Synergy, 0, len(s))
-	for _, syn := range s {
-		ssyn := structs.Synergy{
-			Name:  syn.Name,
-			Buffs: make([]string, 0, len(syn.Buffs)),
+func (bgs BuffGroups) Serialize() []structs.BuffGroupInfo {
+	arr := make([]structs.BuffGroupInfo, 0, len(bgs))
+	for _, bg := range bgs {
+		ssyn := structs.BuffGroupInfo{
+			Name:  bg.Name,
+			Buffs: make([]string, 0, len(bg.Buffs)),
 		}
-		for buff := range syn.Buffs {
+		for buff := range bg.Buffs {
 			ssyn.Buffs = append(ssyn.Buffs, buff)
 		}
 		arr = append(arr, ssyn)
@@ -153,7 +153,7 @@ func (s Synergies) Serialize() []structs.Synergy {
 func (enc *Encounter) processData() (structs.EncounterData, error) {
 	data := structs.EncounterData{
 		Players:      make(map[string]structs.PlayerData),
-		Synergies:    make([][]structs.Synergy, len(enc.Header.Parties)),
+		Synergies:    make([][]structs.BuffGroupInfo, len(enc.Header.Parties)),
 		BuffCatalog:  make(map[string]structs.BuffInfo),
 		SkillCatalog: make(map[string]structs.SkillInfo),
 	}
@@ -165,10 +165,12 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 		}
 	}
 
-	partyBuffs := make([]Synergies, len(enc.Header.Parties))
+	partyBuffs := make([]BuffGroups, len(enc.Header.Parties))
 	for i := range partyBuffs {
-		partyBuffs[i] = make(Synergies)
+		partyBuffs[i] = make(BuffGroups)
 	}
+	selfBuffs := make(BuffGroups)
+
 	for name, entity := range enc.raw.Entities {
 		if entity.EntityType != "PLAYER" {
 			continue
@@ -176,40 +178,32 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 
 		data.Players[name] = enc.processPlayer(entity)
 		for gname, group := range data.Players[name].Synergy {
-
 			for buff := range group.Buffs {
-				if _, ok := data.BuffCatalog[buff]; ok {
-					continue
-				}
-
 				partyBuffs[parties[name]].Collect(gname, buff)
-
-				info, ok := enc.raw.DamageStats.Buffs[buff]
-				if !ok {
-					info, ok = enc.raw.DamageStats.Debuffs[buff]
-					if !ok {
-						continue
-					}
-				}
-
-				binfo := structs.BuffInfo{
-					Name:        info.Source.Name,
-					Icon:        info.Source.Icon,
-					Description: info.Source.Description,
-					Category:    info.Category,
-					Set:         info.Source.SetName,
-				}
-				if info.Source.Skill != nil {
-					binfo.Skill = &structs.BuffSkill{
-						Class:       int(info.Source.Skill.ClassID),
-						Description: info.Source.Skill.Description,
-						Name:        info.Source.Skill.Name,
-						Icon:        info.Source.Skill.Icon,
-						ID:          int(info.Source.Skill.ID),
-					}
-				}
-				data.BuffCatalog[buff] = binfo
+				enc.CatalogBuff(data, buff)
 			}
+		}
+
+		for gname, group := range data.Players[name].SelfBuff {
+			for buff := range group.Buffs {
+				selfBuffs.Collect(gname, buff)
+				enc.CatalogBuff(data, buff)
+			}
+		}
+
+		skillSelfBuffs := make(BuffGroups)
+		for _, groups := range data.Players[name].SkillSelfBuff {
+			for gname, group := range groups {
+				for buff := range group.Buffs {
+					enc.CatalogBuff(data, buff)
+					skillSelfBuffs.Collect(gname, buff)
+				}
+			}
+		}
+		player, ok := data.Players[name]
+		if ok {
+			player.SkillSelfBuffs = skillSelfBuffs.Serialize()
+			data.Players[name] = player
 		}
 
 		for skill := range data.Players[name].SkillDamage {
@@ -219,14 +213,55 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 				Icon: info.Icon,
 			}
 		}
-
 	}
 
 	for i, groups := range partyBuffs {
 		data.Synergies[i] = groups.Serialize()
 	}
+	data.SelfBuffs = selfBuffs.Serialize()
 
 	return data, nil
+}
+
+func (enc *Encounter) CatalogBuff(data structs.EncounterData, buff string) {
+	if _, ok := data.BuffCatalog[buff]; ok {
+		return
+	}
+
+	info, err := enc.BuffInfo(buff)
+	if err != nil {
+		return
+	}
+
+	data.BuffCatalog[buff] = info
+}
+
+func (enc *Encounter) BuffInfo(buff string) (structs.BuffInfo, error) {
+	info, ok := enc.raw.DamageStats.Buffs[buff]
+	if !ok {
+		info, ok = enc.raw.DamageStats.Debuffs[buff]
+		if !ok {
+			return structs.BuffInfo{}, errors.New("buff info not found")
+		}
+	}
+
+	binfo := structs.BuffInfo{
+		Name:        info.Source.Name,
+		Icon:        info.Source.Icon,
+		Description: info.Source.Description,
+		Category:    info.Category,
+		Set:         info.Source.SetName,
+	}
+	if info.Source.Skill != nil {
+		binfo.Skill = &structs.BuffSkill{
+			Class:       int(info.Source.Skill.ClassID),
+			Description: info.Source.Skill.Description,
+			Name:        info.Source.Skill.Name,
+			Icon:        info.Source.Skill.Icon,
+			ID:          int(info.Source.Skill.ID),
+		}
+	}
+	return binfo, nil
 }
 
 func (enc *Encounter) processPlayer(entity meter.Entity) structs.PlayerData {
@@ -238,51 +273,83 @@ func (enc *Encounter) processPlayer(entity meter.Entity) structs.PlayerData {
 			BA:         round(float64(entity.DamageStats.BADamage) / float64(entity.DamageStats.Damage) * 100),
 			Buff:       round(float64(entity.DamageStats.Buffed) / float64(entity.DamageStats.Damage) * 100),
 			Brand:      round(float64(entity.DamageStats.Debuffed) / float64(entity.DamageStats.Damage) * 100),
+			Casts:      entity.SkillStats.Casts,
+			CPM:        round(float64(entity.SkillStats.Casts) / (float64(enc.raw.Duration) / 1000 / 60)),
+			Hits:       entity.SkillStats.Hits,
+			HPM:        round(float64(entity.SkillStats.Hits) / (float64(enc.raw.Duration) / 1000 / 60)),
 		},
 	}
 
-	buffs := Buffs{}
-	buffs.Collect(
+	catalogs := []meter.BuffInfo{
 		enc.raw.DamageStats.Buffs,
-		entity.DamageStats.BuffedBy,
-		DefaultBuffFilter,
-	)
-	buffs.Collect(
 		enc.raw.DamageStats.Debuffs,
+	}
+
+	buffs, self, skillSelf := Buffs{}, Buffs{}, Buffs{}
+	for i, damage := range []meter.BuffDamage{
+		entity.DamageStats.BuffedBy,
 		entity.DamageStats.DebuffedBy,
-		DefaultBuffFilter,
-	)
-	for _, buff := range buffs {
-		buff.Percent = round(float64(buff.Damage) / float64(entity.DamageStats.Damage) * 100)
+	} {
+		catalog := catalogs[i]
+		buffs.CollectAll(
+			catalog, damage,
+			PartySynergyFilter,
+		)
+		self.CollectAll(
+			catalog, damage,
+			SelfBuffFilter,
+		)
+		skillSelf.CollectAll(
+			catalog, damage,
+			PlayerSelfBuffFilter(entity),
+		)
+	}
+	for _, buffs := range []Buffs{buffs, self, skillSelf} {
+		for _, buff := range buffs {
+			buff.Percent = round(float64(buff.Damage) / float64(entity.DamageStats.Damage) * 100)
+		}
 	}
 	pd.Synergy = structs.Buffs(buffs)
+	pd.SelfBuff = structs.Buffs(self)
 
 	skillDamage := make(map[string]structs.SkillDamage)
 	skillBuffs := make(map[string]structs.Buffs)
+	skillSelfBuffs := make(map[string]structs.Buffs)
 	for id, skill := range entity.Skills {
 		skillDamage[id] = Skill(enc.raw, entity, skill)
 		if skill.Damage == 0 {
 			continue
 		}
 
-		buffs := Buffs{}
-		buffs.Collect(
-			enc.raw.DamageStats.Buffs,
+		buffs, self := Buffs{}, Buffs{}
+		for i, damage := range []meter.BuffDamage{
 			skill.BuffedBy,
-			DefaultBuffFilter,
-		)
-		buffs.Collect(
-			enc.raw.DamageStats.Debuffs,
 			skill.DebuffedBy,
-			DefaultBuffFilter,
-		)
+		} {
+			catalog := catalogs[i]
+			buffs.CollectAll(
+				catalog, damage,
+				PartySynergyFilter,
+			)
+			self.CollectAll(
+				catalog, damage,
+				PlayerSelfBuffFilter(entity),
+			)
+		}
 		for _, buff := range buffs {
 			buff.Percent = round(float64(buff.Damage) / float64(skill.Damage) * 100)
 		}
+		for _, buff := range self {
+			buff.Percent = round(float64(buff.Damage) / float64(skill.Damage) * 100)
+		}
 		skillBuffs[id] = structs.Buffs(buffs)
+		skillSelfBuffs[id] = structs.Buffs(self)
 	}
 	pd.SkillDamage = skillDamage
 	pd.SkillSynergy = skillBuffs
+
+	skillSelfBuffs["_player"] = structs.Buffs(skillSelf)
+	pd.SkillSelfBuff = skillSelfBuffs
 
 	return pd
 }
@@ -308,47 +375,116 @@ func Skill(enc *meter.Encounter, player meter.Entity, skill meter.Skill) structs
 	}
 }
 
-type BuffFilter func(info meter.Buff) bool
+type BuffFilter func(info meter.Buff) (string, bool)
 
-func DefaultBuffFilter(info meter.Buff) bool {
-	return slices.Contains(
+func PartySynergyFilter(info meter.Buff) (string, bool) {
+	if !(slices.Contains(
 		[]string{"classskill", "identity", "ability"}, info.BuffCategory,
-	) && info.Target == "PARTY" && (1|2|4|128)&info.BuffType != 0
+	) && info.Target == "PARTY" && (1|2|4|128)&info.BuffType != 0) {
+		return "", false
+	}
+
+	return BuffGroupName(info), true
+}
+
+func BuffGroupName(info meter.Buff) string {
+	group := "0_"
+	if info.Source.Skill != nil {
+		group = fmt.Sprintf("%d_", info.Source.Skill.ClassID)
+	}
+
+	if info.UniqueGroup != 0 {
+		group += strconv.Itoa(int(info.UniqueGroup))
+	} else if info.Source.Skill != nil {
+		group += info.Source.Skill.Name
+	} else {
+		// uh oh
+	}
+
+	return group
+}
+
+func SelfBuffFilter(info meter.Buff) (string, bool) {
+	if info.Target == "PARTY" || (1|2|4|128)&info.BuffType == 0 {
+		return "", false
+	}
+
+	var group string
+	switch info.BuffCategory {
+	case "set":
+		group = "set_" + info.Source.SetName
+	case "bracelet":
+		group = "bracelet_" + info.Source.Name
+	case "pet", "cook", "battleitem", "dropsofether":
+		group = info.BuffCategory
+	default:
+		return "", false
+	}
+
+	return group, true
+}
+
+func PlayerSelfBuffFilter(player meter.Entity) BuffFilter {
+	return func(info meter.Buff) (string, bool) {
+		if info.Target == "PARTY" || (1|2|4|128)&info.BuffType == 0 {
+			return "", false
+		}
+
+		var group string
+		switch info.BuffCategory {
+		case "ability":
+			if info.UniqueGroup != 0 {
+				group = fmt.Sprintf("%d", info.UniqueGroup)
+			}
+		case "etc":
+			group = "etc_" + info.Source.Name
+		case "classskill", "identity":
+			if info.Source.Skill != nil &&
+				player.ClassId != info.Source.Skill.ClassID {
+				return "", false
+			}
+
+			group = BuffGroupName(info)
+		default:
+			return "", false
+		}
+
+		return group, true
+	}
 }
 
 type Buffs map[string]*structs.BuffGroup
 
-func (b Buffs) Collect(catalog meter.BuffInfo, buffs meter.BuffDamage, filter BuffFilter) {
-	for buff, damage := range buffs {
+func (b Buffs) CollectAll(catalog meter.BuffInfo, damages meter.BuffDamage, filter BuffFilter) {
+	for buff, damage := range damages {
 		info, ok := catalog[buff]
-		if !ok || !filter(info) {
+		if !ok {
 			continue
 		}
 
-		group := "0_"
-		if info.Source.Skill != nil {
-			group = fmt.Sprintf("%d_", info.Source.Skill.ClassID)
-		}
-
-		if info.UniqueGroup != 0 {
-			group += strconv.Itoa(int(info.UniqueGroup))
-		} else if info.Source.Skill != nil {
-			group += info.Source.Skill.Name
-		} else {
-			// uh oh
-		}
-
-		entry, ok := b[group]
+		group, ok := filter(info)
 		if !ok {
-			entry = &structs.BuffGroup{
-				Buffs: map[string]int64{},
-			}
+			continue
 		}
-		entry.Buffs[buff] = damage
-		entry.Damage += damage
+		if group == "" {
+			group = buff
+		}
 
-		b[group] = entry
+		b.Collect(group, buff, damage)
 	}
+}
+
+func (b Buffs) Collect(group, buff string, damage int64) {
+	entry, ok := b[group]
+	if !ok {
+		entry = &structs.BuffGroup{
+			Buffs: map[string]int64{},
+		}
+	}
+	entry.Buffs[buff] = damage
+	entry.Damage += damage
+
+	b[group] = entry
 }
 
 func (enc *Encounter) highlight() {

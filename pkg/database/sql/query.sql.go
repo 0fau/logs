@@ -9,7 +9,6 @@ import (
 	"context"
 
 	structs "github.com/0fau/logs/pkg/database/sql/structs"
-	meter "github.com/0fau/logs/pkg/process/meter"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -96,41 +95,6 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error)
 	return i, err
 }
 
-const getEntities = `-- name: GetEntities :many
-SELECT encounter, enttype, name, class, damage, dps, dead, fields
-FROM players
-WHERE encounter = $1
-`
-
-func (q *Queries) GetEntities(ctx context.Context, encounter int32) ([]Player, error) {
-	rows, err := q.db.Query(ctx, getEntities, encounter)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Player
-	for rows.Next() {
-		var i Player
-		if err := rows.Scan(
-			&i.Encounter,
-			&i.Enttype,
-			&i.Name,
-			&i.Class,
-			&i.Damage,
-			&i.Dps,
-			&i.Dead,
-			&i.Fields,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getRaidStats = `-- name: GetRaidStats :many
 SELECT boss, difficulty, count(*)
 FROM encounters
@@ -153,41 +117,6 @@ func (q *Queries) GetRaidStats(ctx context.Context) ([]GetRaidStatsRow, error) {
 	for rows.Next() {
 		var i GetRaidStatsRow
 		if err := rows.Scan(&i.Boss, &i.Difficulty, &i.Count); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getSkills = `-- name: GetSkills :many
-SELECT encounter, player, skill_id, name, dps, damage, tripods, fields
-FROM skills
-WHERE encounter = $1
-`
-
-func (q *Queries) GetSkills(ctx context.Context, encounter int32) ([]Skill, error) {
-	rows, err := q.db.Query(ctx, getSkills, encounter)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Skill
-	for rows.Next() {
-		var i Skill
-		if err := rows.Scan(
-			&i.Encounter,
-			&i.Player,
-			&i.SkillID,
-			&i.Name,
-			&i.Dps,
-			&i.Damage,
-			&i.Tripods,
-			&i.Fields,
-		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -327,60 +256,6 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 	var id int32
 	err := row.Scan(&id)
 	return id, err
-}
-
-const insertEntity = `-- name: InsertEntity :one
-INSERT
-INTO players (encounter, class, enttype, name, damage, dps, dead, fields)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING encounter, enttype, name, class, damage, dps, dead, fields
-`
-
-type InsertEntityParams struct {
-	Encounter int32
-	Class     string
-	Enttype   string
-	Name      string
-	Damage    int64
-	Dps       int64
-	Dead      bool
-	Fields    []byte
-}
-
-func (q *Queries) InsertEntity(ctx context.Context, arg InsertEntityParams) (Player, error) {
-	row := q.db.QueryRow(ctx, insertEntity,
-		arg.Encounter,
-		arg.Class,
-		arg.Enttype,
-		arg.Name,
-		arg.Damage,
-		arg.Dps,
-		arg.Dead,
-		arg.Fields,
-	)
-	var i Player
-	err := row.Scan(
-		&i.Encounter,
-		&i.Enttype,
-		&i.Name,
-		&i.Class,
-		&i.Damage,
-		&i.Dps,
-		&i.Dead,
-		&i.Fields,
-	)
-	return i, err
-}
-
-type InsertSkillParams struct {
-	Encounter int32
-	Player    string
-	SkillID   int32
-	Dps       int64
-	Damage    int64
-	Name      string
-	Tripods   meter.TripodRows
-	Fields    meter.StoredSkillFields
 }
 
 const listRecentEncounters = `-- name: ListRecentEncounters :many
