@@ -8,6 +8,7 @@ type Encounter struct {
 	Duration        int32                `json:"duration"`
 	Entities        map[string]Entity    `json:"entities"`
 	FightStart      int64                `json:"fightStart"`
+	End             int64                `json:"lastCombatPacket"`
 	DamageStats     EncounterDamageStats `json:"encounterDamageStats"`
 	LocalPlayer     string               `json:"localPlayer"`
 }

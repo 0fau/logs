@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {getClassIcon, getSkillIcon} from "$lib/game";
+    import {getClassIcon, getSkillIcon, cards} from "$lib/game";
 
     export let encounter;
     export let focus;
@@ -16,7 +16,17 @@
 
     let player = encounter.data.players[$focus]
     let skills = Object.keys(player.skillSynergy)
-    skills.sort((a, b) => player.skillDamage[b].damage - player.skillDamage[a].damage)
+    skills.sort((a, b) => {
+        let cmp = player.skillDamage[b].damage - player.skillDamage[a].damage;
+        if (cmp !== 0) {
+            return cmp
+        } else {
+            return player.skillDamage[b].casts - player.skillDamage[a].casts;
+        }
+    })
+    skills = skills.filter((skill) => {
+        return !cards[skill] || skill === "19282"
+    })
     console.log(skills)
 
     let skillCatalog = encounter.data.skillCatalog;
@@ -49,10 +59,12 @@
             <th class="rounded-tl-lg"></th>
             {#each synergies as synergy, i}
                 <th class:rounded-tr-lg={i === synergies.length - 1}>
-                    <div class="flex flex-row items-center justify-center">
+                    <div class="flex flex-row mx-2 items-center justify-center">
                         {#each synergy.buffs as buff}
                             {@const info = encounter.data.buffCatalog[buff]}
-                            <img alt={info.name} class="inline rounded-sm h-6 w-6" src="{getSkillIcon(info.icon)}"/>
+                            <img alt={info.name}
+                                 class="inline mx-0.5 rounded-sm h-6 w-6"
+                                 src="{getSkillIcon(info.icon)}"/>
                         {/each}
                     </div>
                 </th>

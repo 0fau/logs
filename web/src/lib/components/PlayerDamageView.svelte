@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {getClassIcon, getSkillIcon} from "$lib/game";
+    import {cards, getClassIcon, getSkillIcon} from "$lib/game";
     import {formatDamage, formatPercent} from "$lib/components/meter/print";
 
     export let encounter;
@@ -12,7 +12,17 @@
     players.sort((a, b) => encounter.players[b].damage - encounter.players[a].damage)
 
     let skills = Object.keys(data.skillDamage)
-    skills.sort((a, b) => data.skillDamage[b].damage - data.skillDamage[a].damage)
+    skills = skills.filter((skill) => {
+        return !cards[skill] || skill === "19282"
+    })
+    skills.sort((a, b) => {
+        let cmp = data.skillDamage[b].damage - data.skillDamage[a].damage;
+        if (cmp !== 0) {
+            return cmp
+        } else {
+            return data.skillDamage[b].casts - data.skillDamage[a].casts;
+        }
+    })
 
     let hasCritDamage = false;
     let hasFA = false;
@@ -186,7 +196,7 @@
                 <td>{formatDamage(skill.casts)}</td>
                 <td>{skill.cpm}</td>
                 <td>{skill.hits !== 0 ? formatDamage(skill.hits) : ""}</td>
-                <td>{skill.hpm !== '0.0' ? skill.hpm : ""}</td>
+                <td class="mr-1">{skill.hpm !== '0.0' ? skill.hpm : ""}</td>
             </tr>
         {/each}
     </table>

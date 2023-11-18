@@ -3,9 +3,11 @@ package structs
 type PlayerHeader struct {
 	Name      string    `json:"name"`
 	Class     string    `json:"class"`
+	GearScore float64   `json:"gearScore"`
 	Damage    int64     `json:"damage"`
 	DPS       int64     `json:"dps"`
-	Alive     bool      `json:"alive"`
+	Dead      bool      `json:"dead"`
+	DeadFor   int64     `json:"deadFor"`
 	Highlight []float64 `json:"highlight"`
 }
 

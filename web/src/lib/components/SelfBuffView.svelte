@@ -37,7 +37,9 @@
                     <div class="flex flex-row mx-2 items-center justify-center">
                         {#each buffGroup.buffs as buff}
                             {@const info = encounter.data.buffCatalog[buff]}
-                            <img alt={info.name} class="inline rounded-sm h-6 w-6" src="{getSkillIcon(info.icon)}"/>
+                            <img alt={info.name}
+                                 class="inline mx-0.5 rounded-sm h-6 w-6"
+                                 src="{getSkillIcon(info.icon)}"/>
                         {/each}
                     </div>
                 </th>
@@ -53,10 +55,10 @@
                      class:rounded-bl-lg={i === players.length - 1}>
                 </div>
                 <td class="float-left">
-                    <button on:click={() => focus.set(name)} class="mt-1">
+                    <button on:click={() => focus.set(name)} class="my-1 flex justify-center items-center">
                         <img alt={player.class}
                              src="{getClassIcon(player.class)}"
-                             class="h-6 ml-1 inline -translate-y-0.5 opacity-95"
+                             class="h-6 mr-1.5 inline opacity-95"
                         />
                         {name}
                     </button>

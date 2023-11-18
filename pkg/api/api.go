@@ -41,7 +41,7 @@ type Server struct {
 
 func cors() gin.HandlerFunc {
 	config := gincors.DefaultConfig()
-	config.AllowOrigins = []string{"https://tauri.localhost"}
+	config.AllowOrigins = []string{"https://tauri.localhost", "http://localhost:5173"}
 	config.AllowHeaders = []string{"access_token"}
 	return gincors.New(config)
 }

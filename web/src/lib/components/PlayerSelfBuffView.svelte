@@ -1,6 +1,6 @@
 <script lang="ts">
 
-    import {getClassIcon, getSkillIcon} from "$lib/game";
+    import {cards, getClassIcon, getSkillIcon} from "$lib/game";
 
     export let encounter;
     export let focus;
@@ -8,7 +8,17 @@
     let data = encounter.data.players[$focus]
 
     let skills = Object.keys(data.skillDamage)
-    skills.sort((a, b) => data.skillDamage[b].damage - data.skillDamage[a].damage)
+    skills = skills.filter((skill) => {
+        return !cards[skill] || skill === "19282"
+    })
+    skills.sort((a, b) => {
+        let cmp = data.skillDamage[b].damage - data.skillDamage[a].damage;
+        if (cmp !== 0) {
+            return cmp
+        } else {
+            return data.skillDamage[b].casts - data.skillDamage[a].casts;
+        }
+    })
 
     let buffGroups = encounter.data.players[$focus].skillSelfBuffs;
 
@@ -44,7 +54,7 @@
                     <div class="flex flex-row mx-2 items-center justify-center">
                         {#each buffGroup.buffs as buff}
                             {@const info = encounter.data.buffCatalog[buff]}
-                            <img alt={info.name} class="rounded-sm h-6 w-6" src="{getSkillIcon(info.icon)}"/>
+                            <img alt={info.name} class="rounded-sm mx-0.5 h-6 w-6" src="{getSkillIcon(info.icon)}"/>
                         {/each}
                     </div>
                 </th>
@@ -56,7 +66,7 @@
                  class="absolute z-0">
             </div>
             <td class="float-left">
-                <div class="mt-1.5 flex justify-center items-center">
+                <div class="my-1 flex justify-center items-center">
                     <img alt={encounter.players[$focus].class}
                          src="{getClassIcon(encounter.players[$focus].class)}"
                          class="h-6 mr-1.5 inline opacity-95"
@@ -79,8 +89,7 @@
                      class:rounded-bl-lg={i === skills.length - 1}>
                 </div>
                 <td class="float-left">
-                    <div class="mt-1.5 flex justify-center items-center"
-                         class:mb-1.5={i === skills.length - 1}>
+                    <div class="my-1 flex justify-center items-center">
                         <img alt={info.name}
                              src="{getSkillIcon(info.icon)}"
                              class="h-6 w-6 mr-1.5 inline opacity-95"

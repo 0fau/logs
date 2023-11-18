@@ -98,11 +98,13 @@ func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
 		}
 
 		header.Players[entity.Name] = structs.PlayerHeader{
-			Name:   entity.Name,
-			Class:  entity.Class,
-			Damage: entity.DamageStats.Damage,
-			DPS:    entity.DamageStats.DPS,
-			Alive:  !entity.Dead,
+			Name:      entity.Name,
+			Class:     entity.Class,
+			GearScore: entity.GearScore,
+			Damage:    entity.DamageStats.Damage,
+			DPS:       entity.DamageStats.DPS,
+			Dead:      entity.Dead,
+			DeadFor:   enc.raw.End - entity.DamageStats.DeathTime,
 		}
 	}
 	return header, nil

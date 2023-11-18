@@ -30,7 +30,7 @@
     }
 </script>
 
-<div class="mt-1">
+<div class="mt-2.5">
     {#each tabs as tab}
         <button class="p-1 px-1.5 m-0.5 mb-1 font-medium w-[80px] border-[1px] text-sm border-[#c58597] rounded-lg bg-[#F4EDE9]"
                 class:bg-[#c58597]={current === tab}

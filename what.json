@@ -18503,6 +18503,7 @@
     }
   },
   "fightStart": 1696370998552,
+  "lastCombatPacket": 1696371578803,
   "encounterDamageStats": {
     "totalDamageDealt": 24313331774,
     "buffs": {

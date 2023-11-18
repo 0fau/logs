@@ -23,6 +23,7 @@ const classIds = {
     "Deathblade": 402,
     "Shadowhunter": 403,
     "Reaper": 404,
+    "Souleater": 405,
     "Gunner (Male)": 501,
     "Sharpshooter": 502,
     "Deadeye": 503,
@@ -35,6 +36,26 @@ const classIds = {
     "Aeromancer": 603,
     "Alchemist": 604
 }
+
+export const cards = {
+    "19090": "Ghost",
+    "19091": "Twisted Fate",
+    "19092": "Moon",
+    "19093": "Corrosion",
+    "19094": "Star",
+    "19095": "Wheel of Fortune",
+    "19096": "Royal",
+    "19097": "Three-Headed Snake",
+    "19098": "Judgment",
+    "19099": "Balance",
+    "19280": "Mayhem",
+    "19281": "Cull",
+    "19282": "Emperor",
+    "19284": "Clown",
+    "19285": "Joy",
+    "19286": "Chancellor",
+    "19287": "Sovereign"
+};
 
 export function getClassIcon(c: string): string {
     return '/icons/classes/' + (classIds[c] ?? classIds['Unknown']) + '.png'
