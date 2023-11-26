@@ -6,7 +6,7 @@
     <title>logs by faust</title>
 </svelte:head>
 
-<div class="container flex h-screen justify-center items-center">
+<div class="flex h-screen justify-center items-center">
     <div class="w-fit ...">
         <h1 class="text-3xl text-center font-bold">
             logs.fau.dev

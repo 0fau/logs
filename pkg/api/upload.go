@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
 )
 
 func (s *Server) generateToken(c *gin.Context) {
@@ -42,9 +43,9 @@ func (s *Server) generateToken(c *gin.Context) {
 	}{token})
 }
 
-func hasRole(user *sql.User, role string) bool {
-	for _, has := range user.Roles {
-		if has == role {
+func hasRoles(user *sql.User, roles ...string) bool {
+	for _, role := range roles {
+		if slices.Contains(user.Roles, role) {
 			return true
 		}
 	}
@@ -74,7 +75,7 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
-	if !hasRole(user, "trusted") {
+	if !hasRoles(user, "alpha", "trusted", "admin") {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -93,15 +94,10 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
-	if !enc.DamageStats.Misc.Cleared {
-		c.JSON(http.StatusBadRequest, Error{
-			Error: "Only clears are accepted at the moment.",
-		})
-		return
-	}
-
 	if err := s.processor.Lint(enc); err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, Error{
+			Error: err.Error(),
+		})
 		return
 	}
 

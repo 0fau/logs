@@ -53,30 +53,40 @@ SET header = $2,
 WHERE id = $1;
 
 -- name: GetEncounter :one
-SELECT *
-FROM encounters
-WHERE id = $1
+SELECT e.*,
+       u.discord_id,
+       u.discord_tag,
+       u.username,
+       u.avatar
+FROM encounters e
+         JOIN users u ON e.uploaded_by = u.id
+WHERE e.id = $1
 LIMIT 1;
 
 -- name: ListRecentEncounters :many
-SELECT id,
-       difficulty,
-       uploaded_by,
-       uploaded_at,
-       settings,
-       tags,
-       header,
-       boss,
-       date,
-       duration,
-       local_player
-FROM encounters
+SELECT u.discord_tag,
+       u.username,
+       e.id,
+       e.difficulty,
+       e.uploaded_by,
+       e.uploaded_at,
+       e.settings,
+       e.tags,
+       e.header,
+       e.boss,
+       e.date,
+       e.duration,
+       e.local_player
+FROM encounters e
+         JOIN users u ON e.uploaded_by = u.id
 WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
-    OR (sqlc.narg('date') > date OR (sqlc.narg('date')::TIMESTAMP = date AND sqlc.narg('id')::INT < id)))
+    OR (sqlc.narg('date') > e.date OR (sqlc.narg('date')::TIMESTAMP = e.date AND sqlc.narg('id')::INT < e.id)))
   AND (sqlc.narg('user')::UUID IS NULL
-    OR sqlc.narg('user') = uploaded_by)
-ORDER BY date DESC, id ASC
-LIMIT 5;
+    OR ((sqlc.narg('friends')::BOOLEAN AND sqlc.narg('user') = ANY (u.friends)) OR
+        ((NOT sqlc.narg('friends')::BOOLEAN AND sqlc.narg('user') = e.uploaded_by))))
+ORDER BY e.date DESC,
+         e.id ASC
+LIMIT 6;
 
 -- name: GetData :one
 SELECT data

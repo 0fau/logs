@@ -1,16 +1,15 @@
 <script lang="ts">
-    import {formatDamage, formatDate, formatDuration} from "$lib/components/meter/print";
-    import {getBossIcon} from "$lib/raids";
+    import {settings, user} from "$lib/store";
+    import {browser} from "$app/environment";
+
     import IconArrow from '~icons/carbon/next-filled'
     import IconBack from '~icons/ion/arrow-back-outline'
     import IconScope from '~icons/mdi/telescope'
-
     import EncounterRecap from "$lib/components/EncounterRecap.svelte";
+    import {onMount} from "svelte";
+    import EncounterPreview from "$lib/components/EncounterPreview.svelte";
 
-    export let encounters;
-    scan(encounters)
-    process(encounters)
-
+    let encounters = [];
     let focused;
 
     function focus(encounter) {
@@ -18,19 +17,65 @@
     }
 
     let page = 0;
-    let more = encounters.length == 5;
+    let more = false;
+    let busy = false;
+
+    let loading = true;
+    onMount(async () => {
+        busy = true;
+        await load()
+        console.log(encounters)
+        busy = false;
+
+        loading = false;
+    })
+
+    function loggedIn() {
+        return $user && $user.id
+    }
 
     function prev() {
+        if (busy) {
+            return
+        }
+        busy = true
         if (page > 0) {
             page--
         }
+        busy = false
     }
 
-    async function next() {
-        if (encounters.length === 0) {
+    async function load() {
+        if (scoped != "Arkesia" && !loggedIn()) {
             return
         }
 
+        let url = location.protocol + '//' + location.host;
+        url += "/api/logs?scope=" + scoped.toLowerCase();
+        if (encounters.length > 0) {
+            let last = encounters[encounters.length - 1];
+            url += "&past=" + last.date + "&id=" + last.id;
+        }
+
+        const recent = await fetch(url, {credentials: 'same-origin'})
+            .then((resp) => {
+                return resp.json()
+            })
+        process(recent.encounters)
+        encounters = encounters.concat(recent.encounters)
+        more = recent.more
+    }
+
+    async function next() {
+        if (busy) {
+            return
+        }
+        busy = true
+        await proceed()
+        busy = false
+    }
+
+    async function proceed() {
         if ((page + 1) * 5 < encounters.length) {
             page++
             return
@@ -40,45 +85,11 @@
             return
         }
 
-        let last = encounters[encounters.length - 1];
-        let url = location.protocol + '//' + location.host;
-        const recent = await (await fetch(
-            url + "/api/logs/@recent?past=" + last.date + "&id=" + last.id
-        )).json()
-        scan(recent)
-        process(recent)
+        await load()
 
-        encounters = encounters.concat(recent)
-        if (recent.length < 5) {
-            more = false
-        }
-        if (recent.length > 0) {
+        if ((page + 1) * 5 < encounters.length) {
             page++
-        }
-    }
-
-    // scan looks for encounters with missing data
-    function scan(encounters) {
-        for (let i = 0; i < encounters.length; i++) {
-            let broken = false;
-            let count = 0;
-
-            const encounter = encounters[i]
-            out: for (let party of encounter.parties) {
-                count += party.length
-
-                for (let player of party) {
-                    if (!encounter.players[player]) {
-                        broken = true
-                        break out
-                    }
-                }
-            }
-
-            if (count != Object.keys(encounter.players).length) {
-                broken = true
-            }
-            encounter.broken = broken
+            return
         }
     }
 
@@ -97,48 +108,72 @@
         }
     }
 
+    async function changeScope(scope) {
+        focused = null
+        $settings.logs.scope = scope
+        scoped = scope
+        more = false
+        encounters = []
+        page = 0
+        loading = true
+        await load()
+        loading = false
+    }
+
+    $: scoped = browser && $settings.logs.scope
     $: display = focused ? [focused] : encounters.slice(page * 5, (page + 1) * 5)
 </script>
 
+<link rel="preload" as="image"
+      href="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless">
 <div class="m-auto mt-10 flex flex-col justify-center items-center">
     <div class="flex flex-row w-[88%] justify-center items-center">
-        <div class="w-[270px] h-[40px] px-1 bg-[#b96d83] text-center text-[#F4EDE9] text-sm flex flex-row justify-center items-center rounded-xl mb-3">
-            <div class="w-[80%] h-[76%] rounded-lg flex justify-center items-center bg-[#F4EDE9] shadow-sm">
-                <button class="w-full font-medium text-[#b4637a]">Arkesia</button>
-            </div>
-            <div class="w-full h-full flex justify-center items-center">
-                <button class="w-full">Friends</button>
-            </div>
-            <div class="w-full h-full flex justify-center items-center">
-                <button class="w-full">Roster</button>
-            </div>
-        </div>
-    </div>
-    <div class="w-[88%] flex flex-col overflow-hidden justify-center items-center bg-[#dec5cd] pt-4 mb-3 rounded-md">
-        {#each display as encounter}
-            <button
-                    class="{focused ? '' : 'mb-5'} h-[80px] flex border-[0.5px] border-[#c58597] shadow-sm rounded-md w-[94%] bg-[#F4EDE9]"
-                    on:click={() => focus(focused ? null : encounter)}>
-                <div class="w-full h-full flex flex-row ml-5 items-center">
-                    <div>
-                        <div class="self-start text-left text-[#575279]">
-                            <div>
-                                <span class="font-medium">[#{encounter.id}]</span>
-                                <img alt={encounter.boss} src={getBossIcon(encounter.boss)}
-                                     class="inline w-6 h-6 -translate-y-0.5"/>
-                                <span class="font-medium">{encounter.boss}</span>
-                            </div>
-                            <p class="text-sm">{formatDamage(encounter.damage)} damage dealt
-                                in {formatDuration(encounter.duration)}</p>
-                            <p class="text-xs text-[#5d5978]">{formatDate(encounter.date)}</p>
-                        </div>
-                    </div>
-                    <div class="py-1 px-1.5 h-full ml-auto self-end flex flex-col rounded-r-md text-white">
-                        <span class="text-xs text-center self-end text-[#F4EDE9] p-0.5 px-1 mr-0.5 mt-1.5 rounded-sm bg-[#b4637a] font-medium">{encounter.localPlayer}</span>
-                        <span class="text-xs text-[#b4637a] self-end text-right mr-0.5 mt-0.5 font-medium">{encounter.players[encounter.localPlayer].class}</span>
-                        <span class="text-[#575279] text-right mr-1 my-auto text-lg font-medium">{formatDamage(encounter.players[encounter.localPlayer].dps)}</span>
+        <div class="w-[270px] h-[40px] bg-[#b96d83] text-center text-[#F4EDE9] text-sm flex flex-row justify-center items-center rounded-xl mb-3">
+            {#each ["Arkesia", "Friends", "Roster"] as scope}
+                <div class="w-full h-full flex justify-center items-center"
+                     class:rounded-lg={browser && scoped === scope}>
+                    <div class="w-[88%] h-[76%] rounded-lg flex justify-center items-center"
+                         class:bg-[#F4EDE9]={browser && scoped === scope}>
+                        <button class:font-medium={browser && scoped === scope}
+                                class:text-[#b96d83]={browser && scoped === scope}
+                                on:click={() => changeScope(scope)}>
+                            {scope}
+                        </button>
                     </div>
                 </div>
+            {/each}
+        </div>
+    </div>
+    <div class="w-[88%] min-h-[110px] flex flex-col overflow-hidden justify-center items-center bg-[#dec5cd] pt-4 mb-3 rounded-md">
+        {#if display.length === 0}
+            {#if loading}
+                <div class="flex flex-col items-center justify-center -translate-y-[14%]">
+                    <span class="text-[#413d5b] text-sm text-semibold">Loading...</span>
+                    <img alt="loading"
+                         class="w-10 h-10"
+                         src="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless"/>
+                </div>
+            {:else if scoped !== "Arkesia" && !loggedIn()}
+                <div class="flex flex-col items-center justify-center -translate-y-[14%]">
+                    <span class="text-[#413d5b] text-sm text-semibold mb-0.5">Not signed in.</span>
+                    <img alt="loading"
+                         class="w-10 h-10"
+                         src="https://cdn.discordapp.com/attachments/1154431161993535489/1177165751040360448/emoji_a_38.png?ex=65718409&is=655f0f09&hm=cb2e683112d257a9d89dcc7fc90a54b4a91d73ddf67c0b3e1fd6df225fbff4f6&"/>
+                </div>
+            {:else}
+                <div class="flex flex-col items-center justify-center -translate-y-[14%]">
+                    <span class="text-[#413d5b] text-sm text-semibold mb-0.5">No logs found.</span>
+                    <img alt="loading"
+                         class="w-10 h-10"
+                         src="https://cdn.discordapp.com/emojis/987954898094129172.webp?size=240&quality=lossless"/>
+                </div>
+            {/if}
+        {/if}
+        {#each display as encounter}
+            <button
+                    class="{focused ? '' : 'mb-5'} h-[80px] w-[94%]"
+                    on:click={() => focus(focused ? null : encounter)}>
+                <EncounterPreview width="w-full" {encounter}/>
             </button>
         {/each}
         {#if focused}

@@ -4,9 +4,10 @@
     import EncounterList from "$lib/components/EncounterList.svelte";
     import Settings from '$lib/components/Settings.svelte'
     import IconSearch from '~icons/gala/search'
-    import {user} from '$lib/store'
+    import {settings, user} from '$lib/store'
     import {settingsUI} from '$lib/menu'
     import {getRaidIcon} from "$lib/raids";
+    import {browser} from "$app/environment"
 
     export let data: PageData;
     console.log(data)
@@ -14,7 +15,7 @@
         user.set(data.me)
     }
 
-    let settings;
+    let settingsModal;
     settingsUI.subscribe(async (open) => {
         if (open) {
             let resp = await fetch("/api/settings", {
@@ -24,13 +25,13 @@
                 return
             }
 
-            settings = await resp.json()
+            settingsModal = await resp.json()
         } else {
-            settings = undefined
+            settingsModal = undefined
         }
     })
 
-    let greeting = true;
+    $: greeting = $settings?.logs.announcement;
 </script>
 
 <svelte:head>
@@ -39,22 +40,23 @@
 
 <div class="w-screen h-screen min-w-[1512px] min-h-[860px] bg-[#faf4ed] flex justify-center items-center">
     <div class="w-[1300px] h-[740px] flex flex-row shadow rounded-lg absolute">
-        {#if greeting}
+        {#if browser && greeting}
             <div class="absolute text-[#413d5b] py-4 px-5 left-1/2 top-1/2 shadow-sm z-50 border-[#b4637a] border-[1px] rounded-md -translate-x-[50%] -translate-y-[100%] w-[376px] bg-[#faf4ed]">
                 <div class="h-fit">
                     <span class="font-semibold text-lg">hewwo ^.^ </span>
                     <img alt="avatar" class="inline h-8 -translate-y-1"
                          src="https://cdn.discordapp.com/emojis/667830310741737473.gif?size=240&quality=lossless"/>
-                    <button on:click={() => greeting = false} class="float-right font-semibold">[x]</button>
+                    <button on:click={() => $settings.logs.announcement = false} class="float-right font-semibold">[x]
+                    </button>
                 </div>
                 <p>you've stumbled upon... my website! this is a secret underground black market that deals in the
                     forbidden teachings. FRICC THE POPO.</p>
                 <p class="text-[#57517a] text-sm">(invite only atm)</p>
             </div>
         {/if}
-        {#if settings}
+        {#if settingsModal}
             <div class="absolute text-[#413d5b] py-4 px-5 left-1/2 top-1/2 shadow-sm z-50 border-[#b4637a] border-[1px] rounded-xl -translate-x-[50%] -translate-y-[80%] w-[376px] h-[330px] bg-[#faf4ed]">
-                <Settings {settings}/>
+                <Settings settings={settingsModal}/>
             </div>
         {/if}
         <div class="w-[20%] min-w-[220px] border-l-[1px] border-y-[1px] border-[#efdcc5] h-full bg-[#b4637a] rounded-l-lg flex flex-col">
@@ -112,9 +114,17 @@
                     </button>
                 </div>
             </div>
+            {#if browser && !greeting}
+                <button on:click={() => $settings.logs.announcement = true}
+                        class="w-[136px] h-[42px] bg-[#faf4ed] text-[#413d5b] shadow-sm rounded-xl border-[#b4637a] border-[1px] py-1.5 px-4 mx-auto mb-5 my-auto flex justify-center items-center">
+                    <span class="font-medium mr-1 text-sm">hewwo ^.^ </span>
+                    <img alt="avatar" class="inline h-7"
+                         src="https://cdn.discordapp.com/emojis/667830310741737473.gif?size=240&quality=lossless"/>
+                </button>
+            {/if}
         </div>
         <div class="w-[45%] min-w-[500px] border-y-[1px] border-r-[1px] border-[#efdcc5] h-full bg-[#e7cfd6] rounded-r-lg">
-            <EncounterList encounters={data.recent}/>
+            <EncounterList />
         </div>
     </div>
 </div>

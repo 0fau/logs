@@ -37,6 +37,11 @@ const classIds = {
     "Alchemist": 604
 }
 
+let classLookup = {};
+for (const [key, val] of Object.entries(classIds)) {
+    classLookup[val] = key
+}
+
 export const cards = {
     "19090": "Ghost",
     "19091": "Twisted Fate",
@@ -59,6 +64,10 @@ export const cards = {
 
 export function getClassIcon(c: string): string {
     return '/icons/classes/' + (classIds[c] ?? classIds['Unknown']) + '.png'
+}
+
+export function getClassFromId(id: string): string {
+    return classLookup[id] ?? "Unknown"
 }
 
 export function getSkillIcon(icon: string): string {

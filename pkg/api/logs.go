@@ -3,8 +3,8 @@ package api
 import (
 	"context"
 	"github.com/0fau/logs/pkg/database/sql/structs"
-	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/cockroachdb/errors"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"log"
@@ -15,12 +15,13 @@ import (
 )
 
 type ReturnedEncounterShort struct {
-	ID          int32  `json:"id"`
-	Difficulty  string `json:"difficulty"`
-	Boss        string `json:"boss"`
-	Date        int64  `json:"date"`
-	Duration    int32  `json:"duration"`
-	LocalPlayer string `json:"localPlayer"`
+	User        ReturnedUser `json:"user"`
+	ID          int32        `json:"id"`
+	Difficulty  string       `json:"difficulty"`
+	Boss        string       `json:"boss"`
+	Date        int64        `json:"date"`
+	Duration    int32        `json:"duration"`
+	LocalPlayer string       `json:"localPlayer"`
 	structs.EncounterHeader
 }
 
@@ -29,40 +30,9 @@ type ReturnedEncounter struct {
 	Data structs.EncounterData `json:"data"`
 }
 
-type ReturnedEntity struct {
-	Class      string           `json:"class"`
-	EntType    string           `json:"enttype"`
-	Name       string           `json:"name"`
-	Damage     int64            `json:"damage"`
-	FADamage   int64            `json:"faDamage"`
-	BADamage   int64            `json:"baDamage"`
-	Dps        int64            `json:"dps"`
-	Dead       bool             `json:"dead"`
-	DeathTime  int64            `json:"deathTime"`
-	Skills     []ReturnedSkill  `json:"skills"`
-	Buffed     meter.BuffDamage `json:"buffed"`
-	Debuffed   meter.BuffDamage `json:"debuffed"`
-	DPSAverage []int64          `json:"dpsAverage"`
-	DPSRolling []int64          `json:"dpsRolling"`
-}
-
-type ReturnedSkill struct {
-	SkillID     int32            `json:"id"`
-	Casts       int32            `json:"casts"`
-	CastLog     []int32          `json:"castLog"`
-	Crits       int32            `json:"crits"`
-	DPS         int64            `json:"dps"`
-	Hits        int32            `json:"hits"`
-	FADamage    int64            `json:"faDamage"`
-	BADamage    int64            `json:"baDamage"`
-	MaxDamage   int64            `json:"maxDamage"`
-	TotalDamage int64            `json:"totalDamage"`
-	TripodIndex meter.TripodRows `json:"tripodIndex"`
-	TripodLevel meter.TripodRows `json:"tripodLevel"`
-	Name        string           `json:"name"`
-	Icon        string           `json:"icon"`
-	Buffed      meter.BuffDamage `json:"buffed"`
-	Debuffed    meter.BuffDamage `json:"debuffed"`
+type ReturnedEncounterShorts struct {
+	Encounters []ReturnedEncounterShort `json:"encounters"`
+	More       bool                     `json:"more"`
 }
 
 func (s *Server) recentLogs(c *gin.Context) {
@@ -89,7 +59,19 @@ func (s *Server) recentLogs(c *gin.Context) {
 		id = int32(num)
 	}
 
-	encs, err := s.conn.RecentEncounters(ctx, c.Query("user"), id, date)
+	user := ""
+	if c.Query("scope") == "roster" || c.Query("scope") == "friends" {
+		sesh := sessions.Default(c)
+		val := sesh.Get("user")
+		if val == nil {
+			c.JSON(http.StatusUnauthorized, []struct{}{})
+			return
+		}
+		u := val.(*SessionUser)
+		user = u.ID
+	}
+
+	encs, err := s.conn.RecentEncounters(ctx, user, id, date, c.Query("scope") == "friends")
 	if err != nil {
 		if strings.Contains(err.Error(), "scanning user uuid") {
 			c.AbortWithStatus(http.StatusBadRequest)
@@ -100,8 +82,15 @@ func (s *Server) recentLogs(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	ret := make([]ReturnedEncounterShort, len(encs))
-	for i, enc := range encs {
+
+	n, more := len(encs), false
+	if n > 5 {
+		n = 5
+		more = true
+	}
+
+	ret := make([]ReturnedEncounterShort, n)
+	for i, enc := range encs[:n] {
 		ret[i] = ReturnedEncounterShort{
 			ID:              enc.ID,
 			Difficulty:      enc.Difficulty,
@@ -112,7 +101,10 @@ func (s *Server) recentLogs(c *gin.Context) {
 			EncounterHeader: enc.Header,
 		}
 	}
-	c.JSON(http.StatusOK, ret)
+	c.JSON(http.StatusOK, ReturnedEncounterShorts{
+		Encounters: ret,
+		More:       more,
+	})
 }
 
 func (s *Server) logHandler(c *gin.Context) {
@@ -139,8 +131,22 @@ func (s *Server) logHandler(c *gin.Context) {
 		return
 	}
 
+	uploadedBy, _ := enc.UploadedBy.Value()
+	username := ""
+	if u, _ := enc.Username.Value(); u != nil {
+		username = u.(string)
+	}
+	avatar, _ := enc.Avatar.Value()
+
 	c.JSON(http.StatusOK, ReturnedEncounter{
 		ReturnedEncounterShort: ReturnedEncounterShort{
+			User: ReturnedUser{
+				ID:         uploadedBy.(string),
+				DiscordTag: enc.DiscordTag,
+				DiscordID:  enc.DiscordID,
+				Username:   username,
+				Avatar:     avatar.(string),
+			},
 			ID:              enc.ID,
 			Difficulty:      enc.Difficulty,
 			Boss:            enc.Boss,

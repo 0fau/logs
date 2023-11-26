@@ -1,6 +1,6 @@
 <script lang="ts">
     import {getClassIcon} from "$lib/game";
-    import {formatDamage, formatPercent} from "$lib/components/meter/print";
+    import {formatDamage, formatPercent} from "$lib/print";
 
     export let encounter;
     export let focus;

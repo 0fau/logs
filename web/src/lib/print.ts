@@ -31,3 +31,7 @@ export function formatPercentFlat(percent: number): string {
     const ret = numeral(percent * 100).format('0');
     return ret == "0" ? "" : ret;
 }
+
+export function sanitizeBuffDescription(desc: string): string {
+    return desc.replaceAll(/<FONT.*?>(.*?)<\/FONT>/g, "$1")
+}

@@ -1,5 +1,5 @@
 <script>
-    import {formatDamage, formatPercentFlat} from "$lib/components/meter/print.ts";
+    import {formatDamage, formatPercentFlat} from "$lib/print.ts";
 
     let partyTextColors = ["text-[#a2596d]", "text-[#5e5277]"]
     let partyBgColors = ["bg-[#a2596d]", "bg-[#5e5277]"]

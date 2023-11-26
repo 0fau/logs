@@ -47,10 +47,6 @@ type Encounter struct {
 	Data   structs.EncounterData
 }
 
-func (p *Processor) Lint(enc *meter.Encounter) error {
-	return nil
-}
-
 func (p *Processor) Process(raw *meter.Encounter) (*Encounter, error) {
 	enc := &Encounter{raw: raw}
 	header, err := enc.processHeader()
@@ -147,6 +143,11 @@ func (bgs BuffGroups) Serialize() []structs.BuffGroupInfo {
 		for buff := range bg.Buffs {
 			ssyn.Buffs = append(ssyn.Buffs, buff)
 		}
+		slices.SortFunc(ssyn.Buffs, func(a, b string) int {
+			num1, _ := strconv.Atoi(a)
+			num2, _ := strconv.Atoi(b)
+			return cmp.Compare(num1, num2)
+		})
 		arr = append(arr, ssyn)
 	}
 	return arr

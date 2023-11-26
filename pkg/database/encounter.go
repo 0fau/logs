@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func (db *DB) RecentEncounters(ctx context.Context, user string, id int32, date time.Time) ([]sql.ListRecentEncountersRow, error) {
+func (db *DB) RecentEncounters(ctx context.Context, user string, id int32, date time.Time, friends bool) ([]sql.ListRecentEncountersRow, error) {
 	args := sql.ListRecentEncountersParams{
 		Date: pgtype.Timestamp{
 			Time:  date,
@@ -19,6 +19,10 @@ func (db *DB) RecentEncounters(ctx context.Context, user string, id int32, date 
 			Valid: id != 0,
 		},
 		User: pgtype.UUID{},
+		Friends: pgtype.Bool{
+			Bool:  friends,
+			Valid: true,
+		},
 	}
 
 	if user != "" {

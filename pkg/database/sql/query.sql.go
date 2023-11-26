@@ -69,15 +69,39 @@ func (q *Queries) GetData(ctx context.Context, id int32) (structs.EncounterData,
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT id, uploaded_by, uploaded_at, settings, tags, header, data, boss, difficulty, date, duration, local_player
-FROM encounters
-WHERE id = $1
+SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.tags, e.header, e.data, e.boss, e.difficulty, e.date, e.duration, e.local_player,
+       u.discord_id,
+       u.discord_tag,
+       u.username,
+       u.avatar
+FROM encounters e
+         JOIN users u ON e.uploaded_by = u.id
+WHERE e.id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error) {
+type GetEncounterRow struct {
+	ID          int32
+	UploadedBy  pgtype.UUID
+	UploadedAt  pgtype.Timestamp
+	Settings    structs.EncounterSettings
+	Tags        []string
+	Header      structs.EncounterHeader
+	Data        structs.EncounterData
+	Boss        string
+	Difficulty  string
+	Date        pgtype.Timestamp
+	Duration    int32
+	LocalPlayer string
+	DiscordID   string
+	DiscordTag  string
+	Username    pgtype.Text
+	Avatar      pgtype.Text
+}
+
+func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, error) {
 	row := q.db.QueryRow(ctx, getEncounter, id)
-	var i Encounter
+	var i GetEncounterRow
 	err := row.Scan(
 		&i.ID,
 		&i.UploadedBy,
@@ -91,6 +115,10 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (Encounter, error)
 		&i.Date,
 		&i.Duration,
 		&i.LocalPlayer,
+		&i.DiscordID,
+		&i.DiscordTag,
+		&i.Username,
+		&i.Avatar,
 	)
 	return i, err
 }
@@ -259,33 +287,41 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 }
 
 const listRecentEncounters = `-- name: ListRecentEncounters :many
-SELECT id,
-       difficulty,
-       uploaded_by,
-       uploaded_at,
-       settings,
-       tags,
-       header,
-       boss,
-       date,
-       duration,
-       local_player
-FROM encounters
+SELECT u.discord_tag,
+       u.username,
+       e.id,
+       e.difficulty,
+       e.uploaded_by,
+       e.uploaded_at,
+       e.settings,
+       e.tags,
+       e.header,
+       e.boss,
+       e.date,
+       e.duration,
+       e.local_player
+FROM encounters e
+         JOIN users u ON e.uploaded_by = u.id
 WHERE ($1::TIMESTAMP IS NULL
-    OR ($1 > date OR ($1::TIMESTAMP = date AND $2::INT < id)))
+    OR ($1 > e.date OR ($1::TIMESTAMP = e.date AND $2::INT < e.id)))
   AND ($3::UUID IS NULL
-    OR $3 = uploaded_by)
-ORDER BY date DESC, id ASC
-LIMIT 5
+    OR (($4::BOOLEAN AND $3 = ANY (u.friends)) OR
+        ((NOT $4::BOOLEAN AND $3 = e.uploaded_by))))
+ORDER BY e.date DESC,
+         e.id ASC
+LIMIT 6
 `
 
 type ListRecentEncountersParams struct {
-	Date pgtype.Timestamp
-	ID   pgtype.Int4
-	User pgtype.UUID
+	Date    pgtype.Timestamp
+	ID      pgtype.Int4
+	User    pgtype.UUID
+	Friends pgtype.Bool
 }
 
 type ListRecentEncountersRow struct {
+	DiscordTag  string
+	Username    pgtype.Text
 	ID          int32
 	Difficulty  string
 	UploadedBy  pgtype.UUID
@@ -300,7 +336,12 @@ type ListRecentEncountersRow struct {
 }
 
 func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncountersParams) ([]ListRecentEncountersRow, error) {
-	rows, err := q.db.Query(ctx, listRecentEncounters, arg.Date, arg.ID, arg.User)
+	rows, err := q.db.Query(ctx, listRecentEncounters,
+		arg.Date,
+		arg.ID,
+		arg.User,
+		arg.Friends,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -309,6 +350,8 @@ func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncoun
 	for rows.Next() {
 		var i ListRecentEncountersRow
 		if err := rows.Scan(
+			&i.DiscordTag,
+			&i.Username,
 			&i.ID,
 			&i.Difficulty,
 			&i.UploadedBy,

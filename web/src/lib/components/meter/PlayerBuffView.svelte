@@ -1,5 +1,6 @@
 <script lang="ts">
-    import {getClassIcon, getSkillIcon, cards} from "$lib/game";
+    import {cards, getClassFromId, getClassIcon, getSkillIcon} from "$lib/game";
+    import {formatPercent, sanitizeBuffDescription} from "$lib/print";
 
     export let encounter;
     export let focus;
@@ -12,7 +13,6 @@
         }
     }
     let synergies = encounter.data.synergies[party];
-    console.log(synergies)
 
     let player = encounter.data.players[$focus]
     let skills = Object.keys(player.skillSynergy)
@@ -27,7 +27,6 @@
     skills = skills.filter((skill) => {
         return !cards[skill] || skill === "19282"
     })
-    console.log(skills)
 
     let skillCatalog = encounter.data.skillCatalog;
 
@@ -50,6 +49,8 @@
             bars[i].style.backgroundColor = barColors[i % 2]
         }
     }
+
+    let hovered;
 </script>
 
 <div class="bg-[#F4EDE9] w-full h-full rounded-lg">
@@ -62,9 +63,23 @@
                     <div class="flex flex-row mx-2 items-center justify-center">
                         {#each synergy.buffs as buff}
                             {@const info = encounter.data.buffCatalog[buff]}
+                            {@const hoverkey = synergy.name + "_" + buff}
                             <img alt={info.name}
                                  class="inline mx-0.5 rounded-sm h-6 w-6"
-                                 src="{getSkillIcon(info.icon)}"/>
+                                 src="{getSkillIcon(info.icon)}"
+                                 on:mouseover={() => hovered = hoverkey}
+                                 on:mouseleave={() => hovered = ""}
+                            />
+                            {#if hovered === hoverkey}
+                                <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-1.5rem)] text-[#575279]">
+                                    <img alt={info.name}
+                                         class="inline rounded-sm h-6 w-6"
+                                         src="{getSkillIcon(info.skill.icon)}"/>
+                                    <p class="font-medium">
+                                        [{getClassFromId(info.skill.class)}] {info.skill.name}</p>
+                                    <p class="">{sanitizeBuffDescription(info.description)}</p>
+                                </div>
+                            {/if}
                         {/each}
                     </div>
                 </th>
@@ -86,8 +101,26 @@
             </td>
             {#each synergies as synergy}
                 {@const percent = player.synergy[synergy.name]?.percent}
+                {@const hoverkey = "_player_" + synergy.name}
                 <td>
-                    {percent ? percent : ""}
+                    <div class="flex relative justify-center">
+                            <span class="my-auto z-10"
+                                  on:mouseover={() => hovered = hoverkey}
+                                  on:mouseleave={() => hovered = ""}>{percent ? percent : ""}</span>
+                        {#if hovered === hoverkey}
+                            <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-md whitespace-nowrap bg-[#F4EDE9] translate-y-[26px] border-[1px] border-[#c58597] text-[#575279]">
+                                {#each synergy.buffs as buff}
+                                    {@const info = encounter.data.buffCatalog[buff]}
+                                    <div class="w-[64px] flex items-center justify-start my-0.5">
+                                        <img alt={info.skill.name}
+                                             src="{getSkillIcon(info.skill.icon)}"
+                                             class="h-6 w-6 mr-1.5 inline rounded-md"/>
+                                        {formatPercent(player.synergy[synergy.name].buffs[buff] / encounter.players[$focus].damage)}
+                                    </div>
+                                {/each}
+                            </div>
+                        {/if}
+                    </div>
                 </td>
             {/each}
         </tr>
@@ -109,8 +142,26 @@
                 </td>
                 {#each synergies as synergy}
                     {@const percent = player.skillSynergy[name][synergy.name]?.percent}
+                    {@const hoverkey = name + "_" + synergy.name}
                     <td>
-                        {percent ? percent : ""}
+                        <div class="flex relative justify-center">
+                        <span class="my-auto z-10"
+                              on:mouseover={() => hovered = hoverkey}
+                              on:mouseleave={() => hovered = ""}>{percent ? percent : ""}</span>
+                            {#if hovered === hoverkey}
+                                <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-md whitespace-nowrap bg-[#F4EDE9] translate-y-[26px] border-[1px] border-[#c58597] text-[#575279]">
+                                    {#each synergy.buffs as buff}
+                                        {@const info = encounter.data.buffCatalog[buff]}
+                                        <div class="w-[64px] flex items-center justify-start my-0.5">
+                                            <img alt={info.skill.name}
+                                                 src="{getSkillIcon(info.skill.icon)}"
+                                                 class="h-6 w-6 mr-1.5 inline rounded-md"/>
+                                            {formatPercent(player.skillSynergy[name][synergy.name].buffs[buff] / player.skillDamage[name].damage)}
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
                     </td>
                 {/each}
             </tr>
@@ -128,7 +179,6 @@
 
     td {
         padding: 0 6px;
-        z-index: 10;
         position: relative;
         color: #524d72;
     }
