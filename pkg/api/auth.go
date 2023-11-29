@@ -145,8 +145,30 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 }
 
 func (s *Server) meHandler(c *gin.Context) {
-	sesh := sessions.Default(c)
+	token := c.GetHeader("access_token")
+	if token != "" {
+		user, err := s.conn.UserByAccessToken(context.Background(), token)
+		if err != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 
+		id, _ := user.ID.Value()
+		username := ""
+		if name, err := user.Username.Value(); err == nil && name != nil {
+			username = name.(string)
+		}
+
+		c.JSON(http.StatusOK, ReturnedUser{
+			ID:         id.(string),
+			Username:   username,
+			DiscordTag: user.DiscordTag,
+			DiscordID:  user.DiscordID,
+		})
+		return
+	}
+
+	sesh := sessions.Default(c)
 	u := ReturnedUser{}
 	if val := sesh.Get("user"); val != nil {
 		user := val.(*SessionUser)

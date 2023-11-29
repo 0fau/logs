@@ -101,9 +101,12 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
-	if _, err := s.processor.Save(ctx, user.ID, string(raw), enc); err != nil {
+	encID, err := s.processor.Save(ctx, user.ID, string(raw), enc)
+	if err != nil {
 		log.Println(errors.Wrap(err, "saving encounter"))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+
+	c.JSON(http.StatusOK, encID)
 }

@@ -87,7 +87,7 @@
                          src="{getClassIcon(encounter.players[$focus].class)}"
                          class="h-6 mr-1.5 inline opacity-95"
                     />
-                    {$focus}
+                    {encounter.anonymized ? encounter.players[$focus].class + " " + $focus : $focus}
                 </div>
             </td>
             {#each data.skillSelfBuffs as buffGroup}

@@ -49,7 +49,7 @@ func ValidPlayerName(name string) bool {
 			return false
 		}
 
-		if unicode.IsDigit(r) {
+		if !unicode.IsLetter(r) {
 			return false
 		}
 	}

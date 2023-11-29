@@ -35,6 +35,11 @@ ON CONFLICT (discord_id)
                   avatar      = excluded.avatar
 RETURNING *;
 
+-- name: SetUserRoles :exec
+UPDATE users
+SET roles = $2
+WHERE discord_tag = $1;
+
 -- name: DeleteUser :exec
 DELETE
 FROM users
@@ -63,6 +68,11 @@ FROM encounters e
 WHERE e.id = $1
 LIMIT 1;
 
+-- name: DeleteEncounter :exec
+DELETE
+FROM encounters
+WHERE id = $1;
+
 -- name: ListRecentEncounters :many
 SELECT u.discord_tag,
        u.username,
@@ -87,6 +97,10 @@ WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
 ORDER BY e.date DESC,
          e.id ASC
 LIMIT 6;
+
+-- name: ListEncounters :many
+SELECT id
+FROM encounters;
 
 -- name: GetData :one
 SELECT data

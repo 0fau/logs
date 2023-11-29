@@ -108,7 +108,7 @@
                          src="{getClassIcon(player.class)}"
                          class="h-6 mr-1.5 inline opacity-95"
                     />
-                    {$focus}
+                    {encounter.anonymized ? player.class + " " + $focus : $focus}
                 </div>
             </td>
             <td>{formatDamage(player.damage)}</td>

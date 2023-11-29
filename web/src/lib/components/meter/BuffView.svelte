@@ -48,7 +48,7 @@
                                          class="inline rounded-sm h-6 w-6"
                                          class:mr-0.5={i !== synergy.buffs.length - 1}
                                          src="{getSkillIcon(info.icon)}"
-                                         on:mouseover={() => hovered = hoverkey}
+                                         on:mouseover={() => { hovered = hoverkey; console.log(synergy.name)}}
                                          on:mouseleave={() => hovered = ""}
                                     />
                                     {#if hovered === hoverkey}
@@ -83,7 +83,7 @@
                                  src="{getClassIcon(player.class)}"
                                  class="h-6 w-6 mr-1.5 inline opacity-95"
                             />
-                            {name}
+                            {encounter.anonymized ? player.class + " " + name : name}
                         </button>
                     </td>
                     {#each synergies as synergy}

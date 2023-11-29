@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Admin_Process_FullMethodName = "/admin.Admin/Process"
+	Admin_Process_FullMethodName    = "/admin.Admin/Process"
+	Admin_Delete_FullMethodName     = "/admin.Admin/Delete"
+	Admin_ProcessAll_FullMethodName = "/admin.Admin/ProcessAll"
+	Admin_Role_FullMethodName       = "/admin.Admin/Role"
 )
 
 // AdminClient is the client API for Admin service.
@@ -27,6 +30,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdminClient interface {
 	Process(ctx context.Context, in *ProcessRequest, opts ...grpc.CallOption) (*ProcessResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	ProcessAll(ctx context.Context, in *ProcessAllRequest, opts ...grpc.CallOption) (*ProcessAllResponse, error)
+	Role(ctx context.Context, in *RoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
 }
 
 type adminClient struct {
@@ -46,11 +52,41 @@ func (c *adminClient) Process(ctx context.Context, in *ProcessRequest, opts ...g
 	return out, nil
 }
 
+func (c *adminClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, Admin_Delete_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adminClient) ProcessAll(ctx context.Context, in *ProcessAllRequest, opts ...grpc.CallOption) (*ProcessAllResponse, error) {
+	out := new(ProcessAllResponse)
+	err := c.cc.Invoke(ctx, Admin_ProcessAll_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adminClient) Role(ctx context.Context, in *RoleRequest, opts ...grpc.CallOption) (*RoleResponse, error) {
+	out := new(RoleResponse)
+	err := c.cc.Invoke(ctx, Admin_Role_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdminServer is the server API for Admin service.
 // All implementations must embed UnimplementedAdminServer
 // for forward compatibility
 type AdminServer interface {
 	Process(context.Context, *ProcessRequest) (*ProcessResponse, error)
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	ProcessAll(context.Context, *ProcessAllRequest) (*ProcessAllResponse, error)
+	Role(context.Context, *RoleRequest) (*RoleResponse, error)
 	mustEmbedUnimplementedAdminServer()
 }
 
@@ -60,6 +96,15 @@ type UnimplementedAdminServer struct {
 
 func (UnimplementedAdminServer) Process(context.Context, *ProcessRequest) (*ProcessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Process not implemented")
+}
+func (UnimplementedAdminServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedAdminServer) ProcessAll(context.Context, *ProcessAllRequest) (*ProcessAllResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ProcessAll not implemented")
+}
+func (UnimplementedAdminServer) Role(context.Context, *RoleRequest) (*RoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Role not implemented")
 }
 func (UnimplementedAdminServer) mustEmbedUnimplementedAdminServer() {}
 
@@ -92,6 +137,60 @@ func _Admin_Process_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Admin_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_Delete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Admin_ProcessAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProcessAllRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).ProcessAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_ProcessAll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).ProcessAll(ctx, req.(*ProcessAllRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Admin_Role_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).Role(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_Role_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).Role(ctx, req.(*RoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Admin_ServiceDesc is the grpc.ServiceDesc for Admin service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +201,18 @@ var Admin_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Process",
 			Handler:    _Admin_Process_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _Admin_Delete_Handler,
+		},
+		{
+			MethodName: "ProcessAll",
+			Handler:    _Admin_ProcessAll_Handler,
+		},
+		{
+			MethodName: "Role",
+			Handler:    _Admin_Role_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

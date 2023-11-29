@@ -94,7 +94,7 @@
                              src="{getClassIcon(player.class)}"
                              class="h-6 mr-1.5 inline opacity-95"
                         />
-                        {name}
+                        {encounter.anonymized ? player.class + " " + name : name}
                     </button>
                 </td>
                 {#each buffGroups as buffGroup}

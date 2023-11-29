@@ -44,6 +44,17 @@ func (q *Queries) CountClasses(ctx context.Context) ([]CountClassesRow, error) {
 	return items, nil
 }
 
+const deleteEncounter = `-- name: DeleteEncounter :exec
+DELETE
+FROM encounters
+WHERE id = $1
+`
+
+func (q *Queries) DeleteEncounter(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, deleteEncounter, id)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE
 FROM users
@@ -286,6 +297,31 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 	return id, err
 }
 
+const listEncounters = `-- name: ListEncounters :many
+SELECT id
+FROM encounters
+`
+
+func (q *Queries) ListEncounters(ctx context.Context) ([]int32, error) {
+	rows, err := q.db.Query(ctx, listEncounters)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int32
+	for rows.Next() {
+		var id int32
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRecentEncounters = `-- name: ListRecentEncounters :many
 SELECT u.discord_tag,
        u.username,
@@ -405,6 +441,22 @@ type SetAccessTokenParams struct {
 
 func (q *Queries) SetAccessToken(ctx context.Context, arg SetAccessTokenParams) error {
 	_, err := q.db.Exec(ctx, setAccessToken, arg.ID, arg.AccessToken)
+	return err
+}
+
+const setUserRoles = `-- name: SetUserRoles :exec
+UPDATE users
+SET roles = $2
+WHERE discord_tag = $1
+`
+
+type SetUserRolesParams struct {
+	DiscordTag string
+	Roles      []string
+}
+
+func (q *Queries) SetUserRoles(ctx context.Context, arg SetUserRolesParams) error {
+	_, err := q.db.Exec(ctx, setUserRoles, arg.DiscordTag, arg.Roles)
 	return err
 }
 

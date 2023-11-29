@@ -1,7 +1,9 @@
 package api
 
 import (
+	"cmp"
 	"context"
+	"fmt"
 	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
@@ -9,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"log"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +25,7 @@ type ReturnedEncounterShort struct {
 	Date        int64        `json:"date"`
 	Duration    int32        `json:"duration"`
 	LocalPlayer string       `json:"localPlayer"`
+	Anonymized  bool         `json:"anonymized"`
 	structs.EncounterHeader
 }
 
@@ -35,6 +39,50 @@ type ReturnedEncounterShorts struct {
 	More       bool                     `json:"more"`
 }
 
+func (enc *ReturnedEncounter) Anonymize(order map[string]string) {
+	for name, player := range enc.Data.Players {
+		enc.Data.Players[order[name]] = player
+		delete(enc.Data.Players, name)
+	}
+	enc.ReturnedEncounterShort.Anonymize(order)
+}
+
+func (enc *ReturnedEncounterShort) Order() map[string]string {
+	players := make([]string, 0, len(enc.Players))
+	for name := range enc.Players {
+		players = append(players, name)
+	}
+	slices.SortFunc(players, func(a, b string) int {
+		return cmp.Compare(enc.Players[b].Damage, enc.Players[a].Damage)
+	})
+	m := map[string]string{}
+	for i, player := range players {
+		m[player] = fmt.Sprintf("#%d", i+1)
+	}
+	return m
+}
+
+func (enc *ReturnedEncounterShort) Anonymize(order map[string]string) {
+	parties := make([][]string, 0, len(enc.Parties))
+	for _, party := range enc.Parties {
+		anon := make([]string, 0, len(party))
+		for _, player := range party {
+			anon = append(anon, order[player])
+		}
+		parties = append(parties, anon)
+	}
+	enc.Parties = parties
+
+	for name, player := range enc.Players {
+		enc.Players[order[name]] = player
+		delete(enc.Players, name)
+	}
+
+	enc.LocalPlayer = order[enc.LocalPlayer]
+	enc.User = ReturnedUser{}
+	enc.Anonymized = true
+}
+
 func (s *Server) recentLogs(c *gin.Context) {
 	ctx := context.Background()
 
@@ -46,7 +94,6 @@ func (s *Server) recentLogs(c *gin.Context) {
 			return
 		}
 		date = time.UnixMilli(num).UTC()
-		log.Println(date)
 	}
 
 	var id int32
@@ -91,7 +138,15 @@ func (s *Server) recentLogs(c *gin.Context) {
 
 	ret := make([]ReturnedEncounterShort, n)
 	for i, enc := range encs[:n] {
-		ret[i] = ReturnedEncounterShort{
+		username := ""
+		if name, _ := enc.Username.Value(); name != nil {
+			username = name.(string)
+		}
+		short := ReturnedEncounterShort{
+			User: ReturnedUser{
+				DiscordTag: enc.DiscordTag,
+				Username:   username,
+			},
 			ID:              enc.ID,
 			Difficulty:      enc.Difficulty,
 			Boss:            enc.Boss,
@@ -100,6 +155,10 @@ func (s *Server) recentLogs(c *gin.Context) {
 			LocalPlayer:     enc.LocalPlayer,
 			EncounterHeader: enc.Header,
 		}
+		//order := short.Order()
+		//short.Anonymize(order)
+
+		ret[i] = short
 	}
 	c.JSON(http.StatusOK, ReturnedEncounterShorts{
 		Encounters: ret,
@@ -138,7 +197,7 @@ func (s *Server) logHandler(c *gin.Context) {
 	}
 	avatar, _ := enc.Avatar.Value()
 
-	c.JSON(http.StatusOK, ReturnedEncounter{
+	full := ReturnedEncounter{
 		ReturnedEncounterShort: ReturnedEncounterShort{
 			User: ReturnedUser{
 				ID:         uploadedBy.(string),
@@ -156,5 +215,9 @@ func (s *Server) logHandler(c *gin.Context) {
 			EncounterHeader: enc.Header,
 		},
 		Data: enc.Data,
-	})
+	}
+	//order := full.Order()
+	//full.Anonymize(order)
+
+	c.JSON(http.StatusOK, full)
 }

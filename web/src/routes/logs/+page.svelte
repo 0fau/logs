@@ -35,7 +35,7 @@
 </script>
 
 <svelte:head>
-    <title>logs by faust</title>
+    <title>black meowket (alpha)</title>
 </svelte:head>
 
 <div class="w-screen h-screen min-w-[1512px] min-h-[860px] bg-[#faf4ed] flex justify-center items-center">

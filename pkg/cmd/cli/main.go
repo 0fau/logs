@@ -10,7 +10,10 @@ func main() {
 		Use: "logs",
 	}
 	cmd.AddCommand(extract())
+	cmd.AddCommand(role())
 	cmd.AddCommand(process())
+	cmd.AddCommand(processAll())
+	cmd.AddCommand(delete())
 	if err := cmd.Execute(); err != nil {
 		panic(err)
 	}

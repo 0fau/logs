@@ -35,9 +35,13 @@ func NewClient(c *Config) (*Client, error) {
 	return &Client{client: client, bucket: c.Bucket}, nil
 }
 
+func objectName(id int32) string {
+	return "logs/" + viper.GetString("ENVIRONMENT") + "/" + strconv.Itoa(int(id))
+}
+
 func (c *Client) SaveEncounter(ctx context.Context, id int32, raw string) error {
 	reader := strings.NewReader(raw)
-	_, err := c.client.PutObject(ctx, c.bucket, "logs/"+viper.GetString("ENVIRONMENT")+"/"+strconv.Itoa(int(id)), reader, int64(reader.Len()), minio.PutObjectOptions{})
+	_, err := c.client.PutObject(ctx, c.bucket, objectName(id), reader, int64(reader.Len()), minio.PutObjectOptions{})
 	return err
 }
 
@@ -52,4 +56,8 @@ func (c *Client) FetchEncounter(ctx context.Context, id int32) ([]byte, error) {
 		return nil, errors.Wrap(err, "reading object")
 	}
 	return raw, nil
+}
+
+func (c *Client) DeleteEncounter(ctx context.Context, id int32) error {
+	return c.client.RemoveObject(ctx, c.bucket, objectName(id), minio.RemoveObjectOptions{})
 }

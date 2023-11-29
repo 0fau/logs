@@ -14,6 +14,7 @@ import (
 	"math"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -133,7 +134,7 @@ func (bgs BuffGroups) Collect(group, buff string) {
 	bgs[group] = bg
 }
 
-func (bgs BuffGroups) Serialize() []structs.BuffGroupInfo {
+func (bgs BuffGroups) Serialize(order func(a, b structs.BuffGroupInfo) int) []structs.BuffGroupInfo {
 	arr := make([]structs.BuffGroupInfo, 0, len(bgs))
 	for _, bg := range bgs {
 		ssyn := structs.BuffGroupInfo{
@@ -150,7 +151,47 @@ func (bgs BuffGroups) Serialize() []structs.BuffGroupInfo {
 		})
 		arr = append(arr, ssyn)
 	}
+	slices.SortFunc(arr, order)
 	return arr
+}
+
+var SynergyOrder = map[string]int{
+	"204_101204":              0, // Bard ATK
+	"204_210230":              1, // Bard Brand
+	"204_Serenade of Courage": 2,
+	"204_Heavenly Tune":       3,
+
+	"105_101105": 4, // Pally ATK
+	"105_210230": 5, // Pally Brand
+	"105_368000": 6, // Pally Aura
+
+	"602_314004": 6, // Artist ATK
+	"602_210230": 7, // Artist Brand
+	"602_310501": 8, // Artist Moonfall
+}
+
+func compareSynergy(a, b structs.BuffGroupInfo) int {
+	aorder, aok := SynergyOrder[a.Name]
+	border, bok := SynergyOrder[b.Name]
+	if aok && !bok {
+		return -1
+	} else if !aok && bok {
+		return 1
+	} else if aok && bok {
+		return cmp.Compare(aorder, border)
+	}
+
+	asplit := strings.Split(a.Name, "_")
+	bsplit := strings.Split(b.Name, "_")
+	if asplit[0] != bsplit[0] {
+		return cmp.Compare(asplit[0], bsplit[0])
+	}
+
+	return cmp.Compare(asplit[1], bsplit[1])
+}
+
+func compareBuff(a, b structs.BuffGroupInfo) int {
+	return cmp.Compare(a.Name, b.Name)
 }
 
 func (enc *Encounter) processData() (structs.EncounterData, error) {
@@ -205,7 +246,7 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 		}
 		player, ok := data.Players[name]
 		if ok {
-			player.SkillSelfBuffs = skillSelfBuffs.Serialize()
+			player.SkillSelfBuffs = skillSelfBuffs.Serialize(compareBuff)
 			data.Players[name] = player
 		}
 
@@ -219,9 +260,9 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 	}
 
 	for i, groups := range partyBuffs {
-		data.Synergies[i] = groups.Serialize()
+		data.Synergies[i] = groups.Serialize(compareSynergy)
 	}
-	data.SelfBuffs = selfBuffs.Serialize()
+	data.SelfBuffs = selfBuffs.Serialize(compareBuff)
 
 	return data, nil
 }

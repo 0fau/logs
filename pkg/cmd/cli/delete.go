@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func process() *cobra.Command {
+func delete() *cobra.Command {
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("LCLI")
 
@@ -20,7 +20,7 @@ func process() *cobra.Command {
 	addr := viper.GetString("ADMIN_ADDRESS")
 
 	return &cobra.Command{
-		Use:  "process",
+		Use:  "delete",
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			encID, err := strconv.Atoi(args[0])
@@ -35,35 +35,9 @@ func process() *cobra.Command {
 
 			ctx := context.Background()
 			cli := admin.NewAdminClient(conn)
-			_, err = cli.Process(ctx, &admin.ProcessRequest{Encounter: int32(encID)})
+			_, err = cli.Delete(ctx, &admin.DeleteRequest{Encounter: int32(encID)})
 			if err != nil {
-				log.Fatal(errors.Wrap(err, "process"))
-			}
-		},
-	}
-}
-
-func processAll() *cobra.Command {
-	viper.AutomaticEnv()
-	viper.SetEnvPrefix("LCLI")
-
-	viper.MustBindEnv("ADMIN_ADDRESS")
-	addr := viper.GetString("ADMIN_ADDRESS")
-
-	return &cobra.Command{
-		Use:  "process-all",
-		Args: cobra.ExactArgs(0),
-		Run: func(cmd *cobra.Command, args []string) {
-			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-			if err != nil {
-				log.Fatal(errors.Wrap(err, "grpc dial"))
-			}
-
-			ctx := context.Background()
-			cli := admin.NewAdminClient(conn)
-			_, err = cli.ProcessAll(ctx, &admin.ProcessAllRequest{})
-			if err != nil {
-				log.Fatal(errors.Wrap(err, "process all"))
+				log.Fatal(errors.Wrap(err, "delete"))
 			}
 		},
 	}

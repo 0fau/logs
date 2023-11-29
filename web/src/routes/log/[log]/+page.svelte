@@ -10,13 +10,13 @@
 </script>
 
 <svelte:head>
-    <meta name="og:site_name" content="logs by faust"/>
+    <meta name="og:site_name" content="black meowket (alpha)"/>
     <meta property="og:type" content="website"/>
     {#if encounter}
         {@const raid = getRaid(encounter.boss)}
-        <title>[#{encounter.id}] {raid ? raid.raid.toLowerCase() + ' g' + raid.gate : encounter.boss.toLowerCase()} ({encounter.localPlayer.toLowerCase()})</title>
+        <title>[#{encounter.id}] {encounter.difficulty.toLowerCase()} {raid ? raid.raid.toLowerCase() + ' g' + raid.gate : encounter.boss.toLowerCase()} {encounter.anonymized ? "" : encounter.localPlayer.toLowerCase()}</title>
         <meta property="og:title"
-              content="{encounter.difficulty} {raid ? raid.raid + ' G' + raid.gate : encounter.boss.toLowerCase()} - {encounter.localPlayer} ({encounter.players[encounter.localPlayer].class})">
+              content="{encounter.difficulty} {raid ? raid.raid + ' G' + raid.gate : encounter.boss.toLowerCase()} - {encounter.players[encounter.localPlayer].class}">
         <meta property="og:description" content=""/>
     {:else}
         <title>HUH</title>

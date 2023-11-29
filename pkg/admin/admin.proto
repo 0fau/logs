@@ -9,6 +9,35 @@ message ProcessRequest {
 message ProcessResponse {
 }
 
+message DeleteRequest {
+  int32 encounter = 1;
+}
+
+message DeleteResponse {
+}
+
+message ProcessAllRequest {
+}
+
+message ProcessAllResponse {
+}
+
+message RoleRequest {
+  enum Action {
+    Add = 0;
+    Remove = 1;
+  }
+  Action action = 1;
+  string discord = 2;
+  string role = 3;
+}
+
+message RoleResponse {
+}
+
 service Admin {
   rpc Process(ProcessRequest) returns (ProcessResponse) {}
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+  rpc ProcessAll(ProcessAllRequest) returns (ProcessAllResponse) {}
+  rpc Role(RoleRequest) returns (RoleResponse) {}
 }

@@ -84,7 +84,7 @@
                              src="{getClassIcon(player.class)}"
                              class="h-6 w-6 mr-1.5 z-50 inline"
                         />
-                        <span class="z-50">{name}</span>
+                        <span class="z-50">{encounter.anonymized ? player.class + " " + name : name}</span>
                     </button>
                 </td>
                 <td>{formatDamage(player.damage)}</td>
