@@ -1,6 +1,6 @@
 <script lang="ts">
     import {getBossIcon} from "$lib/raids";
-    import {formatDamage, formatDate, formatDuration} from "$lib/print";
+    import {formatDamage, formatDate, formatDuration, formatPercent} from "$lib/print";
 
     const difficultyColors = {
         "Inferno": "#9a3148",

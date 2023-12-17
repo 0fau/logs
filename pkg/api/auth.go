@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -103,8 +102,6 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
-	log.Println(string(body))
-
 	u := DiscordUser{}
 	if err := json.Unmarshal(body, &u); err != nil {
 		log.Println(errors.WithStack(err))
@@ -169,10 +166,8 @@ func (s *Server) meHandler(c *gin.Context) {
 	}
 
 	sesh := sessions.Default(c)
-	u := ReturnedUser{}
 	if val := sesh.Get("user"); val != nil {
 		user := val.(*SessionUser)
-		fmt.Println(u)
 		c.JSON(http.StatusOK, ReturnedUser{
 			ID:         user.ID,
 			Username:   user.Username,

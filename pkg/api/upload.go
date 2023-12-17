@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
@@ -14,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"strings"
 )
 
 func (s *Server) generateToken(c *gin.Context) {
@@ -43,9 +43,9 @@ func (s *Server) generateToken(c *gin.Context) {
 	}{token})
 }
 
-func hasRoles(user *sql.User, roles ...string) bool {
+func hasRoles(user []string, roles ...string) bool {
 	for _, role := range roles {
-		if slices.Contains(user.Roles, role) {
+		if slices.Contains(user, role) {
 			return true
 		}
 	}
@@ -75,7 +75,7 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
-	if !hasRoles(user, "alpha", "trusted", "admin") {
+	if !hasRoles(user.Roles, "alpha", "trusted", "admin") {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
@@ -95,7 +95,7 @@ func (s *Server) uploadHandler(c *gin.Context) {
 	}
 
 	if err := s.processor.Lint(enc); err != nil {
-		c.JSON(http.StatusBadRequest, Error{
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error{
 			Error: err.Error(),
 		})
 		return
@@ -103,6 +103,13 @@ func (s *Server) uploadHandler(c *gin.Context) {
 
 	encID, err := s.processor.Save(ctx, user.ID, string(raw), enc)
 	if err != nil {
+		if strings.Contains(err.Error(), "violates unique constraint") {
+			c.AbortWithStatusJSON(http.StatusBadRequest, Error{
+				Error: "Duplicate log.",
+			})
+			return
+		}
+
 		log.Println(errors.Wrap(err, "saving encounter"))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

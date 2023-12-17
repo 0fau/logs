@@ -166,6 +166,20 @@ func (q *Queries) GetRaidStats(ctx context.Context) ([]GetRaidStatsRow, error) {
 	return items, nil
 }
 
+const getRoles = `-- name: GetRoles :one
+SELECT roles
+FROM users
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetRoles(ctx context.Context, id pgtype.UUID) ([]string, error) {
+	row := q.db.QueryRow(ctx, getRoles, id)
+	var roles []string
+	err := row.Scan(&roles)
+	return roles, err
+}
+
 const getUniqueUploaders = `-- name: GetUniqueUploaders :one
 SELECT COUNT(DISTINCT jsonb_object_keys(header -> 'players'))
 FROM encounters
@@ -295,6 +309,44 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 	var id int32
 	err := row.Scan(&id)
 	return id, err
+}
+
+type InsertPlayerParams struct {
+	Encounter int32
+	Class     string
+	Name      string
+	Dead      bool
+	Data      structs.IndexedPlayerData
+	Place     int32
+}
+
+const insertPlayerInternal = `-- name: InsertPlayerInternal :exec
+INSERT
+INTO players (encounter, class, name, dead, data, place)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (encounter, name)
+    DO UPDATE SET data = excluded.data
+`
+
+type InsertPlayerInternalParams struct {
+	Encounter int32
+	Class     string
+	Name      string
+	Dead      bool
+	Data      structs.IndexedPlayerData
+	Place     int32
+}
+
+func (q *Queries) InsertPlayerInternal(ctx context.Context, arg InsertPlayerInternalParams) error {
+	_, err := q.db.Exec(ctx, insertPlayerInternal,
+		arg.Encounter,
+		arg.Class,
+		arg.Name,
+		arg.Dead,
+		arg.Data,
+		arg.Place,
+	)
+	return err
 }
 
 const listEncounters = `-- name: ListEncounters :many

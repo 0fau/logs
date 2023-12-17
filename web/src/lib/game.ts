@@ -37,6 +37,34 @@ const classIds = {
     "Alchemist": 604
 }
 
+export const classes = {
+    "Berserker": 102,
+    "Destroyer": 103,
+    "Gunlancer": 104,
+    "Paladin": 105,
+    "Slayer": 112,
+    "Arcanist": 202,
+    "Summoner": 203,
+    "Bard": 204,
+    "Sorceress": 205,
+    "Wardancer": 302,
+    "Scrapper": 303,
+    "Soulfist": 304,
+    "Glaivier": 305,
+    "Striker": 312,
+    "Deathblade": 402,
+    "Shadowhunter": 403,
+    "Reaper": 404,
+    "Souleater": 405,
+    "Sharpshooter": 502,
+    "Deadeye": 503,
+    "Artillerist": 504,
+    "Machinist": 505,
+    "Gunslinger": 512,
+    "Artist": 602,
+    "Aeromancer": 603
+}
+
 let classLookup = {};
 for (const [key, val] of Object.entries(classIds)) {
     classLookup[val] = key
@@ -66,10 +94,18 @@ export function getClassIcon(c: string): string {
     return '/icons/classes/' + (classIds[c] ?? classIds['Unknown']) + '.png'
 }
 
-export function getClassFromId(id: string): string {
-    return classLookup[id] ?? "Unknown"
+export function getGuardianIcon(g: string): string {
+    return '/icons/guardians/' + g.toLowerCase() + ".png"
+}
+
+export function getClassIconNew(c: string): string {
+    return '/icons/classes/new/' + (classIds[c] ?? classIds['Unknown']) + '.svg'
 }
 
 export function getSkillIcon(icon: string): string {
     return '/icons/skills/' + (icon ? icon : 'unknown.png');
+}
+
+export function getClassFromId(id: string): string {
+    return classLookup[id] ?? "Unknown"
 }

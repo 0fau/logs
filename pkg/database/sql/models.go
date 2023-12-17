@@ -24,6 +24,15 @@ type Encounter struct {
 	LocalPlayer string
 }
 
+type Player struct {
+	Encounter int32
+	Class     string
+	Name      string
+	Dead      bool
+	Data      structs.IndexedPlayerData
+	Place     int32
+}
+
 type User struct {
 	ID          pgtype.UUID
 	Username    pgtype.Text

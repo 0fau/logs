@@ -1,6 +1,6 @@
 <script lang="ts">
     export let encounter;
-    let user = encounter.user;
+    let user = encounter.uploader;
 </script>
 
 <div class="h-[23px] w-[458px] mb-2 flex flex-row items-center">
@@ -8,7 +8,7 @@
         {#if encounter.anonymized}
             <img alt="avatar" class="rounded-md mr-1 w-6 h-6"
                  src="/icons/misc/sus.png"/>
-            <span class="text-xs font-medium text-[#413d5b] mr-1.5">Anonymous</span>
+            <span class="text-xs font-medium text-[#413d5b] mr-1.5">Hidden</span>
         {:else}
             <img alt="avatar" class="rounded-md mr-1.5 w-6 h-6"
                  src="https://cdn.discordapp.com/avatars/{user.discord_id}/{user.avatar}.png"/>

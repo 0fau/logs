@@ -29,18 +29,8 @@ sql:
               import: "github.com/0fau/logs/pkg/database/sql/structs"
               package: "structs"
               type: "EncounterData"
-          - column: "entities.fields"
+          - column: "players.data"
             go_type:
-              import: "github.com/0fau/logs/pkg/process/meter"
-              package: "meter"
-              type: "StoredEntityFields"
-          - column: "skills.fields"
-            go_type:
-              import: "github.com/0fau/logs/pkg/process/meter"
-              package: "meter"
-              type: "StoredSkillFields"
-          - column: "skills.tripods"
-            go_type:
-              import: "github.com/0fau/logs/pkg/process/meter"
-              package: "meter"
-              type: "TripodRows"
+              import: "github.com/0fau/logs/pkg/database/sql/structs"
+              package: "structs"
+              type: "IndexedPlayerData"

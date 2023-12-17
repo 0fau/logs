@@ -10,6 +10,12 @@ FROM users
 WHERE id = $1
 LIMIT 1;
 
+-- name: GetRoles :one
+SELECT roles
+FROM users
+WHERE id = $1
+LIMIT 1;
+
 -- name: GetUserByToken :one
 SELECT *
 FROM users
@@ -50,6 +56,18 @@ INSERT
 INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id;
+
+-- name: InsertPlayer :copyfrom
+INSERT
+INTO players (encounter, class, name, dead, data, place)
+VALUES ($1, $2, $3, $4, $5, $6);
+
+-- name: InsertPlayerInternal :exec
+INSERT
+INTO players (encounter, class, name, dead, data, place)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (encounter, name)
+    DO UPDATE SET data = excluded.data;
 
 -- name: ProcessEncounter :exec
 UPDATE encounters

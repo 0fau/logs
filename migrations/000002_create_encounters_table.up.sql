@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS encounters
     local_player STRING    NOT NULL,
 
     PRIMARY KEY (id) USING HASH,
+    UNIQUE (date, local_player, boss),
     INDEX (uploaded_by),
     INDEX (date),
     INDEX (boss),
@@ -26,17 +27,14 @@ CREATE TABLE IF NOT EXISTS encounters
 
 CREATE TABLE IF NOT EXISTS players
 (
-    id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     encounter INT    NOT NULL REFERENCES encounters (id) ON DELETE CASCADE,
     class     STRING NOT NULL,
     name      STRING NOT NULL,
-    damage    BIGINT NOT NULL,
-    dps       BIGINT NOT NULL,
     dead      BOOL   NOT NULL,
-    tags      STRING ARRAY,
-    data      JSON   NOT NULL,
-    UNIQUE (encounter, name),
+    data      JSONB  NOT NULL,
+    place     INT    NOT NULL,
+    PRIMARY KEY (encounter, name),
     INDEX (name),
     INDEX (class),
-    INDEX (dps)
+    INDEX (((data ->> 'dps')::BIGINT), place)
 );

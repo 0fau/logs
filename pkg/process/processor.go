@@ -90,7 +90,7 @@ func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
 	}
 
 	for _, entity := range enc.raw.Entities {
-		if entity.EntityType == "ESTHER" {
+		if entity.EntityType != "PLAYER" {
 			continue
 		}
 
@@ -265,6 +265,13 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 	data.SelfBuffs = selfBuffs.Serialize(compareBuff)
 
 	return data, nil
+}
+
+type Player struct {
+}
+
+func (enc *Encounter) ProcessPlayer() Player {
+	return Player{}
 }
 
 func (enc *Encounter) CatalogBuff(data structs.EncounterData, buff string) {
@@ -535,6 +542,10 @@ func (enc *Encounter) highlight() {
 
 }
 
+func (enc *Encounter) UniqueHash() string {
+	return ""
+}
+
 func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw *meter.Encounter) (int32, error) {
 	tx, err := p.db.Pool.Begin(ctx)
 	if err != nil {
@@ -566,6 +577,36 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 	})
 	if err != nil {
 		return 0, errors.Wrap(err, "inserting encounter")
+	}
+
+	order := make([]string, 0, len(enc.Header.Players))
+	for player := range enc.Header.Players {
+		order = append(order, player)
+	}
+	slices.SortFunc(order, func(a, b string) int {
+		return cmp.Compare(
+			enc.Header.Players[b].Damage,
+			enc.Header.Players[a].Damage,
+		)
+	})
+
+	players := make([]sql.InsertPlayerParams, 0, len(enc.Header.Players))
+	for i, player := range order {
+		header := enc.Header.Players[player]
+		players = append(players, sql.InsertPlayerParams{
+			Encounter: encID,
+			Class:     header.Class,
+			Name:      player,
+			Dead:      header.Dead,
+			Place:     int32(i + 1),
+			Data: structs.IndexedPlayerData{
+				Damage: header.Damage,
+				DPS:    header.DPS,
+			},
+		})
+	}
+	if _, err := qtx.InsertPlayer(ctx, players); err != nil {
+		return 0, errors.Wrap(err, "inserting players")
 	}
 
 	if err := tx.Commit(ctx); err != nil {

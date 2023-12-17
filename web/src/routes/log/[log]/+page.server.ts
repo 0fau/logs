@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({params, cookies}) => {
 
     const headers: HeadersInit = {}
     if (cookies.get("sessions")) {
-        headers.cookies = "sessions=" + cookies.get("sessions")
+        headers.cookie = "sessions=" + cookies.get("sessions")
     }
 
     const enc = await fetch(

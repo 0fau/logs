@@ -13,12 +13,13 @@ func (p *Processor) Lint(enc *meter.Encounter) error {
 
 	players := 0
 	for name, player := range enc.Entities {
+		if player.EntityType != "PLAYER" {
+			continue
+		}
+		players++
+
 		if !ValidPlayerName(name) {
 			return errors.New("Missing data")
-		}
-
-		if player.EntityType == "PLAYER" {
-			players++
 		}
 	}
 

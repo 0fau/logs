@@ -34,3 +34,13 @@ CREATE TABLE encounters
     duration     INT       NOT NULL,
     local_player STRING    NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS players
+(
+    encounter INT    NOT NULL REFERENCES encounters (id) ON DELETE CASCADE,
+    class     STRING NOT NULL,
+    name      STRING NOT NULL,
+    dead      BOOL   NOT NULL,
+    data      JSONB  NOT NULL,
+    place     INT    NOT NULL
+);

@@ -5,9 +5,12 @@
     import IconArrow from '~icons/carbon/next-filled'
     import IconBack from '~icons/ion/arrow-back-outline'
     import IconScope from '~icons/mdi/telescope'
+    import IconSort from '~icons/basil/sort-outline'
     import EncounterRecap from "$lib/components/EncounterRecap.svelte";
     import {onMount} from "svelte";
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
+
+    export let search;
 
     let encounters = [];
     let focused;
@@ -28,6 +31,10 @@
         busy = false;
 
         loading = false;
+
+        search.subscribe((val) => {
+            refresh()
+        })
     })
 
     function loggedIn() {
@@ -45,22 +52,57 @@
         busy = false
     }
 
+    function normalizeSelections(selected) {
+        let selections = {
+            raids: {},
+            guardians: Object.keys(selected.guardians ?? {}).filter((g) => selected.guardians[g]),
+            trials: Object.keys(selected.trials ?? {}).filter((t) => selected.trials[t]),
+            classes: Object.keys(selected.classes ?? {}).filter((c) => selected.classes[c]),
+        }
+        for (let [key, val] of Object.entries(selected.raids ?? {})) {
+            console.log(key, val)
+            selections.raids[key] = {
+                gates: Object.keys(val.gates).filter((g) => val.gates[g]).map((v) => Number(v)).sort(),
+                difficulties: Object.keys(val.difficulties).filter((d) => val.difficulties[d])
+            }
+        }
+        return selections
+    }
+
     async function load() {
         if (scoped != "Arkesia" && !loggedIn()) {
             return
         }
 
         let url = location.protocol + '//' + location.host;
-        url += "/api/logs?scope=" + scoped.toLowerCase();
+        url += "/api/logsx?scope=" + scoped.toLowerCase();
         if (encounters.length > 0) {
             let last = encounters[encounters.length - 1];
-            url += "&past=" + last.date + "&id=" + last.id;
+            if (order !== "Performance") {
+                url += "&past_id=" + last.id;
+            } else {
+                url += "&past_id=" + last.place;
+                url += "&past_field=" + last.players[last.localPlayer].dps;
+            }
+
+            if (order === "Recent Clear") {
+                url += "&past_field=" + last.date
+            } else if (order === "Raid Duration") {
+                url += "&past_field=" + last.duration
+            }
         }
 
-        const recent = await fetch(url, {credentials: 'same-origin'})
-            .then((resp) => {
-                return resp.json()
-            })
+        url += "&order=" + (order !== "" ? order : "Recent Clear").toLowerCase()
+
+        console.log(JSON.stringify(normalizeSelections($search)))
+
+        const recent = await fetch(url, {
+            credentials: 'same-origin',
+            method: 'POST',
+            body: JSON.stringify(normalizeSelections($search))
+        }).then((resp) => {
+            return resp.json()
+        })
         process(recent.encounters)
         encounters = encounters.concat(recent.encounters)
         more = recent.more
@@ -108,10 +150,8 @@
         }
     }
 
-    async function changeScope(scope) {
+    async function refresh() {
         focused = null
-        $settings.logs.scope = scope
-        scoped = scope
         more = false
         encounters = []
         page = 0
@@ -120,6 +160,39 @@
         loading = false
     }
 
+    async function changeScope(scope) {
+        $settings.logs.scope = scope
+        scoped = scope
+        await refresh()
+    }
+
+    async function changeSort(sort) {
+        showSortOptions = false;
+        $settings.logs.order = sort
+        order = sort
+        await refresh()
+    }
+
+    let showSortOptions = false;
+
+    let toggle;
+
+    function unfocus(box) {
+        const click = (event) => {
+            if (!box.contains(event.target) && !toggle.contains(event.target)) {
+                showSortOptions = false;
+            }
+        }
+
+        document.addEventListener('click', click, true)
+        return {
+            destroy() {
+                document.removeEventListener('click', click, true)
+            }
+        }
+    }
+
+    $: order = browser && $settings.logs.order
     $: scoped = browser && $settings.logs.scope
     $: display = focused ? [focused] : encounters.slice(page * 5, (page + 1) * 5)
 </script>
@@ -127,8 +200,11 @@
 <link rel="preload" as="image"
       href="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless">
 <div class="m-auto mt-10 flex flex-col justify-center items-center">
-    <div class="flex flex-row w-[88%] justify-center items-center">
-        <div class="w-[270px] h-[40px] bg-[#b96d83] text-center text-[#F4EDE9] text-sm flex flex-row justify-center items-center rounded-xl mb-3">
+    <div class="flex mb-3 flex-row w-[88%] justify-center items-center">
+        <div class="bg-white border-[0.5px] mr-1.5 rounded opacity-0">
+            <IconSort class="w-6 h-6"/>
+        </div>
+        <div class="w-[270px] h-[40px] bg-[#b96d83] text-center text-[#F4EDE9] text-sm flex flex-row justify-center items-center rounded-xl">
             {#each ["Arkesia", "Friends", "Roster"] as scope}
                 <div class="w-full h-full flex justify-center items-center"
                      class:rounded-lg={browser && scoped === scope}>
@@ -142,6 +218,22 @@
                     </div>
                 </div>
             {/each}
+        </div>
+        <div class="rounded-md h-6 w-6 ml-1.5 bg-[#a7738b] border-[0.5px] border-[#e8d2d7] text-[#F4EDE9] relative">
+            <button bind:this={toggle} on:click={() => showSortOptions = !showSortOptions} class="w-full h-full">
+                <IconSort class="w-6 h-6"/>
+            </button>
+            {#if showSortOptions}
+                <div use:unfocus transition:blur={{duration: 10}}
+                     class="absolute overflow-hidden float-right text-[#575279] border-[#a7738b] border-[0.5px] shadow-sm rounded-md bg-[#F4EDE9] text-sm z-50">
+                    <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Sort</div>
+                    {#each ["Recent Clear", "Recent Log", "Raid Duration", "Performance"] as sort, i}
+                        <button class:underline={order === sort || (!order && i === 0)}
+                                on:click={() => changeSort(sort)}
+                                class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{sort}</button>
+                    {/each}
+                </div>
+            {/if}
         </div>
     </div>
     <div class="w-[88%] min-h-[110px] flex flex-col overflow-hidden justify-center items-center bg-[#dec5cd] pt-4 mb-3 rounded-md">
