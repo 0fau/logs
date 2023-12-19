@@ -28,6 +28,9 @@ CREATE TABLE encounters
     header       JSONB     NOT NULL,
     data         JSON      NOT NULL,
 
+    unique_hash  STRING    NOT NULL,
+    unique_group INT       NOT NULL,
+
     boss         STRING    NOT NULL,
     difficulty   STRING    NOT NULL,
     date         TIMESTAMP NOT NULL,

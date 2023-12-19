@@ -5,6 +5,7 @@ type PlayerHeader struct {
 	Class     string    `json:"class"`
 	GearScore float64   `json:"gearScore"`
 	Damage    int64     `json:"damage"`
+	Percent   string    `json:"percent"`
 	DPS       int64     `json:"dps"`
 	Dead      bool      `json:"dead"`
 	DeadFor   int64     `json:"deadFor"`

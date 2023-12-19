@@ -1,6 +1,6 @@
 <script>
     import {getRaidIcon} from "$lib/raids.ts";
-    import {classes, getClassIconNew, getGuardianIcon} from '$lib/game.ts';
+    import {classes, getClassIconNew} from '$lib/game.ts';
     import IconSearch from '~icons/gala/search';
     import IconNumberOne from '~icons/mdi/number-1-box';
     import IconNumberTwo from '~icons/mdi/number-2-box';
@@ -20,6 +20,13 @@
     import IconNO from '~icons/mdi/letter-n-box-outline';
     import IconHO from '~icons/mdi/letter-h-box-outline';
     import IconIO from '~icons/heroicons-outline/fire';
+    import IconFrog from '~icons/icon-park-outline/frog';
+    import IconTree from '~icons/typcn/tree';
+    import IconMonkey from '~icons/emojione-monotone/monkey-face';
+    import IconDragon from '~icons/fluent-emoji-high-contrast/dragon-face';
+    import IconBird from '~icons/lucide/bird';
+    import IconLion from '~icons/emojione-monotone/lion-face';
+    import IconScaryDragon from '~icons/game-icons/spiked-dragon-head';
 
     export let search;
 
@@ -73,7 +80,7 @@
             primary: "bg-[#b9acc6]",
             secondary: "bg-[#a08eb1]",
             gates: 6,
-            difficulties: ["Normal", "Hard"],
+            difficulties: ["Normal", "Hard", "Inferno"],
         }
     ], [
         {
@@ -105,11 +112,32 @@
     list.sort();
 
     let guardians = [
-        {name: "Gargadeth"}, {name: "Sonavel"}, {name: "Hanumatan"}, {name: "Caliligos"}, {name: "Deskaluda"}
+        {
+            name: "Gargadeth",
+            icon: IconFrog,
+        }, {
+            name: "Sonavel",
+            icon: IconTree
+        }, {
+            name: "Hanumatan",
+            icon: IconMonkey
+        }, {
+            name: "Caliligos",
+            icon: IconDragon
+        }, {
+            name: "Deskaluda",
+            icon: IconBird
+        }
     ];
 
     let trials = [
-        {name: "Caliligos"}, {name: "Achates"}
+        {
+            name: "Caliligos",
+            icon: IconScaryDragon
+        }, {
+            name: "Achates",
+            icon: IconLion
+        }
     ];
 
     let shortcuts = [
@@ -148,7 +176,7 @@
                 trials: selectedTrials,
                 classes: selectedClasses,
             }))
-        }, 700)
+        }, 500)
     }
 </script>
 
@@ -221,30 +249,30 @@
     </div>
 </div>
 <div class="mx-auto w-[78%] mt-2 flex flex-row justify-center items-center">
-    <div class="rounded-xl border-[0.75px] border-[#c17e91] opacity-95 p-2 bg-[#f2e9e7] flex flex-row items-center mr-2">
+    <div class="rounded-xl border-[0.75px] border-[#c17e91] opacity-95 p-1.5 bg-[#f2e9e7] flex flex-row items-center mr-2">
         {#each guardians as guardian}
             <button on:click={() => {
                 selectedGuardians[guardian.name] = !selectedGuardians[guardian.name]
                 update()
             }}
                     class="w-full flex items-center justify-center">
-                <img alt={guardian.name}
-                     class="h-7 w-7 border-[1px] mx-1 rounded-md my-auto"
-                     style="border-color: {selectedGuardians[guardian.name] ? '#c58799' : '#fff'}"
-                     src="{getGuardianIcon(guardian.name)}"/>
+                <svelte:component
+                        style="{selectedGuardians[guardian.name] ? 'background-color: #413d5b; color: #fff' : 'color: #413d5b'}"
+                        class="h-7 w-7  p-0.5 mx-1 rounded-md my-auto"
+                        this={guardian.icon}/>
             </button>
         {/each}
     </div>
-    <div class="rounded-xl border-[0.75px] border-[#c17e91] opacity-95 p-2 bg-[#f2e9e7] flex flex-row items-center">
+    <div class="rounded-xl border-[0.75px] border-[#c17e91] opacity-95 p-1.5 bg-[#f2e9e7] flex flex-row items-center">
         {#each trials as guardian}
             <button on:click={() => {
                 selectedTrials[guardian.name] = !selectedTrials[guardian.name]
                 update()
             }}>
-                <img alt={guardian.name}
-                     style="border-color: {selectedTrials[guardian.name] ? '#c58799' : '#fff'}"
-                     class="h-7 w-7 border-[1px] mx-1 rounded-md my-auto"
-                     src="{getGuardianIcon(guardian.name)}"/>
+                <svelte:component
+                        style="{selectedTrials[guardian.name] ? 'background-color: #413d5b; color: #fff' : 'color: #413d5b'}"
+                        class="h-7 w-7 p-0.5 mx-1 rounded-md my-auto"
+                        this={guardian.icon}/>
             </button>
         {/each}
     </div>
@@ -263,7 +291,7 @@
                             -moz-backface-visibility: hidden;
                             -webkit-transform: translate3d(0, 0, 0);
                             -moz-transform: translate3d(0, 0, 0);"
-                     class="w-5 blur-[0.1px] h-5 z-50 m-auto"
+                     class="w-5 h-5 blur-[0.1px] z-50 m-auto"
                      src="{getClassIconNew(c)}"/>
             </button>
         {/each}

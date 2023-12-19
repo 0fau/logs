@@ -9,12 +9,17 @@ import (
 	"github.com/0fau/logs/pkg/process"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/0fau/logs/pkg/s3"
+	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
 	"github.com/goccy/go-json"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc"
+	"log"
 	"net"
 	"slices"
 	"sync"
+	"time"
 )
 
 var _ AdminServer = (*Server)(nil)
@@ -68,21 +73,6 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 		return nil, errors.Wrap(err, "processing encounter")
 	}
 
-	tx, err := s.db.Pool.Begin(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "begin transaction")
-	}
-	defer tx.Rollback(ctx)
-	qtx := s.db.Queries.WithTx(tx)
-
-	if err := qtx.ProcessEncounter(ctx, sql.ProcessEncounterParams{
-		ID:     req.Encounter,
-		Header: proc.Header,
-		Data:   proc.Data,
-	}); err != nil {
-		return nil, errors.Wrap(err, "saving encounter")
-	}
-
 	order := make([]string, 0, len(proc.Header.Players))
 	for player := range proc.Header.Players {
 		order = append(order, player)
@@ -94,26 +84,67 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 		)
 	})
 
-	for i, player := range order {
-		header := proc.Header.Players[player]
-		params := sql.InsertPlayerInternalParams{
-			Encounter: req.Encounter,
-			Class:     header.Class,
-			Name:      player,
-			Dead:      header.Dead,
-			Place:     int32(i + 1),
-			Data: structs.IndexedPlayerData{
-				Damage: header.Damage,
-				DPS:    header.DPS,
-			},
-		}
-		if err := qtx.InsertPlayerInternal(ctx, params); err != nil {
-			return nil, errors.Wrap(err, "inserting player")
-		}
+	start := time.UnixMilli(enc.FightStart).UTC()
+	var date pgtype.Timestamp
+	if err := date.Scan(start); err != nil {
+		return nil, errors.Wrap(err, "scanning duration pgtype.Timstamp")
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return nil, errors.Wrap(err, "committing transaction")
+	hash := proc.UniqueHash(order)
+
+	if err := crdbpgx.ExecuteTx(ctx, s.db.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		qtx := s.db.Queries.WithTx(tx)
+
+		if err := qtx.ProcessEncounter(ctx, sql.ProcessEncounterParams{
+			ID:         req.Encounter,
+			Header:     proc.Header,
+			Data:       proc.Data,
+			UniqueHash: hash,
+		}); err != nil {
+			return errors.Wrap(err, "saving encounter")
+		}
+
+		group, err := qtx.GetUniqueGroup(ctx, sql.GetUniqueGroupParams{
+			UniqueHash: hash,
+			Date:       date,
+			Duration:   enc.Duration,
+		})
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return errors.Wrap(err, "getting unique group")
+		}
+
+		if group == 0 {
+			group = req.Encounter
+		}
+
+		if err := qtx.UpdateUniqueGroup(ctx, sql.UpdateUniqueGroupParams{
+			ID:          req.Encounter,
+			UniqueGroup: group,
+		}); err != nil {
+			return errors.Wrap(err, "updating unique group")
+		}
+
+		for i, player := range order {
+			header := proc.Header.Players[player]
+			params := sql.InsertPlayerInternalParams{
+				Encounter: req.Encounter,
+				Class:     header.Class,
+				Name:      player,
+				Dead:      header.Dead,
+				Place:     int32(i + 1),
+				Data: structs.IndexedPlayerData{
+					Damage: header.Damage,
+					DPS:    header.DPS,
+				},
+			}
+			if err := qtx.InsertPlayerInternal(ctx, params); err != nil {
+				return errors.Wrap(err, "inserting player")
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return nil, errors.Wrap(err, "executing transaction")
 	}
 
 	return &ProcessResponse{}, nil
@@ -133,7 +164,9 @@ func (s *Server) ProcessAll(ctx context.Context, req *ProcessAllRequest) (*Proce
 		sem <- struct{}{}
 		go func(enc int32) {
 			defer wg.Done()
-			s.Process(ctx, &ProcessRequest{Encounter: enc})
+			if _, err := s.Process(ctx, &ProcessRequest{Encounter: enc}); err != nil {
+				log.Println(err)
+			}
 			<-sem
 		}(ids[i])
 	}

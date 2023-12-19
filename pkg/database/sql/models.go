@@ -17,6 +17,8 @@ type Encounter struct {
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
+	UniqueHash  string
+	UniqueGroup int32
 	Boss        string
 	Difficulty  string
 	Date        pgtype.Timestamp

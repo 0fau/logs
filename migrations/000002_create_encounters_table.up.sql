@@ -17,12 +17,15 @@ CREATE TABLE IF NOT EXISTS encounters
     duration     INT       NOT NULL,
     local_player STRING    NOT NULL,
 
+    unique_hash  STRING    NOT NULL,
+    unique_group INT       NOT NULL,
+
     PRIMARY KEY (id) USING HASH,
     UNIQUE (date, local_player, boss),
     INDEX (uploaded_by),
     INDEX (date),
     INDEX (boss),
-    INDEX (local_player)
+    INDEX (unique_hash)
 );
 
 CREATE TABLE IF NOT EXISTS players

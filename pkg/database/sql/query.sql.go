@@ -80,7 +80,7 @@ func (q *Queries) GetData(ctx context.Context, id int32) (structs.EncounterData,
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.tags, e.header, e.data, e.boss, e.difficulty, e.date, e.duration, e.local_player,
+SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.tags, e.header, e.data, e.unique_hash, e.unique_group, e.boss, e.difficulty, e.date, e.duration, e.local_player,
        u.discord_id,
        u.discord_tag,
        u.username,
@@ -99,6 +99,8 @@ type GetEncounterRow struct {
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
+	UniqueHash  string
+	UniqueGroup int32
 	Boss        string
 	Difficulty  string
 	Date        pgtype.Timestamp
@@ -121,6 +123,8 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 		&i.Tags,
 		&i.Header,
 		&i.Data,
+		&i.UniqueHash,
+		&i.UniqueGroup,
 		&i.Boss,
 		&i.Difficulty,
 		&i.Date,
@@ -178,6 +182,30 @@ func (q *Queries) GetRoles(ctx context.Context, id pgtype.UUID) ([]string, error
 	var roles []string
 	err := row.Scan(&roles)
 	return roles, err
+}
+
+const getUniqueGroup = `-- name: GetUniqueGroup :one
+SELECT unique_group
+FROM encounters
+WHERE unique_hash = $1
+  AND unique_group != 0
+  AND (date + interval '5 minutes') > $2
+  AND (date - interval '5 minutes') < $2
+  AND (duration + 1000 > $3)
+  AND (duration - 1000 < $3)
+`
+
+type GetUniqueGroupParams struct {
+	UniqueHash string
+	Date       pgtype.Timestamp
+	Duration   int32
+}
+
+func (q *Queries) GetUniqueGroup(ctx context.Context, arg GetUniqueGroupParams) (int32, error) {
+	row := q.db.QueryRow(ctx, getUniqueGroup, arg.UniqueHash, arg.Date, arg.Duration)
+	var unique_group int32
+	err := row.Scan(&unique_group)
+	return unique_group, err
 }
 
 const getUniqueUploaders = `-- name: GetUniqueUploaders :one
@@ -275,8 +303,9 @@ func (q *Queries) GetUserByToken(ctx context.Context, accessToken pgtype.Text) (
 
 const insertEncounter = `-- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player, unique_hash,
+                 unique_group)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING id
 `
 
@@ -291,6 +320,8 @@ type InsertEncounterParams struct {
 	Date        pgtype.Timestamp
 	Duration    int32
 	LocalPlayer string
+	UniqueHash  string
+	UniqueGroup int32
 }
 
 func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams) (int32, error) {
@@ -305,6 +336,8 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 		arg.Date,
 		arg.Duration,
 		arg.LocalPlayer,
+		arg.UniqueHash,
+		arg.UniqueGroup,
 	)
 	var id int32
 	err := row.Scan(&id)
@@ -464,19 +497,26 @@ func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncoun
 
 const processEncounter = `-- name: ProcessEncounter :exec
 UPDATE encounters
-SET header = $2,
-    data   = $3
+SET header      = $2,
+    data        = $3,
+    unique_hash = $4
 WHERE id = $1
 `
 
 type ProcessEncounterParams struct {
-	ID     int32
-	Header structs.EncounterHeader
-	Data   structs.EncounterData
+	ID         int32
+	Header     structs.EncounterHeader
+	Data       structs.EncounterData
+	UniqueHash string
 }
 
 func (q *Queries) ProcessEncounter(ctx context.Context, arg ProcessEncounterParams) error {
-	_, err := q.db.Exec(ctx, processEncounter, arg.ID, arg.Header, arg.Data)
+	_, err := q.db.Exec(ctx, processEncounter,
+		arg.ID,
+		arg.Header,
+		arg.Data,
+		arg.UniqueHash,
+	)
 	return err
 }
 
@@ -525,6 +565,22 @@ type SetUsernameParams struct {
 
 func (q *Queries) SetUsername(ctx context.Context, arg SetUsernameParams) error {
 	_, err := q.db.Exec(ctx, setUsername, arg.ID, arg.Username)
+	return err
+}
+
+const updateUniqueGroup = `-- name: UpdateUniqueGroup :exec
+UPDATE encounters
+SET unique_group = $2
+WHERE id = $1
+`
+
+type UpdateUniqueGroupParams struct {
+	ID          int32
+	UniqueGroup int32
+}
+
+func (q *Queries) UpdateUniqueGroup(ctx context.Context, arg UpdateUniqueGroupParams) error {
+	_, err := q.db.Exec(ctx, updateUniqueGroup, arg.ID, arg.UniqueGroup)
 	return err
 }
 

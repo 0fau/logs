@@ -9,8 +9,11 @@ import (
 	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/0fau/logs/pkg/s3"
+	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"hash/fnv"
 	"math"
 	"slices"
 	"strconv"
@@ -99,6 +102,7 @@ func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
 			Class:     entity.Class,
 			GearScore: entity.GearScore,
 			Damage:    entity.DamageStats.Damage,
+			Percent:   round(float64(entity.DamageStats.Damage) / float64(enc.raw.DamageStats.TotalDamageDealt) * 100),
 			DPS:       entity.DamageStats.DPS,
 			Dead:      entity.Dead,
 			DeadFor:   enc.raw.End - entity.DamageStats.DeathTime,
@@ -542,41 +546,32 @@ func (enc *Encounter) highlight() {
 
 }
 
-func (enc *Encounter) UniqueHash() string {
-	return ""
+func (enc *Encounter) UniqueHash(sort []string) string {
+	var buf strings.Builder
+	buf.WriteString(enc.raw.CurrentBossName)
+	buf.WriteString(" ")
+	buf.WriteString(enc.raw.Difficulty)
+
+	for _, player := range sort {
+		buf.WriteString(" ")
+		buf.WriteString(player)
+		buf.WriteString("-")
+		buf.WriteString(fmt.Sprintf("%.2f", enc.Header.Players[player].GearScore))
+		buf.WriteString("-")
+		buf.WriteString(fmt.Sprintf("%d", enc.Header.Players[player].Damage))
+		buf.WriteString("-")
+		buf.WriteString(enc.Header.Players[player].Percent)
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(buf.String()))
+	return fmt.Sprintf("%d", h.Sum32())
 }
 
 func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw *meter.Encounter) (int32, error) {
-	tx, err := p.db.Pool.Begin(ctx)
-	if err != nil {
-		return 0, errors.Wrap(err, "begin transaction")
-	}
-	defer tx.Rollback(ctx)
-	qtx := p.db.Queries.WithTx(tx)
-
 	enc, err := p.Process(raw)
 	if err != nil {
 		return 0, errors.Wrap(err, "processing encounter")
-	}
-
-	start := time.UnixMilli(raw.FightStart).UTC()
-	var date pgtype.Timestamp
-	if err := date.Scan(start); err != nil {
-		return 0, errors.Wrap(err, "scanning duration pgtype.Timstamp")
-	}
-
-	encID, err := qtx.InsertEncounter(ctx, sql.InsertEncounterParams{
-		UploadedBy:  user,
-		Boss:        raw.CurrentBossName,
-		Difficulty:  raw.Difficulty,
-		Date:        date,
-		Duration:    raw.Duration,
-		LocalPlayer: raw.LocalPlayer,
-		Header:      enc.Header,
-		Data:        enc.Data,
-	})
-	if err != nil {
-		return 0, errors.Wrap(err, "inserting encounter")
 	}
 
 	order := make([]string, 0, len(enc.Header.Players))
@@ -589,28 +584,74 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 			enc.Header.Players[a].Damage,
 		)
 	})
+	hash := enc.UniqueHash(order)
 
-	players := make([]sql.InsertPlayerParams, 0, len(enc.Header.Players))
-	for i, player := range order {
-		header := enc.Header.Players[player]
-		players = append(players, sql.InsertPlayerParams{
-			Encounter: encID,
-			Class:     header.Class,
-			Name:      player,
-			Dead:      header.Dead,
-			Place:     int32(i + 1),
-			Data: structs.IndexedPlayerData{
-				Damage: header.Damage,
-				DPS:    header.DPS,
-			},
+	start := time.UnixMilli(raw.FightStart).UTC()
+	var date pgtype.Timestamp
+	if err := date.Scan(start); err != nil {
+		return 0, errors.Wrap(err, "scanning duration pgtype.Timstamp")
+	}
+
+	var encID int32
+	if err := crdbpgx.ExecuteTx(ctx, p.db.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		qtx := p.db.Queries.WithTx(tx)
+
+		group, err := qtx.GetUniqueGroup(ctx, sql.GetUniqueGroupParams{
+			UniqueHash: hash,
+			Date:       date,
+			Duration:   enc.raw.Duration,
 		})
-	}
-	if _, err := qtx.InsertPlayer(ctx, players); err != nil {
-		return 0, errors.Wrap(err, "inserting players")
-	}
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return errors.Wrap(err, "getting unique group")
+		}
 
-	if err := tx.Commit(ctx); err != nil {
-		return 0, errors.Wrap(err, "committing transaction")
+		encID, err = qtx.InsertEncounter(ctx, sql.InsertEncounterParams{
+			UploadedBy:  user,
+			Boss:        raw.CurrentBossName,
+			Difficulty:  raw.Difficulty,
+			Date:        date,
+			Duration:    raw.Duration,
+			LocalPlayer: raw.LocalPlayer,
+			Header:      enc.Header,
+			Data:        enc.Data,
+			UniqueHash:  hash,
+			UniqueGroup: group,
+		})
+		if err != nil {
+			return errors.Wrap(err, "inserting encounter")
+		}
+
+		if group == 0 {
+			if err := qtx.UpdateUniqueGroup(ctx, sql.UpdateUniqueGroupParams{
+				ID:          encID,
+				UniqueGroup: encID,
+			}); err != nil {
+				return errors.Wrap(err, "updating unique group")
+			}
+		}
+
+		players := make([]sql.InsertPlayerParams, 0, len(enc.Header.Players))
+		for i, player := range order {
+			header := enc.Header.Players[player]
+			players = append(players, sql.InsertPlayerParams{
+				Encounter: encID,
+				Class:     header.Class,
+				Name:      player,
+				Dead:      header.Dead,
+				Place:     int32(i + 1),
+				Data: structs.IndexedPlayerData{
+					Damage: header.Damage,
+					DPS:    header.DPS,
+				},
+			})
+		}
+		if _, err := qtx.InsertPlayer(ctx, players); err != nil {
+			return errors.Wrap(err, "inserting players")
+		}
+
+		return nil
+	}); err != nil {
+		return 0, errors.Wrap(err, "executing transaction")
 	}
 
 	if err := p.s3.SaveEncounter(ctx, encID, str); err != nil {

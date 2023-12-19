@@ -53,9 +53,25 @@ WHERE id = $1;
 
 -- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player, unique_hash,
+                 unique_group)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING id;
+
+-- name: GetUniqueGroup :one
+SELECT unique_group
+FROM encounters
+WHERE unique_hash = $1
+  AND unique_group != 0
+  AND (date + interval '5 minutes') >= $2
+  AND (date - interval '5 minutes') <= $2
+  AND (duration + 1000) >= $3
+  AND (duration - 1000) <= $3;
+
+-- name: UpdateUniqueGroup :exec
+UPDATE encounters
+SET unique_group = $2
+WHERE id = $1;
 
 -- name: InsertPlayer :copyfrom
 INSERT
@@ -71,8 +87,9 @@ ON CONFLICT (encounter, name)
 
 -- name: ProcessEncounter :exec
 UPDATE encounters
-SET header = $2,
-    data   = $3
+SET header      = $2,
+    data        = $3,
+    unique_hash = $4
 WHERE id = $1;
 
 -- name: GetEncounter :one
