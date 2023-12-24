@@ -76,6 +76,12 @@ var Raids = map[string][][]string{
 		{"Lord of Degradation Akkan"},
 		{"Plague Legion Commander Akkan", "Lord of Kartheon Akkan"},
 	},
+	"Ivory": {
+		{"Kaltaya, the Blooming Chaos"},
+		{"Rakathus, the Lurking Arrogance"},
+		{"Firehorn, Trampler of Earth"},
+		{"Lazaram, the Trailblazer", "Subordinated Vertus", "Subordinated Calventus", "Subordinated Legoros", "Brand of Subordination"},
+	},
 }
 
 var RaidLookup = make(map[string][2]string)

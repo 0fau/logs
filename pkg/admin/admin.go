@@ -95,12 +95,13 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 	if err := crdbpgx.ExecuteTx(ctx, s.db.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
 		qtx := s.db.Queries.WithTx(tx)
 
-		if err := qtx.ProcessEncounter(ctx, sql.ProcessEncounterParams{
+		user, err := qtx.ProcessEncounter(ctx, sql.ProcessEncounterParams{
 			ID:         req.Encounter,
 			Header:     proc.Header,
 			Data:       proc.Data,
 			UniqueHash: hash,
-		}); err != nil {
+		})
+		if err != nil {
 			return errors.Wrap(err, "saving encounter")
 		}
 
@@ -115,6 +116,13 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 
 		if group == 0 {
 			group = req.Encounter
+		} else if group != req.Encounter {
+			if err := qtx.UpsertEncounterGroup(ctx, sql.UpsertEncounterGroupParams{
+				GroupID: group,
+				Column2: user,
+			}); err != nil {
+				return errors.Wrap(err, "upserting encounter group")
+			}
 		}
 
 		if err := qtx.UpdateUniqueGroup(ctx, sql.UpdateUniqueGroupParams{

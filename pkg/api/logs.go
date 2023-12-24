@@ -92,7 +92,6 @@ func (enc *ReturnedEncounterShort) Anonymize(order map[string]string) {
 
 func (s *Server) logs(c *gin.Context) {
 	params := &query.Params{
-		User:  c.Query("user"),
 		Order: c.Query("order"),
 		Scope: c.Query("scope"),
 	}
@@ -139,7 +138,6 @@ func (s *Server) logs(c *gin.Context) {
 	var u *SessionUser
 	if val != nil {
 		u = val.(*SessionUser)
-		params.User = u.ID
 	}
 
 	var uuid pgtype.UUID
@@ -150,6 +148,16 @@ func (s *Server) logs(c *gin.Context) {
 			return
 		}
 	}
+
+	roles, err := s.conn.Queries.GetRoles(context.Background(), uuid)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		log.Println(errors.Wrap(err, "fetching rows"))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	params.User = uuid
+	params.Privileged = hasRoles(roles, "admin", "trusted")
 
 	encs, err := query.Query(s.conn, params)
 	if err != nil {
@@ -162,13 +170,6 @@ func (s *Server) logs(c *gin.Context) {
 	if n > 5 {
 		n = 5
 		more = true
-	}
-
-	roles, err := s.conn.Queries.GetRoles(context.Background(), uuid)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		log.Println(errors.Wrap(err, "fetching rows"))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
 	}
 
 	ret := make([]ReturnedEncounterShort, n)

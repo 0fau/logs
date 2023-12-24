@@ -188,11 +188,11 @@ const getUniqueGroup = `-- name: GetUniqueGroup :one
 SELECT unique_group
 FROM encounters
 WHERE unique_hash = $1
-  AND unique_group != 0
-  AND (date + interval '5 minutes') > $2
-  AND (date - interval '5 minutes') < $2
-  AND (duration + 1000 > $3)
-  AND (duration - 1000 < $3)
+  AND unique_group = id
+  AND (date + interval '5 minutes') >= $2
+  AND (date - interval '5 minutes') <= $2
+  AND (duration + 1000) >= $3
+  AND (duration - 1000) <= $3
 `
 
 type GetUniqueGroupParams struct {
@@ -385,6 +385,7 @@ func (q *Queries) InsertPlayerInternal(ctx context.Context, arg InsertPlayerInte
 const listEncounters = `-- name: ListEncounters :many
 SELECT id
 FROM encounters
+ORDER BY uploaded_at DESC
 `
 
 func (q *Queries) ListEncounters(ctx context.Context) ([]int32, error) {
@@ -495,12 +496,13 @@ func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncoun
 	return items, nil
 }
 
-const processEncounter = `-- name: ProcessEncounter :exec
+const processEncounter = `-- name: ProcessEncounter :one
 UPDATE encounters
 SET header      = $2,
     data        = $3,
     unique_hash = $4
 WHERE id = $1
+RETURNING uploaded_by
 `
 
 type ProcessEncounterParams struct {
@@ -510,14 +512,16 @@ type ProcessEncounterParams struct {
 	UniqueHash string
 }
 
-func (q *Queries) ProcessEncounter(ctx context.Context, arg ProcessEncounterParams) error {
-	_, err := q.db.Exec(ctx, processEncounter,
+func (q *Queries) ProcessEncounter(ctx context.Context, arg ProcessEncounterParams) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, processEncounter,
 		arg.ID,
 		arg.Header,
 		arg.Data,
 		arg.UniqueHash,
 	)
-	return err
+	var uploaded_by pgtype.UUID
+	err := row.Scan(&uploaded_by)
+	return uploaded_by, err
 }
 
 const setAccessToken = `-- name: SetAccessToken :exec
@@ -581,6 +585,24 @@ type UpdateUniqueGroupParams struct {
 
 func (q *Queries) UpdateUniqueGroup(ctx context.Context, arg UpdateUniqueGroupParams) error {
 	_, err := q.db.Exec(ctx, updateUniqueGroup, arg.ID, arg.UniqueGroup)
+	return err
+}
+
+const upsertEncounterGroup = `-- name: UpsertEncounterGroup :exec
+INSERT
+INTO grouped_encounters (group_id, uploaders)
+VALUES ($1, ARRAY [$2::UUID])
+ON CONFLICT (group_id)
+    DO UPDATE SET uploaders = array_append(grouped_encounters.uploaders, $2)
+`
+
+type UpsertEncounterGroupParams struct {
+	GroupID int32
+	Column2 pgtype.UUID
+}
+
+func (q *Queries) UpsertEncounterGroup(ctx context.Context, arg UpsertEncounterGroupParams) error {
+	_, err := q.db.Exec(ctx, upsertEncounterGroup, arg.GroupID, arg.Column2)
 	return err
 }
 

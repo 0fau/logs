@@ -62,7 +62,7 @@ RETURNING id;
 SELECT unique_group
 FROM encounters
 WHERE unique_hash = $1
-  AND unique_group != 0
+  AND unique_group = id
   AND (date + interval '5 minutes') >= $2
   AND (date - interval '5 minutes') <= $2
   AND (duration + 1000) >= $3
@@ -72,6 +72,13 @@ WHERE unique_hash = $1
 UPDATE encounters
 SET unique_group = $2
 WHERE id = $1;
+
+-- name: UpsertEncounterGroup :exec
+INSERT
+INTO grouped_encounters (group_id, uploaders)
+VALUES ($1, ARRAY [$2::UUID])
+ON CONFLICT (group_id)
+    DO UPDATE SET uploaders = array_append(grouped_encounters.uploaders, $2);
 
 -- name: InsertPlayer :copyfrom
 INSERT
@@ -85,12 +92,13 @@ VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (encounter, name)
     DO UPDATE SET data = excluded.data;
 
--- name: ProcessEncounter :exec
+-- name: ProcessEncounter :one
 UPDATE encounters
 SET header      = $2,
     data        = $3,
     unique_hash = $4
-WHERE id = $1;
+WHERE id = $1
+RETURNING uploaded_by;
 
 -- name: GetEncounter :one
 SELECT e.*,
@@ -135,7 +143,8 @@ LIMIT 6;
 
 -- name: ListEncounters :many
 SELECT id
-FROM encounters;
+FROM encounters
+ORDER BY uploaded_at DESC;
 
 -- name: GetData :one
 SELECT data

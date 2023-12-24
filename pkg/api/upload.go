@@ -56,6 +56,10 @@ type Error struct {
 	Error string `json:"error"`
 }
 
+type UploadResponse struct {
+	ID int32 `json:"id"`
+}
+
 func (s *Server) uploadHandler(c *gin.Context) {
 	token := c.GetHeader("access_token")
 	if token == "" {
@@ -101,11 +105,13 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
+	s.processor.Preprocess(enc)
+
 	encID, err := s.processor.Save(ctx, user.ID, string(raw), enc)
 	if err != nil {
 		if strings.Contains(err.Error(), "violates unique constraint") {
 			c.AbortWithStatusJSON(http.StatusBadRequest, Error{
-				Error: "Duplicate log.",
+				Error: "duplicate log",
 			})
 			return
 		}
@@ -115,5 +121,5 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, encID)
+	c.JSON(http.StatusOK, UploadResponse{encID})
 }

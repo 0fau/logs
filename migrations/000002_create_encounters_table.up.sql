@@ -2,23 +2,23 @@ CREATE SEQUENCE IF NOT EXISTS encounter_id_seq START 1 INCREMENT 1;
 
 CREATE TABLE IF NOT EXISTS encounters
 (
-    id           INT                DEFAULT nextval('encounter_id_seq'),
-    uploaded_by  UUID      NOT NULL REFERENCES users (id),
-    uploaded_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    settings     JSONB     NOT NULL,
-    tags         STRING ARRAY,
+    id             INT                DEFAULT nextval('encounter_id_seq'),
+    uploaded_by    UUID      NOT NULL REFERENCES users (id),
+    uploaded_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    settings       JSONB     NOT NULL,
+    tags           STRING ARRAY,
 
-    header       JSONB     NOT NULL,
-    data         JSON      NOT NULL,
+    header         JSONB     NOT NULL,
+    data           JSON      NOT NULL,
 
-    boss         STRING    NOT NULL,
-    difficulty   STRING    NOT NULL,
-    date         TIMESTAMP NOT NULL,
-    duration     INT       NOT NULL,
-    local_player STRING    NOT NULL,
+    boss           STRING    NOT NULL,
+    difficulty     STRING    NOT NULL,
+    date           TIMESTAMP NOT NULL,
+    duration       INT       NOT NULL,
+    local_player   STRING    NOT NULL,
 
-    unique_hash  STRING    NOT NULL,
-    unique_group INT       NOT NULL,
+    unique_hash    STRING    NOT NULL,
+    unique_group   INT       NOT NULL,
 
     PRIMARY KEY (id) USING HASH,
     UNIQUE (date, local_player, boss),

@@ -40,10 +40,16 @@ CREATE TABLE encounters
 
 CREATE TABLE IF NOT EXISTS players
 (
-    encounter INT    NOT NULL REFERENCES encounters (id) ON DELETE CASCADE,
+    encounter INT    NOT NULL REFERENCES encounters (id),
     class     STRING NOT NULL,
     name      STRING NOT NULL,
     dead      BOOL   NOT NULL,
     data      JSONB  NOT NULL,
     place     INT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS grouped_encounters
+(
+    group_id  INT NOT NULL PRIMARY KEY REFERENCES encounters (id),
+    uploaders UUID ARRAY
 );

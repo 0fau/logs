@@ -11,8 +11,7 @@ if (browser) {
         stored = {
             logs: {
                 announcement: true,
-                scope: "Arkesia",
-                order: "Recent Clear"
+                scope: "Arkesia"
             }
         };
     }

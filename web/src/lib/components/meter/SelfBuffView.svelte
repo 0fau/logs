@@ -43,6 +43,9 @@
         if (synergy.name.startsWith("bracelet_")) {
             return "[Bracelet] " + buff.name
         }
+        if (synergy.name.startsWith("elixir")) {
+            return "[Elixir] " + buff.name
+        }
         return buff.name
     }
 </script>

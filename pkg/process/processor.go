@@ -468,8 +468,8 @@ func SelfBuffFilter(info meter.Buff) (string, bool) {
 	switch info.BuffCategory {
 	case "set":
 		group = "set_" + info.Source.SetName
-	case "bracelet":
-		group = "bracelet_" + info.Source.Name
+	case "bracelet", "elixir":
+		group = info.BuffCategory + "_" + info.Source.Name
 	case "pet", "cook", "battleitem", "dropsofether":
 		group = info.BuffCategory
 	default:
@@ -627,6 +627,13 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 				UniqueGroup: encID,
 			}); err != nil {
 				return errors.Wrap(err, "updating unique group")
+			}
+		} else if group != encID {
+			if err := qtx.UpsertEncounterGroup(ctx, sql.UpsertEncounterGroupParams{
+				GroupID: group,
+				Column2: user,
+			}); err != nil {
+				return errors.Wrap(err, "upserting encounter group")
 			}
 		}
 

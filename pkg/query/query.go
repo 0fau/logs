@@ -21,16 +21,19 @@ type Selections struct {
 	Guardians []string        `json:"guardians"`
 	Trials    []string        `json:"trials"`
 	Classes   []string        `json:"classes"`
+
+	Search string `json:"search"`
 }
 
 type Params struct {
-	User      string
+	User      pgtype.UUID
 	Order     string
 	Scope     string
 	PastID    *int32
 	PastField *int64
 
 	Selections Selections
+	Privileged bool
 }
 
 type User struct {
@@ -57,8 +60,7 @@ type Encounter struct {
 
 func Query(db *database.DB, params *Params) ([]Encounter, error) {
 	player := "e.local_player"
-
-	focused := len(params.Selections.Classes) > 0 || params.Order == "performance"
+	focused := len(params.Selections.Classes) > 0 || params.Order == "performance" || params.Selections.Search != ""
 	if focused {
 		player = "p.name"
 	}
@@ -91,20 +93,7 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		q = q.From("encounters e")
 	}
 	q = q.Join("users u ON u.id = e.uploaded_by")
-
-	var uuid pgtype.UUID
-	if params.User != "" {
-		if err := uuid.Scan(params.User); err != nil {
-			return nil, errors.Wrap(err, "scanning user uuid")
-		}
-	}
-
-	switch params.Scope {
-	case "friends":
-		q = q.Where("?::UUID = ANY (u.friends)", uuid)
-	case "roster":
-		q = q.Where(sq.Eq{"u.id": uuid})
-	}
+	q = q.LeftJoin("grouped_encounters g ON e.unique_group = g.group_id")
 
 	selection := sq.Or{}
 	for name, raid := range params.Selections.Raids {
@@ -175,8 +164,12 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		})
 	}
 
-	if focused && params.Scope != "arkesia" {
-		q = q.Where("p.name = e.local_player")
+	if focused {
+		if params.Selections.Search != "" {
+			q = q.Where(sq.Eq{"p.name": params.Selections.Search})
+		} else if params.Scope != "arkesia" {
+			q = q.Where("p.name = e.local_player")
+		}
 	}
 
 	switch params.Order {
@@ -223,6 +216,24 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 			})
 		}
 		q = q.OrderBy("((p.data->>'dps')::BIGINT) DESC", "p.place ASC")
+	}
+
+	switch params.Scope {
+	case "arkesia":
+		q = q.Where(sq.Or{
+			sq.Eq{"e.uploaded_by": params.User},
+			sq.Eq{"g.uploaders": nil},
+			sq.And{
+				sq.Expr("e.unique_group = e.id"),
+				sq.Expr("NOT (?::UUID = ANY (g.uploaders))", params.User),
+			},
+		})
+	case "friends":
+		q = q.Where("?::UUID = ANY (u.friends)", params.User)
+	}
+
+	if params.Scope == "roster" || (params.Selections.Search != "" && !params.Privileged) {
+		q = q.Where(sq.Eq{"u.id": params.User})
 	}
 
 	q = q.Limit(6).PlaceholderFormat(sq.Dollar)

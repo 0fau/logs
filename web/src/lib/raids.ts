@@ -5,6 +5,7 @@ const icons = {
     "Brelshaza": "/icons/raids/brelshaza.png",
     "Kayangel": "/icons/raids/kayangel.png",
     "Akkan": "/icons/raids/akkan.png",
+    "Ivory": "/icons/raids/tower.png",
     "": "/icons/raids/surprised.png"
 }
 
@@ -40,6 +41,9 @@ const raids = {
         ["Griefbringer Maurug", "Evolved Maurug"],
         ["Lord of Degradation Akkan"],
         ["Plague Legion Commander Akkan", "Lord of Kartheon Akkan"],
+    ],
+    "Ivory": [
+
     ],
 }
 

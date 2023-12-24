@@ -26,6 +26,11 @@ type Encounter struct {
 	LocalPlayer string
 }
 
+type GroupedEncounter struct {
+	GroupID   int32
+	Uploaders []pgtype.UUID
+}
+
 type Player struct {
 	Encounter int32
 	Class     string

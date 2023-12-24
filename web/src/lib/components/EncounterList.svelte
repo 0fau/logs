@@ -58,6 +58,7 @@
             guardians: Object.keys(selected.guardians ?? {}).filter((g) => selected.guardians[g]),
             trials: Object.keys(selected.trials ?? {}).filter((t) => selected.trials[t]),
             classes: Object.keys(selected.classes ?? {}).filter((c) => selected.classes[c]),
+            search: selected.search,
         }
         for (let [key, val] of Object.entries(selected.raids ?? {})) {
             console.log(key, val)
@@ -70,7 +71,7 @@
     }
 
     async function load() {
-        if (scoped != "Arkesia" && !loggedIn()) {
+        if ((scoped !== "Arkesia" || $search.search && $search.search !== "") && !loggedIn()) {
             return
         }
 
@@ -78,21 +79,21 @@
         url += "/api/logsx?scope=" + scoped.toLowerCase();
         if (encounters.length > 0) {
             let last = encounters[encounters.length - 1];
-            if (order !== "Performance") {
+            if (order !== Order.Performance) {
                 url += "&past_id=" + last.id;
             } else {
                 url += "&past_id=" + last.place;
                 url += "&past_field=" + last.players[last.localPlayer].dps;
             }
 
-            if (order === "Recent Clear") {
+            if (order === Order.RecentClear) {
                 url += "&past_field=" + last.date
-            } else if (order === "Raid Duration") {
+            } else if (order === Order.Duration) {
                 url += "&past_field=" + last.duration
             }
         }
 
-        url += "&order=" + (order !== "" ? order : "Recent Clear").toLowerCase()
+        url += "&order=" + order.toLowerCase()
 
         console.log(JSON.stringify(normalizeSelections($search)))
 
@@ -168,7 +169,6 @@
 
     async function changeSort(sort) {
         showSortOptions = false;
-        $settings.logs.order = sort
         order = sort
         await refresh()
     }
@@ -192,7 +192,14 @@
         }
     }
 
-    $: order = browser && $settings.logs.order
+    enum Order {
+        RecentClear = "Recent Clear",
+        RecentLog = "Recent Log",
+        Duration = "Raid Duration",
+        Performance = "Performance"
+    }
+
+    let order = Order.RecentClear;
     $: scoped = browser && $settings.logs.scope
     $: display = focused ? [focused] : encounters.slice(page * 5, (page + 1) * 5)
 </script>
@@ -227,7 +234,7 @@
                 <div use:unfocus transition:blur={{duration: 10}}
                      class="absolute overflow-hidden float-right text-[#575279] border-[#a7738b] border-[0.5px] shadow-sm rounded-md bg-[#F4EDE9] text-sm z-50">
                     <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Sort</div>
-                    {#each ["Recent Clear", "Recent Log", "Raid Duration", "Performance"] as sort, i}
+                    {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
                         <button class:underline={order === sort || (!order && i === 0)}
                                 on:click={() => changeSort(sort)}
                                 class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{sort}</button>
@@ -245,7 +252,7 @@
                          class="w-10 h-10"
                          src="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless"/>
                 </div>
-            {:else if scoped !== "Arkesia" && !loggedIn()}
+            {:else if (scoped !== "Arkesia" || $search.search && $search.search !== "") && !loggedIn()}
                 <div class="flex flex-col items-center justify-center -translate-y-[14%]">
                     <span class="text-[#413d5b] text-sm text-semibold mb-0.5">Not signed in.</span>
                     <img alt="loading"

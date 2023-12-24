@@ -62,6 +62,13 @@
 
     let raids = [[
         {
+            name: "Ivory",
+            primary: "bg-[#8fa6ad]",
+            secondary: "bg-[#759098]",
+            gates: 4,
+            difficulties: ["Normal", "Hard"],
+        },
+        {
             name: "Akkan",
             primary: "bg-[#9db79d]",
             secondary: "bg-[#80a180]",
@@ -170,18 +177,24 @@
     function update() {
         clearTimeout(task)
         task = setTimeout(() => {
-            search.update((val) => ({
+            search.update(() => ({
                 raids: selectedRaids,
                 guardians: selectedGuardians,
                 trials: selectedTrials,
                 classes: selectedClasses,
+                search: searching !== "" ? searching.charAt(0).toUpperCase() + searching.slice(1) : "",
             }))
         }, 500)
     }
+
+    let searching = "";
+    let hovered;
 </script>
 
 <div class="w-4/5 border-[1px] border-[#efdcc5] h-[46px] text-[#575279] mx-auto mt-10 rounded-2xl bg-[#f2e9e7] flex justify-center items-center flex-row">
     <input
+            bind:value={searching}
+            on:input={update}
             placeholder="owo owo owo"
             class="bg-[#f2e9e7] placeholder-[#a7a3c1] w-4/5 outline-none outline-0"
             autocomplete="off"
@@ -217,9 +230,9 @@
                                     {@const selected = selectedRaids[raid.name] ? selectedRaids[raid.name].gates[i + 1] : false}
                                     <button on:click={() => selectGate(raid.name, i + 1)}>
                                         {#if selected}
-                                            <svelte:component class="text-[#f2e9e7] w-6 h-6" this={numbers[i]}/>
+                                            <svelte:component class="text-[#f8f4f3] w-6 h-6" this={numbers[i]}/>
                                         {:else}
-                                            <svelte:component class="text-[#f2e9e7] w-6 h-6" this={numbersO[i]}/>
+                                            <svelte:component class="text-[#f8f4f3] w-6 h-6" this={numbersO[i]}/>
                                         {/if}
                                     </button>
                                 {/each}
@@ -231,11 +244,11 @@
                                         selectDifficulty(raid.name, difficulty)
                                     }}>
                                         {#if selected}
-                                            <svelte:component class="text-[#f2e9e7] w-6 h-6"
+                                            <svelte:component class="text-[#f8f4f3] w-6 h-6"
                                                               this={difficulties[difficulty]}/>
                                         {:else}
 
-                                            <svelte:component class="text-[#f2e9e7] w-6 h-6"
+                                            <svelte:component class="text-[#f8f4f3] w-6 h-6"
                                                               this={difficultiesO[difficulty]}/>
                                         {/if}
                                     </button>
@@ -257,7 +270,7 @@
             }}
                     class="w-full flex items-center justify-center">
                 <svelte:component
-                        style="{selectedGuardians[guardian.name] ? 'background-color: #413d5b; color: #fff' : 'color: #413d5b'}"
+                        style="{selectedGuardians[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
                         class="h-7 w-7  p-0.5 mx-1 rounded-md my-auto"
                         this={guardian.icon}/>
             </button>
@@ -270,7 +283,7 @@
                 update()
             }}>
                 <svelte:component
-                        style="{selectedTrials[guardian.name] ? 'background-color: #413d5b; color: #fff' : 'color: #413d5b'}"
+                        style="{selectedTrials[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
                         class="h-7 w-7 p-0.5 mx-1 rounded-md my-auto"
                         this={guardian.icon}/>
             </button>
