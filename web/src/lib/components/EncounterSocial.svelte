@@ -11,8 +11,8 @@
             <span class="text-xs font-medium text-[#413d5b] mr-1.5">Hidden</span>
         {:else}
             <img alt="avatar" class="rounded-md mr-1.5 w-6 h-6"
-                 src="https://cdn.discordapp.com/avatars/{user.discord_id}/{user.avatar}.png"/>
-            <span class="text-sm text-[#413d5b] mr-2">{user.username ? user.username : user.discord_tag}</span>
+                 src="https://cdn.discordapp.com/avatars/{user.discordId}/{user.avatar}.png"/>
+            <span class="text-sm text-[#413d5b] mr-2">{user.username ? user.username : user.discordTag}</span>
         {/if}
     </div>
 </div>

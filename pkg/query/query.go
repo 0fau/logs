@@ -31,6 +31,7 @@ type Params struct {
 	Scope     string
 	PastID    *int32
 	PastField *int64
+	PastPlace *int32
 
 	Selections Selections
 	Privileged bool
@@ -174,60 +175,110 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 
 	switch params.Order {
 	case "", "recent clear":
-		if params.PastField != nil && params.PastID != nil {
+		if params.PastField != nil && params.PastID != nil && (!focused || focused && params.PastPlace != nil) {
 			date := pgtype.Timestamp{
 				Time:  time.UnixMilli(*params.PastField).UTC(),
 				Valid: true,
 			}
 
-			q = q.Where(sq.Or{
+			or := sq.Or{
 				sq.Lt{"e.date": date},
 				sq.And{
 					sq.Eq{"e.date": date},
 					sq.Gt{"e.id": *params.PastID},
 				},
-			})
+			}
+
+			if focused {
+				or = append(or, sq.And{
+					sq.Eq{"e.date": date},
+					sq.Eq{"e.id": *params.PastID},
+					sq.Gt{"p.place": *params.PastPlace},
+				})
+			}
+
+			q = q.Where(or)
 		}
 		q = q.OrderBy("e.date DESC", "e.id ASC")
 	case "recent log":
-		if params.PastID != nil {
+		if params.PastID != nil && (!focused || focused && params.PastPlace != nil) {
+			pastID := sq.Lt{"e.id": *params.PastID}
+
+			if focused {
+				q = q.Where(sq.Or{
+					pastID,
+					sq.And{
+						sq.Eq{"e.id": *params.PastID},
+						sq.Gt{"p.place": *params.PastPlace},
+					},
+				})
+			} else {
+				q = q.Where(pastID)
+			}
+
 			q = q.Where(sq.Lt{"e.id": *params.PastID})
 		}
 		q = q.OrderBy("e.id DESC")
 	case "raid duration":
-		if params.PastField != nil && params.PastID != nil {
-			q = q.Where(sq.Or{
+		if params.PastField != nil && params.PastID != nil && (!focused || focused && params.PastPlace != nil) {
+			or := sq.Or{
 				sq.Gt{"e.duration": *params.PastField},
 				sq.And{
 					sq.Eq{"e.duration": *params.PastField},
 					sq.Gt{"e.id": *params.PastID},
 				},
-			})
+			}
+
+			if focused {
+				or = append(or, sq.And{
+					sq.Eq{"e.duration": *params.PastField},
+					sq.Eq{"e.id": *params.PastID},
+					sq.Gt{"p.place": *params.PastPlace},
+				})
+			}
+
+			q = q.Where(or)
 		}
 		q = q.OrderBy("e.duration ASC", "e.id ASC")
 	case "performance":
-		if params.PastField != nil && params.PastID != nil {
+		if params.PastField != nil && params.PastID != nil && params.PastPlace != nil {
 			q = q.Where(sq.Or{
-				sq.Lt{"((p.data->>'dps')::BIGINT)": *params.PastField},
+				sq.Lt{"p.dps": *params.PastField},
 				sq.And{
-					sq.Eq{"((p.data->>'dps')::BIGINT)": *params.PastField},
+					sq.Eq{"p.dps": *params.PastField},
 					sq.Gt{"p.place": *params.PastID},
+				},
+				sq.And{
+					sq.Eq{"p.dps": *params.PastField},
+					sq.Eq{"p.place": *params.PastID},
+					sq.Gt{"p.place": *params.PastPlace},
 				},
 			})
 		}
-		q = q.OrderBy("((p.data->>'dps')::BIGINT) DESC", "p.place ASC")
+		q = q.OrderBy("p.dps DESC")
+	}
+
+	if focused {
+		q = q.OrderBy("p.place ASC")
 	}
 
 	switch params.Scope {
 	case "arkesia":
-		q = q.Where(sq.Or{
-			sq.Eq{"e.uploaded_by": params.User},
-			sq.Eq{"g.uploaders": nil},
-			sq.And{
-				sq.Expr("e.unique_group = e.id"),
-				sq.Expr("NOT (?::UUID = ANY (g.uploaders))", params.User),
-			},
-		})
+		if params.User.Valid {
+			q = q.Where(sq.Or{
+				sq.Eq{"g.uploaders": nil},
+				sq.Eq{"e.uploaded_by": params.User},
+				sq.And{
+					sq.Expr("e.id = e.unique_group"),
+					sq.Expr("NOT (?::UUID = ANY (g.uploaders))", params.User),
+				},
+			})
+		} else {
+			q = q.Where(sq.Or{
+				sq.Eq{"g.uploaders": nil},
+				sq.Expr("e.id = e.unique_group"),
+			})
+		}
 	case "friends":
 		q = q.Where("?::UUID = ANY (u.friends)", params.User)
 	}

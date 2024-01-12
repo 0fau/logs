@@ -98,14 +98,14 @@ func (s *Server) uploadHandler(c *gin.Context) {
 		return
 	}
 
+	s.processor.Preprocess(enc)
+
 	if err := s.processor.Lint(enc); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, Error{
 			Error: err.Error(),
 		})
 		return
 	}
-
-	s.processor.Preprocess(enc)
 
 	encID, err := s.processor.Save(ctx, user.ID, string(raw), enc)
 	if err != nil {

@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({request, cookies}) => {
 
     const fetches = []
     for (const path of [
-        "/api/logs/stats", "/api/users/@me"
+        /*"/api/logs/stats",*/ "/api/users/@me"
     ]) {
         fetches.push(fetch(url + path, {
             headers: header,
@@ -25,10 +25,10 @@ export const load: PageServerLoad = async ({request, cookies}) => {
         }))
     }
 
-    const [stats, me] = await Promise.all(fetches)
+    const [/*stats,*/ me] = await Promise.all(fetches)
 
     return {
         me: me,
-        stats: stats,
+        /*stats: stats,*/
     };
 };

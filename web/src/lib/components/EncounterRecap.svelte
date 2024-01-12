@@ -11,12 +11,19 @@
         tab = num
     }
 
-    function getParties(encounter) {
-        if (encounter.broken || encounter.parties.length === 0) {
-            return [Object.keys(encounter.players)]
+    let parties = [];
+    focused.parties.forEach(p => {
+        let party = [];
+        p.forEach((name) => {
+            if (focused.players[name]) {
+                party.push(name);
+            }
+        })
+
+        if (party.length > 0) {
+            parties.push(party);
         }
-        return encounter.parties
-    }
+    })
 
     function sortByDPS(encounter, players) {
         players.sort((a, b) => {
@@ -39,22 +46,24 @@
     {#if tab === 0}
         <div class="h-[400px] px-2 mb-2 flex justify-center items-center border-[0.5px] border-[#c58597] shadow-sm rounded-md w-full bg-[#f7f2ef]">
             <div class="w-full h-full flex flex-col items-center justify-evenly">
-                {#each getParties(focused) as party, i}
+                {#each parties as party, i}
                     <div class="grid grid-cols-2 gap-2 w-full {partyTextColors[i]}">
                         {#each sortByDPS(focused, party) as player}
-                            <div class="h-[88px] bg-[#F4EDE9] rounded-sm flex flex-col justify-center items-center">
-                                <div class="self-start mx-auto mb-auto w-[50%] h-[1.5px]">
-                                    <div style="width: {getDamagePercent(player)}%"
-                                         class="rounded-b-[0.1rem] mx-auto h-full {partyBgColors[i]}"></div>
+                            {#if focused.players[player]}
+                                <div class="h-[88px] bg-[#F4EDE9] rounded-sm flex flex-col justify-center items-center">
+                                    <div class="self-start mx-auto mb-auto w-[50%] h-[1.5px]">
+                                        <div style="width: {getDamagePercent(player)}%"
+                                             class="rounded-b-[0.1rem] mx-auto h-full {partyBgColors[i]}"></div>
+                                    </div>
+                                    <div class="flex flex-col items-center justify-evenly">
+                                        <p class="text-sm font-medium">{player}</p>
+                                        <p class="text-xs">{focused.players[player].class}</p>
+                                        <p class="font-medium">{formatDamage(focused.players[player].dps)}</p>
+                                    </div>
+                                    <div class="self-start mx-auto mb-auto w-[50%] h-[1.5px]">
+                                    </div>
                                 </div>
-                                <div class="flex flex-col items-center justify-evenly">
-                                    <p class="text-sm font-medium">{player}</p>
-                                    <p class="text-xs">{focused.players[player].class}</p>
-                                    <p class="font-medium">{formatDamage(focused.players[player].dps)}</p>
-                                </div>
-                                <div class="self-start mx-auto mb-auto w-[50%] h-[1.5px]">
-                                </div>
-                            </div>
+                            {/if}
                         {/each}
                     </div>
                 {/each}

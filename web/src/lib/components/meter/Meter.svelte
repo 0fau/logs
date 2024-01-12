@@ -7,6 +7,7 @@
     import PlayerBuffView from "$lib/components/meter/PlayerBuffView.svelte";
     import SelfBuffView from "$lib/components/meter/SelfBuffView.svelte";
     import PlayerSelfBuffView from "$lib/components/meter/PlayerSelfBuffView.svelte";
+    import DamageGraph from "$lib/components/meter/DamageGraph.svelte";
 
     export let encounter;
     console.log(encounter)
@@ -41,24 +42,39 @@
         </button>
     {/each}
 </div>
-<div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-    {#if current === MeterTab.Damage}
-        {#if $focus === ""}
+{#if current === MeterTab.Damage}
+    {#if $focus === ""}
+        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
             <DamageView {encounter} {focus}/>
-        {:else}
+        </div>
+        {#if encounter.data.bossHPLog}
+            <div class="rounded-xl mt-5 min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
+                <DamageGraph {encounter}/>
+            </div>
+        {/if}
+    {:else}
+        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
             <PlayerDamageView {encounter} {focus}/>
-        {/if}
-    {:else if current === MeterTab.Buff}
-        {#if $focus === ""}
-            <BuffView {encounter} {focus}/>
-        {:else}
-            <PlayerBuffView {encounter} {focus}/>
-        {/if}
-    {:else if current === MeterTab.Self}
-        {#if $focus === ""}
-            <SelfBuffView {encounter} {focus}/>
-        {:else}
-            <PlayerSelfBuffView {encounter} {focus}/>
-        {/if}
+        </div>
     {/if}
-</div>
+{:else if current === MeterTab.Buff}
+    {#if $focus === ""}
+        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
+            <BuffView {encounter} {focus}/>
+        </div>
+    {:else}
+        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
+            <PlayerBuffView {encounter} {focus}/>
+        </div>
+    {/if}
+{:else if current === MeterTab.Self}
+    {#if $focus === ""}
+        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
+            <SelfBuffView {encounter} {focus}/>
+        </div>
+    {:else}
+        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
+            <PlayerSelfBuffView {encounter} {focus}/>
+        </div>
+    {/if}
+{/if}

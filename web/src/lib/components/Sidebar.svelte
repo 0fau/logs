@@ -109,7 +109,7 @@
             <IconOpen class="text-[#fcf9f6]"/>
         </div>
         <div class="flex items-center justify-center bg-[#9a4a61] py-2 px-4 rounded shadow-sm">
-            <span class="text-[#fcf9f6] text-xs">{$user.username ? $user.username : "@" + $user.discord_tag}</span>
+            <span class="text-[#fcf9f6] text-xs">{$user.username ? $user.username : "@" + $user.discordTag}</span>
         </div>
         <button bind:this={toggle} on:click={() => panelOpen = !panelOpen}
                 class="bg-[#9a4a61] m-1 rounded py-1 shadow-sm">

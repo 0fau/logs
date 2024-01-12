@@ -1,6 +1,6 @@
 <script lang="ts">
     import {getBossIcon} from "$lib/raids";
-    import {formatDamage, formatDate, formatDuration, formatPercent} from "$lib/print";
+    import {formatDamage, formatDate, formatDuration} from "$lib/print";
 
     const difficultyColors = {
         "Inferno": "#9a3148",
@@ -9,6 +9,38 @@
         "Hard": "#b9982e",
         "Normal": "#625f77",
     };
+
+    function shortBossName(boss: string): string {
+        if (boss === "Phantom Legion Commander Brelshaza") {
+            return "Phantom LC Brelshaza"
+        }
+
+        if (boss === "Covetous Legion Commander Vykas") {
+            return "Covetous LC Vykas"
+        }
+
+        if (boss === "Plague Legion Commander Akkan") {
+            return "Plague LC Akkan"
+        }
+
+        if (boss === "Lazaram, the Trailblazer") {
+            return "Lazaram"
+        }
+
+        if (boss === "Firehorn, Trampler of Earth") {
+            return "Firehorn"
+        }
+
+        if (boss === "Rakathus, the Lurking Arrogance") {
+            return "Rakathus"
+        }
+
+        if (boss === "Kaltaya, the Blooming Chaos") {
+            return "Kaltaya"
+        }
+
+        return boss
+    }
 
     export let encounter;
     export let width;
@@ -22,7 +54,7 @@
                     <span class="font-medium">[#{encounter.id}]</span>
                     <img alt={encounter.boss} src={getBossIcon(encounter.boss)}
                          class="inline w-6 h-6 -translate-y-0.5"/>
-                    <span class="font-medium">{encounter.boss}</span>
+                    <span class="font-medium">{shortBossName(encounter.boss)}</span>
                 </div>
                 <p class="text-sm">{formatDamage(encounter.damage)} damage dealt
                     in {formatDuration(encounter.duration)}</p>

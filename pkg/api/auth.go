@@ -29,8 +29,8 @@ type SessionUser struct {
 
 type ReturnedUser struct {
 	ID         string `json:"id"`
-	DiscordTag string `json:"discord_tag"`
-	DiscordID  string `json:"discord_id"`
+	DiscordTag string `json:"discordTag"`
+	DiscordID  string `json:"discordId"`
 	Avatar     string `json:"avatar"`
 	Username   string `json:"username"`
 }

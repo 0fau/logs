@@ -84,3 +84,46 @@ spec:
                     - key: tls.key
                       path: tls.key
                       mode: 0600
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logsbyfaust-bot
+  namespace: logsbyfaust
+  labels:
+    app: logsbyfaust-bot
+spec:
+  selector:
+    matchLabels:
+      app: logsbyfaust-bot
+  template:
+    metadata:
+      labels:
+        app: logsbyfaust-bot
+    spec:
+      containers:
+        - name: bot
+          image: ghcr.io/0fau/logs-bot:latest
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: client-certs
+              mountPath: /cockroach/
+          envFrom:
+            - configMapRef:
+                name: logs-bot
+            - secretRef:
+                name: logs-bot
+      volumes:
+        - name: client-certs
+          projected:
+            sources:
+              - secret:
+                  name: cockroachdb-logs
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+                    - key: tls.crt
+                      path: tls.crt
+                    - key: tls.key
+                      path: tls.key
+                      mode: 0600

@@ -38,18 +38,25 @@ CREATE TABLE encounters
     local_player STRING    NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS players
+CREATE TABLE players
 (
     encounter INT    NOT NULL REFERENCES encounters (id),
     class     STRING NOT NULL,
     name      STRING NOT NULL,
     dead      BOOL   NOT NULL,
     data      JSONB  NOT NULL,
+    dps       BIGINT NOT NULL,
     place     INT    NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS grouped_encounters
+CREATE TABLE grouped_encounters
 (
     group_id  INT NOT NULL PRIMARY KEY REFERENCES encounters (id),
     uploaders UUID ARRAY
+);
+
+CREATE TABLE whitelist
+(
+    discord STRING NOT NULL,
+    role    STRING NOT NULL
 );

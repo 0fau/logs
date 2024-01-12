@@ -1,6 +1,6 @@
 <script lang="ts">
-    import {getClassIcon} from "$lib/game";
     import {formatDamage, formatPercent} from "$lib/print";
+    import Player from "$lib/components/meter/Player.svelte";
 
     export let encounter;
     export let focus;
@@ -80,11 +80,7 @@
                 <td class="float-left">
                     <button class="py-1 z-50 flex justify-center items-center"
                             on:click={() => focus.set(name)}>
-                        <img alt={player.class}
-                             src="{getClassIcon(player.class)}"
-                             class="h-6 w-6 mr-1.5 z-50 inline"
-                        />
-                        <span class="z-50">{encounter.anonymized ? player.class + " " + name : name}</span>
+                        <Player player={player} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
                     </button>
                 </td>
                 <td>{formatDamage(player.damage)}</td>

@@ -27,6 +27,7 @@
     import IconBird from '~icons/lucide/bird';
     import IconLion from '~icons/emojione-monotone/lion-face';
     import IconScaryDragon from '~icons/game-icons/spiked-dragon-head';
+    import IconCheck from '~icons/icon-park-solid/check-one';
 
     export let search;
 
@@ -109,7 +110,7 @@
             primary: "bg-[#d08e99]",
             secondary: "bg-[#c16a78]",
             gates: 3,
-            difficulties: ["Normal", "Hard", "Inferno"],
+            difficulties: ["Normal", "Inferno"],
         },
     ]];
 
@@ -161,6 +162,8 @@
         selected.gates[gate] = !selected.gates[gate];
         selectedRaids[raid] = selected;
 
+        console.log(selectedRaids)
+
         update()
     }
 
@@ -168,6 +171,8 @@
         let selected = selectedRaids[raid] ?? {difficulties: {}, gates: {}};
         selected.difficulties[difficulty] = !selected.difficulties[difficulty];
         selectedRaids[raid] = selected;
+
+        console.log(selectedRaids)
 
         update()
     }
@@ -213,7 +218,7 @@
                     <div>
                         <button on:click={() => raidDropdown = raidDropdown === raid ? null : raid}
                                 class="w-4/5 relative mb-1 h-[32px] hover:shadow-md transition flex flex-row justify-center rounded-xl {raid.primary}">
-                            <div class="w-fit h-full ml-0 mr-auto flex flex-row items-center px-1.5 rounded-l-xl {raid.secondary}">
+                            <div class="w-[36px] h-full ml-0 mr-auto flex flex-row items-center px-1.5 rounded-l-xl {raid.secondary}">
                                 <img alt="{raid.name}" class="h-6 -translate-y-[0.25px] my-auto"
                                      src="{getRaidIcon(raid.name)}"/>
                             </div>
@@ -264,28 +269,56 @@
 <div class="mx-auto w-[78%] mt-2 flex flex-row justify-center items-center">
     <div class="rounded-xl border-[0.75px] border-[#c17e91] opacity-95 p-1.5 bg-[#f2e9e7] flex flex-row items-center mr-2">
         {#each guardians as guardian}
+            {@const hoverkey = "guardian_" + guardian.name}
             <button on:click={() => {
                 selectedGuardians[guardian.name] = !selectedGuardians[guardian.name]
                 update()
             }}
                     class="w-full flex items-center justify-center">
-                <svelte:component
-                        style="{selectedGuardians[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
-                        class="h-7 w-7  p-0.5 mx-1 rounded-md my-auto"
-                        this={guardian.icon}/>
+                <div class="flex items-center justify-center"
+                     on:mouseover={() => hovered = hoverkey}
+                     on:mouseleave={() => hovered = ""}>
+                    <svelte:component
+                            style="{selectedGuardians[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
+                            class="h-7 w-7  p-0.5 mx-1 rounded-md my-auto"
+                            this={guardian.icon}/>
+                    {#if hovered === hoverkey}
+                        <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-0.15rem)] text-[#575279]">
+                            <svelte:component
+                                    style="{selectedGuardians[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
+                                    class="h-6 w-6 p-0.5 mx-1 rounded-md my-auto"
+                                    this={guardian.icon}/>
+                            <p class="font-medium text-sm">{guardian.name}</p>
+                        </div>
+                    {/if}
+                </div>
             </button>
         {/each}
     </div>
     <div class="rounded-xl border-[0.75px] border-[#c17e91] opacity-95 p-1.5 bg-[#f2e9e7] flex flex-row items-center">
         {#each trials as guardian}
+            {@const hoverkey = "trial_" + guardian.name}
             <button on:click={() => {
                 selectedTrials[guardian.name] = !selectedTrials[guardian.name]
                 update()
             }}>
-                <svelte:component
-                        style="{selectedTrials[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
-                        class="h-7 w-7 p-0.5 mx-1 rounded-md my-auto"
-                        this={guardian.icon}/>
+                <div class="flex items-center justify-center"
+                     on:mouseover={() => hovered = hoverkey}
+                     on:mouseleave={() => hovered = ""}>
+                    <svelte:component
+                            style="{selectedTrials[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
+                            class="h-7 w-7 p-0.5 mx-1 rounded-md my-auto"
+                            this={guardian.icon}/>
+                    {#if hovered === hoverkey}
+                        <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-0.15rem)] text-[#575279]">
+                            <svelte:component
+                                    style="{selectedTrials[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
+                                    class="h-6 w-6 p-0.5 mx-1 rounded-md my-auto"
+                                    this={guardian.icon}/>
+                            <p class="font-medium text-sm">Trial {guardian.name}</p>
+                        </div>
+                    {/if}
+                </div>
             </button>
         {/each}
     </div>
@@ -293,8 +326,11 @@
 <div class="mx-auto rounded-xl p-3 flex flex-col items-center justify-center border-[0.75px] border-[#c17e91] opacity-95 bg-[#f2e9e7] mt-2">
     <div class="grid grid-cols-8 gap-3">
         {#each list as c}
+            {@const hoverkey = "class_" + c}
             <button style="background-color: {selectedClasses[c] ? '#76708f' : '#c58799'}"
-                    class="rounded-lg p-1"
+                    class="rounded-lg p-1 flex items-center justify-center"
+                    on:mouseover={() => hovered = hoverkey}
+                    on:mouseleave={() => hovered = ""}
                     on:click={() =>  {
                         selectedClasses[c] = !selectedClasses[c]
                         update()
@@ -306,6 +342,11 @@
                             -moz-transform: translate3d(0, 0, 0);"
                      class="w-5 h-5 blur-[0.1px] z-50 m-auto"
                      src="{getClassIconNew(c)}"/>
+                {#if hovered === hoverkey}
+                    <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%)] text-[#575279]">
+                        <p class="font-medium text-sm">{c}</p>
+                    </div>
+                {/if}
             </button>
         {/each}
     </div>

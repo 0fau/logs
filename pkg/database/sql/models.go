@@ -37,6 +37,7 @@ type Player struct {
 	Name      string
 	Dead      bool
 	Data      structs.IndexedPlayerData
+	Dps       int64
 	Place     int32
 }
 
@@ -53,4 +54,9 @@ type User struct {
 	Settings    structs.UserSettings
 	Titles      []string
 	Roles       []string
+}
+
+type Whitelist struct {
+	Discord string
+	Role    string
 }

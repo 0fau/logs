@@ -45,14 +45,14 @@ func (p *Processor) Initialize() error {
 }
 
 type Encounter struct {
-	raw *meter.Encounter
+	Raw *meter.Encounter
 
 	Header structs.EncounterHeader
 	Data   structs.EncounterData
 }
 
 func (p *Processor) Process(raw *meter.Encounter) (*Encounter, error) {
-	enc := &Encounter{raw: raw}
+	enc := &Encounter{Raw: raw}
 	header, err := enc.processHeader()
 	if err != nil {
 		return nil, errors.Wrap(err, "processing encounter header")
@@ -72,12 +72,12 @@ func (p *Processor) Process(raw *meter.Encounter) (*Encounter, error) {
 func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
 	header := structs.EncounterHeader{
 		Players: make(map[string]structs.PlayerHeader),
-		Parties: make([][]string, len(enc.raw.DamageStats.Misc.PartyInfo)),
-		Damage:  enc.raw.DamageStats.TotalDamageDealt,
-		Cleared: enc.raw.DamageStats.Misc.Cleared,
+		Parties: make([][]string, len(enc.Raw.DamageStats.Misc.PartyInfo)),
+		Damage:  enc.Raw.DamageStats.TotalDamageDealt,
+		Cleared: enc.Raw.DamageStats.Misc.Cleared,
 	}
 
-	for party, players := range enc.raw.DamageStats.Misc.PartyInfo {
+	for party, players := range enc.Raw.DamageStats.Misc.PartyInfo {
 		num, err := strconv.Atoi(party)
 		if err != nil {
 			return structs.EncounterHeader{}, errors.Wrapf(err, "converting party %s to number", party)
@@ -85,14 +85,14 @@ func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
 
 		slices.SortFunc(players, func(a, b string) int {
 			return cmp.Compare(
-				enc.raw.Entities[b].DamageStats.Damage,
-				enc.raw.Entities[a].DamageStats.Damage,
+				enc.Raw.Entities[b].DamageStats.Damage,
+				enc.Raw.Entities[a].DamageStats.Damage,
 			)
 		})
 		header.Parties[num] = players
 	}
 
-	for _, entity := range enc.raw.Entities {
+	for _, entity := range enc.Raw.Entities {
 		if entity.EntityType != "PLAYER" {
 			continue
 		}
@@ -102,10 +102,10 @@ func (enc *Encounter) processHeader() (structs.EncounterHeader, error) {
 			Class:     entity.Class,
 			GearScore: entity.GearScore,
 			Damage:    entity.DamageStats.Damage,
-			Percent:   round(float64(entity.DamageStats.Damage) / float64(enc.raw.DamageStats.TotalDamageDealt) * 100),
+			Percent:   round(float64(entity.DamageStats.Damage) / float64(enc.Raw.DamageStats.TotalDamageDealt) * 100),
 			DPS:       entity.DamageStats.DPS,
 			Dead:      entity.Dead,
-			DeadFor:   enc.raw.End - entity.DamageStats.DeathTime,
+			DeadFor:   enc.Raw.End - entity.DamageStats.DeathTime,
 		}
 	}
 	return header, nil
@@ -204,6 +204,7 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 		Synergies:    make([][]structs.BuffGroupInfo, len(enc.Header.Parties)),
 		BuffCatalog:  make(map[string]structs.BuffInfo),
 		SkillCatalog: make(map[string]structs.SkillInfo),
+		BossHPLog:    enc.Raw.DamageStats.Misc.HPLog,
 	}
 
 	parties := map[string]int{}
@@ -219,7 +220,7 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 	}
 	selfBuffs := make(BuffGroups)
 
-	for name, entity := range enc.raw.Entities {
+	for name, entity := range enc.Raw.Entities {
 		if entity.EntityType != "PLAYER" {
 			continue
 		}
@@ -255,7 +256,7 @@ func (enc *Encounter) processData() (structs.EncounterData, error) {
 		}
 
 		for skill := range data.Players[name].SkillDamage {
-			info := enc.raw.Entities[name].Skills[skill]
+			info := enc.Raw.Entities[name].Skills[skill]
 			data.SkillCatalog[skill] = structs.SkillInfo{
 				Name: info.Name,
 				Icon: info.Icon,
@@ -292,9 +293,9 @@ func (enc *Encounter) CatalogBuff(data structs.EncounterData, buff string) {
 }
 
 func (enc *Encounter) BuffInfo(buff string) (structs.BuffInfo, error) {
-	info, ok := enc.raw.DamageStats.Buffs[buff]
+	info, ok := enc.Raw.DamageStats.Buffs[buff]
 	if !ok {
-		info, ok = enc.raw.DamageStats.Debuffs[buff]
+		info, ok = enc.Raw.DamageStats.Debuffs[buff]
 		if !ok {
 			return structs.BuffInfo{}, errors.New("buff info not found")
 		}
@@ -329,15 +330,16 @@ func (enc *Encounter) processPlayer(entity meter.Entity) structs.PlayerData {
 			Buff:       round(float64(entity.DamageStats.Buffed) / float64(entity.DamageStats.Damage) * 100),
 			Brand:      round(float64(entity.DamageStats.Debuffed) / float64(entity.DamageStats.Damage) * 100),
 			Casts:      entity.SkillStats.Casts,
-			CPM:        round(float64(entity.SkillStats.Casts) / (float64(enc.raw.Duration) / 1000 / 60)),
+			CPM:        round(float64(entity.SkillStats.Casts) / (float64(enc.Raw.Duration) / 1000 / 60)),
 			Hits:       entity.SkillStats.Hits,
-			HPM:        round(float64(entity.SkillStats.Hits) / (float64(enc.raw.Duration) / 1000 / 60)),
+			HPM:        round(float64(entity.SkillStats.Hits) / (float64(enc.Raw.Duration) / 1000 / 60)),
 		},
+		DPSLog: entity.DamageStats.DPSAverage,
 	}
 
 	catalogs := []meter.BuffInfo{
-		enc.raw.DamageStats.Buffs,
-		enc.raw.DamageStats.Debuffs,
+		enc.Raw.DamageStats.Buffs,
+		enc.Raw.DamageStats.Debuffs,
 	}
 
 	buffs, self, skillSelf := Buffs{}, Buffs{}, Buffs{}
@@ -371,7 +373,7 @@ func (enc *Encounter) processPlayer(entity meter.Entity) structs.PlayerData {
 	skillBuffs := make(map[string]structs.Buffs)
 	skillSelfBuffs := make(map[string]structs.Buffs)
 	for id, skill := range entity.Skills {
-		skillDamage[id] = Skill(enc.raw, entity, skill)
+		skillDamage[id] = Skill(enc.Raw, entity, skill)
 		if skill.Damage == 0 {
 			continue
 		}
@@ -469,7 +471,7 @@ func SelfBuffFilter(info meter.Buff) (string, bool) {
 	case "set":
 		group = "set_" + info.Source.SetName
 	case "bracelet", "elixir":
-		group = info.BuffCategory + "_" + info.Source.Name
+		group = fmt.Sprintf("%s_%d", info.BuffCategory, info.UniqueGroup)
 	case "pet", "cook", "battleitem", "dropsofether":
 		group = info.BuffCategory
 	default:
@@ -546,21 +548,17 @@ func (enc *Encounter) highlight() {
 
 }
 
-func (enc *Encounter) UniqueHash(sort []string) string {
-	var buf strings.Builder
-	buf.WriteString(enc.raw.CurrentBossName)
-	buf.WriteString(" ")
-	buf.WriteString(enc.raw.Difficulty)
+func (enc *Encounter) UniqueHash(players []string) string {
+	slices.Sort(players)
 
-	for _, player := range sort {
+	var buf strings.Builder
+	buf.WriteString(enc.Raw.CurrentBossName)
+	buf.WriteString(" ")
+	buf.WriteString(enc.Raw.Difficulty)
+
+	for _, player := range players {
 		buf.WriteString(" ")
 		buf.WriteString(player)
-		buf.WriteString("-")
-		buf.WriteString(fmt.Sprintf("%.2f", enc.Header.Players[player].GearScore))
-		buf.WriteString("-")
-		buf.WriteString(fmt.Sprintf("%d", enc.Header.Players[player].Damage))
-		buf.WriteString("-")
-		buf.WriteString(enc.Header.Players[player].Percent)
 	}
 
 	h := fnv.New32a()
@@ -599,7 +597,7 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 		group, err := qtx.GetUniqueGroup(ctx, sql.GetUniqueGroupParams{
 			UniqueHash: hash,
 			Date:       date,
-			Duration:   enc.raw.Duration,
+			Duration:   enc.Raw.Duration,
 		})
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return errors.Wrap(err, "getting unique group")
@@ -650,6 +648,7 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 					Damage: header.Damage,
 					DPS:    header.DPS,
 				},
+				Dps: header.DPS,
 			})
 		}
 		if _, err := qtx.InsertPlayer(ctx, players); err != nil {

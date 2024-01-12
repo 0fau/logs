@@ -17,8 +17,6 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
-	"strings"
-	"time"
 )
 
 type ReturnedEncounterShort struct {
@@ -81,6 +79,7 @@ func (enc *ReturnedEncounterShort) Anonymize(order map[string]string) {
 
 	m := make(map[string]structs.PlayerHeader, len(enc.Players))
 	for name, player := range enc.Players {
+		player.Name = order[name]
 		m[order[name]] = player
 	}
 	enc.Players = m
@@ -104,6 +103,16 @@ func (s *Server) logs(c *gin.Context) {
 		}
 		cast := int32(num)
 		params.PastID = &cast
+	}
+
+	if c.Query("past_place") != "" {
+		num, err := strconv.Atoi(c.Query("past_place"))
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		cast := int32(num)
+		params.PastPlace = &cast
 	}
 
 	if c.Query("past_field") != "" {
@@ -183,107 +192,6 @@ func (s *Server) logs(c *gin.Context) {
 			LocalPlayer:     enc.LocalPlayer,
 			EncounterHeader: enc.Header,
 			Place:           enc.Place,
-		}
-
-		uploaderID, _ := enc.UploadedBy.Value()
-		if u == nil || uploaderID != u.ID && !hasRoles(roles, "admin", "trusted") {
-			order := short.Order()
-			short.Anonymize(order)
-		}
-
-		ret[i] = short
-	}
-	c.JSON(http.StatusOK, ReturnedEncounterShorts{
-		Encounters: ret,
-		More:       more,
-	})
-}
-
-func (s *Server) recentLogs(c *gin.Context) {
-	ctx := context.Background()
-
-	var date time.Time
-	if c.Query("past") != "" {
-		num, err := strconv.ParseInt(c.Query("past"), 0, 64)
-		if err != nil {
-			c.AbortWithStatus(http.StatusBadRequest)
-			return
-		}
-		date = time.UnixMilli(num).UTC()
-	}
-
-	var id int32
-	if c.Query("id") != "" {
-		num, err := strconv.Atoi(c.Query("id"))
-		if err != nil {
-			c.AbortWithStatus(http.StatusBadRequest)
-			return
-		}
-		id = int32(num)
-	}
-
-	sesh := sessions.Default(c)
-	val := sesh.Get("user")
-
-	var u *SessionUser
-	if val != nil {
-		u = val.(*SessionUser)
-	}
-
-	focus := ""
-	if c.Query("scope") == "roster" || c.Query("scope") == "friends" {
-		if u == nil {
-			c.JSON(http.StatusUnauthorized, []struct{}{})
-			return
-		}
-
-		focus = u.ID
-	}
-
-	var uuid pgtype.UUID
-	if u != nil {
-		if err := uuid.Scan(u.ID); err != nil {
-			log.Println(errors.Wrap(err, "scanning session user uuid"))
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-	}
-
-	roles, err := s.conn.Queries.GetRoles(ctx, uuid)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		log.Println(errors.Wrap(err, "fetching rows"))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	encs, err := s.conn.RecentEncounters(ctx, focus, id, date, c.Query("scope") == "friends")
-	if err != nil {
-		if strings.Contains(err.Error(), "scanning user uuid") {
-			c.AbortWithStatus(http.StatusBadRequest)
-			return
-		}
-
-		log.Println(errors.Wrap(err, "listing recent encounters"))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	n, more := len(encs), false
-	if n > 5 {
-		n = 5
-		more = true
-	}
-
-	ret := make([]ReturnedEncounterShort, n)
-	for i, enc := range encs[:n] {
-		short := ReturnedEncounterShort{
-			ID:              enc.ID,
-			Difficulty:      enc.Difficulty,
-			Boss:            enc.Boss,
-			Date:            enc.Date.Time.UnixMilli(),
-			Duration:        enc.Duration,
-			LocalPlayer:     enc.LocalPlayer,
-			EncounterHeader: enc.Header,
 		}
 
 		uploaderID, _ := enc.UploadedBy.Value()

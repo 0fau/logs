@@ -1,38 +1,56 @@
 <script lang="ts">
 
-    import {getClassFromId, getClassIcon, getSkillIcon} from "$lib/game";
+    import {getClassFromId, getSkillIcon} from "$lib/game";
     import {formatPercent, sanitizeBuffDescription} from "$lib/print.js";
+    import Player from "$lib/components/meter/Player.svelte";
 
     export let encounter;
     export let focus;
 
-    let players = Object.keys(encounter.players)
-    players.sort((a, b) => encounter.players[b].damage - encounter.players[a].damage)
+    let most = 0;
+    for (let player of Object.values(encounter.players)) {
+        if (player.damage > most) {
+            most = player.damage
+        }
+    }
+
+    let parties = [];
+    encounter.parties.forEach(p => {
+        let party = [];
+        p.forEach((name) => {
+            if (encounter.players[name]) {
+                party.push(name);
+            }
+        })
+
+        if (party.length > 0) {
+            parties.push(party);
+        }
+    })
+
 
     let barColors = ["#eedede", "#eedede"];
 
-    let rows = [];
-    let bars = [];
+    let rows = {};
+    let bars = {};
 
-    let most = encounter.players[players[0]].damage
     $: {
-        for (let i = 0; i < rows.length; i++) {
-            let name = encounter.parties[Math.floor(i / 4)][i % 4]
+        for (let [name, bar] of Object.entries(bars)) {
             let percent = encounter.players[name].damage / most;
-            bars[i].style.height = rows[i].clientHeight + "px";
-            bars[i].style.width = percent * rows[i].clientWidth + "px";
-            bars[i].style.backgroundColor = barColors[i % 2]
+            bar.style.height = rows[name].clientHeight + "px";
+            bar.style.width = percent * rows[name].clientWidth + "px";
+            bar.style.backgroundColor = barColors[0]
         }
     }
 
     let hovered;
 </script>
 
-{#each encounter.parties as players, party}
+{#each parties as players, party}
     {@const synergies = encounter.data.synergies[party]}
     <div on:contextmenu|preventDefault={() => {}}
          class="bg-[#F4EDE9] w-full h-full"
-         class:mb-4={party !== encounter.parties.length - 1}>
+         class:mb-4={party !== parties.length - 1}>
         <table class="table-auto w-full">
             <thead class="bg-[#b96d83]">
             <tr>
@@ -71,19 +89,16 @@
             {#each players as name, i}
                 {@const player = encounter.players[name]}
                 {@const data = encounter.data.players[name]}
-                <tr bind:this={rows[i + (party * 4)]}>
-                    <div bind:this={bars[i + (party * 4)]}
+                <tr bind:this={rows[name]}>
+                    <div bind:this={bars[name]}
                          class="absolute z-0"
                          class:rounded-bl-lg={i === players.length - 1}>
                     </div>
                     <td class="float-left">
                         <button class="my-1 flex justify-center items-center"
                                 on:click={() => focus.set(name)}>
-                            <img alt={player.class}
-                                 src="{getClassIcon(player.class)}"
-                                 class="h-6 w-6 mr-1.5 inline opacity-95"
-                            />
-                            {encounter.anonymized ? player.class + " " + name : name}
+                            <Player player={player} anonymized={encounter.anonymized}
+                                    difficulty={encounter.difficulty}/>
                         </button>
                     </td>
                     {#each synergies as synergy}

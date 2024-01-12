@@ -85,7 +85,7 @@ func (s *Server) Run(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "creating redis sessions store")
 	}
-	store.Options(sessions.Options{MaxAge: 604800}) // seven days
+	store.Options(sessions.Options{MaxAge: 2628000}) // one month
 	s.router.Use(sessions.Sessions("sessions", store))
 
 	gob.Register(&SessionUser{})
@@ -98,10 +98,9 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.GET("api/settings", s.settingsHandler)
 	s.router.PUT("api/settings/username", s.setUsername)
 
-	s.router.POST("api/logs", s.recentLogs)
-	s.router.POST("api/logsx", s.logs)
+	s.router.POST("api/logs", s.logs)
 	s.router.POST("api/logs/upload", s.uploadHandler)
-	s.router.GET("api/logs/stats", s.statsHandler)
+	// s.router.GET("api/logs/stats", s.statsHandler)
 	s.router.GET("api/log/:log", s.logHandler)
 
 	s.router.POST("api/users/@me/token", s.generateToken)

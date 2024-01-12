@@ -2,12 +2,12 @@ FROM --platform=linux/amd64 golang:1.21 AS build-stage
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY ../../../go.mod go.sum ./
 RUN CGO_ENABLED=0 GOOS=linux go mod download
 
-COPY . ./
+COPY ../../.. ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /apiserver ./pkg/cmd/api/
+RUN CGO_ENABLED=0 GOOS=linux go build -o /bot ./pkg/cmd/bot/
 
 FROM --platform=linux/amd64 ubuntu AS build-release-stage
 
@@ -17,16 +17,10 @@ RUN apt-get update && \
 
 WORKDIR /
 
-COPY --from=build-stage /apiserver /apiserver
+COPY --from=build-stage /bot /bot
 
 CMD mkdir migrations
 
 COPY migrations/* migrations/
 
-CMD mkdir meter-data
-
-COPY meter-data/* meter-data/
-
-EXPOSE 3001
-
-CMD ["/apiserver"]
+CMD ["/bot"]

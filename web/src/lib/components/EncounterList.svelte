@@ -76,26 +76,20 @@
         }
 
         let url = location.protocol + '//' + location.host;
-        url += "/api/logsx?scope=" + scoped.toLowerCase();
+        url += "/api/logs?scope=" + scoped.toLowerCase();
         if (encounters.length > 0) {
             let last = encounters[encounters.length - 1];
-            if (order !== Order.Performance) {
-                url += "&past_id=" + last.id;
-            } else {
-                url += "&past_id=" + last.place;
+            url += "&past_id=" + last.id
+            url += "&past_place=" + last.place
+            if (order === Order.Performance) {
                 url += "&past_field=" + last.players[last.localPlayer].dps;
-            }
-
-            if (order === Order.RecentClear) {
+            } else if (order === Order.RecentClear) {
                 url += "&past_field=" + last.date
             } else if (order === Order.Duration) {
                 url += "&past_field=" + last.duration
             }
         }
-
         url += "&order=" + order.toLowerCase()
-
-        console.log(JSON.stringify(normalizeSelections($search)))
 
         const recent = await fetch(url, {
             credentials: 'same-origin',

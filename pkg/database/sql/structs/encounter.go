@@ -1,5 +1,7 @@
 package structs
 
+import "github.com/0fau/logs/pkg/process/meter"
+
 type PlayerHeader struct {
 	Name      string    `json:"name"`
 	Class     string    `json:"class"`
@@ -28,6 +30,8 @@ type EncounterData struct {
 	Synergies [][]BuffGroupInfo     `json:"synergies"`
 	SelfBuffs []BuffGroupInfo       `json:"selfBuffs"`
 	Players   map[string]PlayerData `json:"players"`
+
+	BossHPLog meter.HPLog `json:"bossHPLog"`
 }
 
 type BuffGroupInfo struct {
@@ -69,6 +73,8 @@ type PlayerData struct {
 	SelfBuff       Buffs            `json:"selfBuff"`
 	SkillSelfBuffs []BuffGroupInfo  `json:"skillSelfBuffs"`
 	SkillSelfBuff  map[string]Buffs `json:"skillSelfBuff"`
+
+	DPSLog []int64 `json:"dpsLog"`
 }
 
 type PlayerDamage struct {

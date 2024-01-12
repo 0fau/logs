@@ -4,6 +4,8 @@ FROM users
 WHERE discord_tag = $1
 LIMIT 1;
 
+-- ROLES
+
 -- name: GetUserByID :one
 SELECT *
 FROM users
@@ -15,6 +17,28 @@ SELECT roles
 FROM users
 WHERE id = $1
 LIMIT 1;
+
+-- name: GetRolesByDiscordID :one
+SELECT id, roles
+FROM users
+WHERE discord_id = $1
+LIMIT 1;
+
+-- name: UpdateRoles :exec
+UPDATE users
+SET roles = $2
+WHERE id = $1;
+
+-- name: Whitelist :exec
+INSERT INTO whitelist (discord, role)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING;
+
+-- name: FetchWhitelist :one
+DELETE
+FROM whitelist
+WHERE discord = $1
+RETURNING role;
 
 -- name: GetUserByToken :one
 SELECT *
@@ -34,10 +58,11 @@ WHERE id = $1;
 
 -- name: UpsertUser :one
 INSERT
-INTO users (discord_id, discord_tag, avatar, settings)
-VALUES ($1, $2, $3, $4)
+INTO users (discord_id, discord_tag, roles, avatar, settings)
+VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (discord_id)
     DO UPDATE SET discord_tag = excluded.discord_tag,
+                  roles       = excluded.roles,
                   avatar      = excluded.avatar
 RETURNING *;
 
@@ -63,8 +88,8 @@ SELECT unique_group
 FROM encounters
 WHERE unique_hash = $1
   AND unique_group = id
-  AND (date + interval '5 minutes') >= $2
-  AND (date - interval '5 minutes') <= $2
+  AND (date + interval '10 seconds') >= $2
+  AND (date - interval '10 seconds') <= $2
   AND (duration + 1000) >= $3
   AND (duration - 1000) <= $3;
 
@@ -82,13 +107,13 @@ ON CONFLICT (group_id)
 
 -- name: InsertPlayer :copyfrom
 INSERT
-INTO players (encounter, class, name, dead, data, place)
-VALUES ($1, $2, $3, $4, $5, $6);
+INTO players (encounter, class, name, dead, data, dps, place)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: InsertPlayerInternal :exec
 INSERT
-INTO players (encounter, class, name, dead, data, place)
-VALUES ($1, $2, $3, $4, $5, $6)
+INTO players (encounter, class, name, dead, data, dps, place)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (encounter, name)
     DO UPDATE SET data = excluded.data;
 
@@ -116,52 +141,13 @@ DELETE
 FROM encounters
 WHERE id = $1;
 
--- name: ListRecentEncounters :many
-SELECT u.discord_tag,
-       u.username,
-       e.id,
-       e.difficulty,
-       e.uploaded_by,
-       e.uploaded_at,
-       e.settings,
-       e.tags,
-       e.header,
-       e.boss,
-       e.date,
-       e.duration,
-       e.local_player
-FROM encounters e
-         JOIN users u ON e.uploaded_by = u.id
-WHERE (sqlc.narg('date')::TIMESTAMP IS NULL
-    OR (sqlc.narg('date') > e.date OR (sqlc.narg('date')::TIMESTAMP = e.date AND sqlc.narg('id')::INT < e.id)))
-  AND (sqlc.narg('user')::UUID IS NULL
-    OR ((sqlc.narg('friends')::BOOLEAN AND sqlc.narg('user') = ANY (u.friends)) OR
-        ((NOT sqlc.narg('friends')::BOOLEAN AND sqlc.narg('user') = e.uploaded_by))))
-ORDER BY e.date DESC,
-         e.id ASC
-LIMIT 6;
-
 -- name: ListEncounters :many
 SELECT id
 FROM encounters
-ORDER BY uploaded_at DESC;
+ORDER BY uploaded_at;
 
--- name: GetData :one
-SELECT data
+-- name: GetHeader :one
+SELECT boss, difficulty, uploaded_by, date, duration, header
 FROM encounters
-WHERE id = $1;
-
--- name: GetRaidStats :many
-SELECT boss, difficulty, count(*)
-FROM encounters
-GROUP BY boss, difficulty;
-
--- name: GetUniqueUploaders :one
-SELECT COUNT(DISTINCT jsonb_object_keys(header -> 'players'))
-FROM encounters;
-
--- name: CountClasses :many
-SELECT (value ->> 'class')::STRING AS class, COUNT(*)
-FROM encounters,
-     jsonb_each(header -> 'players') AS player
-GROUP BY (value ->> 'class')::STRING;
+WHERE id = $1
+LIMIT 1;

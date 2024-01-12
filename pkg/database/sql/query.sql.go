@@ -12,38 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countClasses = `-- name: CountClasses :many
-SELECT (value ->> 'class')::STRING AS class, COUNT(*)
-FROM encounters,
-     jsonb_each(header -> 'players') AS player
-GROUP BY (value ->> 'class')::STRING
-`
-
-type CountClassesRow struct {
-	Class string
-	Count int64
-}
-
-func (q *Queries) CountClasses(ctx context.Context) ([]CountClassesRow, error) {
-	rows, err := q.db.Query(ctx, countClasses)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []CountClassesRow
-	for rows.Next() {
-		var i CountClassesRow
-		if err := rows.Scan(&i.Class, &i.Count); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const deleteEncounter = `-- name: DeleteEncounter :exec
 DELETE
 FROM encounters
@@ -66,17 +34,18 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
-const getData = `-- name: GetData :one
-SELECT data
-FROM encounters
-WHERE id = $1
+const fetchWhitelist = `-- name: FetchWhitelist :one
+DELETE
+FROM whitelist
+WHERE discord = $1
+RETURNING role
 `
 
-func (q *Queries) GetData(ctx context.Context, id int32) (structs.EncounterData, error) {
-	row := q.db.QueryRow(ctx, getData, id)
-	var data structs.EncounterData
-	err := row.Scan(&data)
-	return data, err
+func (q *Queries) FetchWhitelist(ctx context.Context, discord string) (string, error) {
+	row := q.db.QueryRow(ctx, fetchWhitelist, discord)
+	var role string
+	err := row.Scan(&role)
+	return role, err
 }
 
 const getEncounter = `-- name: GetEncounter :one
@@ -138,36 +107,34 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 	return i, err
 }
 
-const getRaidStats = `-- name: GetRaidStats :many
-SELECT boss, difficulty, count(*)
+const getHeader = `-- name: GetHeader :one
+SELECT boss, difficulty, uploaded_by, date, duration, header
 FROM encounters
-GROUP BY boss, difficulty
+WHERE id = $1
+LIMIT 1
 `
 
-type GetRaidStatsRow struct {
+type GetHeaderRow struct {
 	Boss       string
 	Difficulty string
-	Count      int64
+	UploadedBy pgtype.UUID
+	Date       pgtype.Timestamp
+	Duration   int32
+	Header     structs.EncounterHeader
 }
 
-func (q *Queries) GetRaidStats(ctx context.Context) ([]GetRaidStatsRow, error) {
-	rows, err := q.db.Query(ctx, getRaidStats)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetRaidStatsRow
-	for rows.Next() {
-		var i GetRaidStatsRow
-		if err := rows.Scan(&i.Boss, &i.Difficulty, &i.Count); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetHeader(ctx context.Context, id int32) (GetHeaderRow, error) {
+	row := q.db.QueryRow(ctx, getHeader, id)
+	var i GetHeaderRow
+	err := row.Scan(
+		&i.Boss,
+		&i.Difficulty,
+		&i.UploadedBy,
+		&i.Date,
+		&i.Duration,
+		&i.Header,
+	)
+	return i, err
 }
 
 const getRoles = `-- name: GetRoles :one
@@ -184,13 +151,32 @@ func (q *Queries) GetRoles(ctx context.Context, id pgtype.UUID) ([]string, error
 	return roles, err
 }
 
+const getRolesByDiscordID = `-- name: GetRolesByDiscordID :one
+SELECT id, roles
+FROM users
+WHERE discord_id = $1
+LIMIT 1
+`
+
+type GetRolesByDiscordIDRow struct {
+	ID    pgtype.UUID
+	Roles []string
+}
+
+func (q *Queries) GetRolesByDiscordID(ctx context.Context, discordID string) (GetRolesByDiscordIDRow, error) {
+	row := q.db.QueryRow(ctx, getRolesByDiscordID, discordID)
+	var i GetRolesByDiscordIDRow
+	err := row.Scan(&i.ID, &i.Roles)
+	return i, err
+}
+
 const getUniqueGroup = `-- name: GetUniqueGroup :one
 SELECT unique_group
 FROM encounters
 WHERE unique_hash = $1
   AND unique_group = id
-  AND (date + interval '5 minutes') >= $2
-  AND (date - interval '5 minutes') <= $2
+  AND (date + interval '10 seconds') >= $2
+  AND (date - interval '10 seconds') <= $2
   AND (duration + 1000) >= $3
   AND (duration - 1000) <= $3
 `
@@ -206,18 +192,6 @@ func (q *Queries) GetUniqueGroup(ctx context.Context, arg GetUniqueGroupParams) 
 	var unique_group int32
 	err := row.Scan(&unique_group)
 	return unique_group, err
-}
-
-const getUniqueUploaders = `-- name: GetUniqueUploaders :one
-SELECT COUNT(DISTINCT jsonb_object_keys(header -> 'players'))
-FROM encounters
-`
-
-func (q *Queries) GetUniqueUploaders(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, getUniqueUploaders)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
 }
 
 const getUser = `-- name: GetUser :one
@@ -248,12 +222,14 @@ func (q *Queries) GetUser(ctx context.Context, discordTag string) (User, error) 
 }
 
 const getUserByID = `-- name: GetUserByID :one
+
 SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 FROM users
 WHERE id = $1
 LIMIT 1
 `
 
+// ROLES
 func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
@@ -350,13 +326,14 @@ type InsertPlayerParams struct {
 	Name      string
 	Dead      bool
 	Data      structs.IndexedPlayerData
+	Dps       int64
 	Place     int32
 }
 
 const insertPlayerInternal = `-- name: InsertPlayerInternal :exec
 INSERT
-INTO players (encounter, class, name, dead, data, place)
-VALUES ($1, $2, $3, $4, $5, $6)
+INTO players (encounter, class, name, dead, data, dps, place)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (encounter, name)
     DO UPDATE SET data = excluded.data
 `
@@ -367,6 +344,7 @@ type InsertPlayerInternalParams struct {
 	Name      string
 	Dead      bool
 	Data      structs.IndexedPlayerData
+	Dps       int64
 	Place     int32
 }
 
@@ -377,6 +355,7 @@ func (q *Queries) InsertPlayerInternal(ctx context.Context, arg InsertPlayerInte
 		arg.Name,
 		arg.Dead,
 		arg.Data,
+		arg.Dps,
 		arg.Place,
 	)
 	return err
@@ -385,7 +364,7 @@ func (q *Queries) InsertPlayerInternal(ctx context.Context, arg InsertPlayerInte
 const listEncounters = `-- name: ListEncounters :many
 SELECT id
 FROM encounters
-ORDER BY uploaded_at DESC
+ORDER BY uploaded_at
 `
 
 func (q *Queries) ListEncounters(ctx context.Context) ([]int32, error) {
@@ -401,94 +380,6 @@ func (q *Queries) ListEncounters(ctx context.Context) ([]int32, error) {
 			return nil, err
 		}
 		items = append(items, id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listRecentEncounters = `-- name: ListRecentEncounters :many
-SELECT u.discord_tag,
-       u.username,
-       e.id,
-       e.difficulty,
-       e.uploaded_by,
-       e.uploaded_at,
-       e.settings,
-       e.tags,
-       e.header,
-       e.boss,
-       e.date,
-       e.duration,
-       e.local_player
-FROM encounters e
-         JOIN users u ON e.uploaded_by = u.id
-WHERE ($1::TIMESTAMP IS NULL
-    OR ($1 > e.date OR ($1::TIMESTAMP = e.date AND $2::INT < e.id)))
-  AND ($3::UUID IS NULL
-    OR (($4::BOOLEAN AND $3 = ANY (u.friends)) OR
-        ((NOT $4::BOOLEAN AND $3 = e.uploaded_by))))
-ORDER BY e.date DESC,
-         e.id ASC
-LIMIT 6
-`
-
-type ListRecentEncountersParams struct {
-	Date    pgtype.Timestamp
-	ID      pgtype.Int4
-	User    pgtype.UUID
-	Friends pgtype.Bool
-}
-
-type ListRecentEncountersRow struct {
-	DiscordTag  string
-	Username    pgtype.Text
-	ID          int32
-	Difficulty  string
-	UploadedBy  pgtype.UUID
-	UploadedAt  pgtype.Timestamp
-	Settings    structs.EncounterSettings
-	Tags        []string
-	Header      structs.EncounterHeader
-	Boss        string
-	Date        pgtype.Timestamp
-	Duration    int32
-	LocalPlayer string
-}
-
-func (q *Queries) ListRecentEncounters(ctx context.Context, arg ListRecentEncountersParams) ([]ListRecentEncountersRow, error) {
-	rows, err := q.db.Query(ctx, listRecentEncounters,
-		arg.Date,
-		arg.ID,
-		arg.User,
-		arg.Friends,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListRecentEncountersRow
-	for rows.Next() {
-		var i ListRecentEncountersRow
-		if err := rows.Scan(
-			&i.DiscordTag,
-			&i.Username,
-			&i.ID,
-			&i.Difficulty,
-			&i.UploadedBy,
-			&i.UploadedAt,
-			&i.Settings,
-			&i.Tags,
-			&i.Header,
-			&i.Boss,
-			&i.Date,
-			&i.Duration,
-			&i.LocalPlayer,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -572,6 +463,22 @@ func (q *Queries) SetUsername(ctx context.Context, arg SetUsernameParams) error 
 	return err
 }
 
+const updateRoles = `-- name: UpdateRoles :exec
+UPDATE users
+SET roles = $2
+WHERE id = $1
+`
+
+type UpdateRolesParams struct {
+	ID    pgtype.UUID
+	Roles []string
+}
+
+func (q *Queries) UpdateRoles(ctx context.Context, arg UpdateRolesParams) error {
+	_, err := q.db.Exec(ctx, updateRoles, arg.ID, arg.Roles)
+	return err
+}
+
 const updateUniqueGroup = `-- name: UpdateUniqueGroup :exec
 UPDATE encounters
 SET unique_group = $2
@@ -608,10 +515,11 @@ func (q *Queries) UpsertEncounterGroup(ctx context.Context, arg UpsertEncounterG
 
 const upsertUser = `-- name: UpsertUser :one
 INSERT
-INTO users (discord_id, discord_tag, avatar, settings)
-VALUES ($1, $2, $3, $4)
+INTO users (discord_id, discord_tag, roles, avatar, settings)
+VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (discord_id)
     DO UPDATE SET discord_tag = excluded.discord_tag,
+                  roles       = excluded.roles,
                   avatar      = excluded.avatar
 RETURNING id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 `
@@ -619,6 +527,7 @@ RETURNING id, username, created_at, updated_at, access_token, discord_id, discor
 type UpsertUserParams struct {
 	DiscordID  string
 	DiscordTag string
+	Roles      []string
 	Avatar     pgtype.Text
 	Settings   structs.UserSettings
 }
@@ -627,6 +536,7 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 	row := q.db.QueryRow(ctx, upsertUser,
 		arg.DiscordID,
 		arg.DiscordTag,
+		arg.Roles,
 		arg.Avatar,
 		arg.Settings,
 	)
@@ -646,4 +556,20 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.Roles,
 	)
 	return i, err
+}
+
+const whitelist = `-- name: Whitelist :exec
+INSERT INTO whitelist (discord, role)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type WhitelistParams struct {
+	Discord string
+	Role    string
+}
+
+func (q *Queries) Whitelist(ctx context.Context, arg WhitelistParams) error {
+	_, err := q.db.Exec(ctx, whitelist, arg.Discord, arg.Role)
+	return err
 }

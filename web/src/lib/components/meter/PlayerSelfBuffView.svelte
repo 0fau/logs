@@ -1,7 +1,8 @@
 <script lang="ts">
 
-    import {cards, getClassIcon, getSkillIcon} from "$lib/game";
+    import {cards, getSkillIcon} from "$lib/game";
     import {formatPercent, sanitizeBuffDescription} from "$lib/print";
+    import Player from "$lib/components/meter/Player.svelte";
 
     export let encounter;
     export let focus;
@@ -83,11 +84,7 @@
             </div>
             <td class="float-left">
                 <div class="my-1 flex justify-center items-center">
-                    <img alt={encounter.players[$focus].class}
-                         src="{getClassIcon(encounter.players[$focus].class)}"
-                         class="h-6 mr-1.5 inline opacity-95"
-                    />
-                    {encounter.anonymized ? encounter.players[$focus].class + " " + $focus : $focus}
+                    <Player player={encounter.players[$focus]} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
                 </div>
             </td>
             {#each data.skillSelfBuffs as buffGroup}
