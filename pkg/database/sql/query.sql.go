@@ -78,7 +78,7 @@ type GetEncounterRow struct {
 	DiscordID   string
 	DiscordTag  string
 	Username    pgtype.Text
-	Avatar      pgtype.Text
+	Avatar      string
 }
 
 func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, error) {
@@ -175,20 +175,17 @@ SELECT unique_group
 FROM encounters
 WHERE unique_hash = $1
   AND unique_group = id
-  AND (date + interval '10 seconds') >= $2
-  AND (date - interval '10 seconds') <= $2
-  AND (duration + 1000) >= $3
-  AND (duration - 1000) <= $3
+  AND (date + interval '120 seconds') >= $2
+  AND (date - interval '120 seconds') <= $2
 `
 
 type GetUniqueGroupParams struct {
 	UniqueHash string
 	Date       pgtype.Timestamp
-	Duration   int32
 }
 
 func (q *Queries) GetUniqueGroup(ctx context.Context, arg GetUniqueGroupParams) (int32, error) {
-	row := q.db.QueryRow(ctx, getUniqueGroup, arg.UniqueHash, arg.Date, arg.Duration)
+	row := q.db.QueryRow(ctx, getUniqueGroup, arg.UniqueHash, arg.Date)
 	var unique_group int32
 	err := row.Scan(&unique_group)
 	return unique_group, err
@@ -463,6 +460,22 @@ func (q *Queries) SetUsername(ctx context.Context, arg SetUsernameParams) error 
 	return err
 }
 
+const updateAvatar = `-- name: UpdateAvatar :exec
+UPDATE users
+SET avatar = $2
+WHERE id = $1
+`
+
+type UpdateAvatarParams struct {
+	ID     pgtype.UUID
+	Avatar string
+}
+
+func (q *Queries) UpdateAvatar(ctx context.Context, arg UpdateAvatarParams) error {
+	_, err := q.db.Exec(ctx, updateAvatar, arg.ID, arg.Avatar)
+	return err
+}
+
 const updateRoles = `-- name: UpdateRoles :exec
 UPDATE users
 SET roles = $2
@@ -519,8 +532,7 @@ INTO users (discord_id, discord_tag, roles, avatar, settings)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (discord_id)
     DO UPDATE SET discord_tag = excluded.discord_tag,
-                  roles       = excluded.roles,
-                  avatar      = excluded.avatar
+                  roles       = excluded.roles
 RETURNING id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 `
 
@@ -528,7 +540,7 @@ type UpsertUserParams struct {
 	DiscordID  string
 	DiscordTag string
 	Roles      []string
-	Avatar     pgtype.Text
+	Avatar     string
 	Settings   structs.UserSettings
 }
 

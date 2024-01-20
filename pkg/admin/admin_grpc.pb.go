@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Admin_Process_FullMethodName     = "/admin.Admin/Process"
-	Admin_Delete_FullMethodName      = "/admin.Admin/Delete"
-	Admin_ProcessAll_FullMethodName  = "/admin.Admin/ProcessAll"
-	Admin_ProcessHash_FullMethodName = "/admin.Admin/ProcessHash"
-	Admin_Role_FullMethodName        = "/admin.Admin/Role"
+	Admin_Process_FullMethodName      = "/admin.Admin/Process"
+	Admin_Delete_FullMethodName       = "/admin.Admin/Delete"
+	Admin_ProcessAll_FullMethodName   = "/admin.Admin/ProcessAll"
+	Admin_ProcessHash_FullMethodName  = "/admin.Admin/ProcessHash"
+	Admin_RunOperation_FullMethodName = "/admin.Admin/RunOperation"
+	Admin_Role_FullMethodName         = "/admin.Admin/Role"
 )
 
 // AdminClient is the client API for Admin service.
@@ -34,6 +35,7 @@ type AdminClient interface {
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	ProcessAll(ctx context.Context, in *ProcessAllRequest, opts ...grpc.CallOption) (*ProcessAllResponse, error)
 	ProcessHash(ctx context.Context, in *ProcessHashRequest, opts ...grpc.CallOption) (*ProcessHashResponse, error)
+	RunOperation(ctx context.Context, in *RunOperationRequest, opts ...grpc.CallOption) (*RunOperationResponse, error)
 	Role(ctx context.Context, in *RoleRequest, opts ...grpc.CallOption) (*RoleResponse, error)
 }
 
@@ -81,6 +83,15 @@ func (c *adminClient) ProcessHash(ctx context.Context, in *ProcessHashRequest, o
 	return out, nil
 }
 
+func (c *adminClient) RunOperation(ctx context.Context, in *RunOperationRequest, opts ...grpc.CallOption) (*RunOperationResponse, error) {
+	out := new(RunOperationResponse)
+	err := c.cc.Invoke(ctx, Admin_RunOperation_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *adminClient) Role(ctx context.Context, in *RoleRequest, opts ...grpc.CallOption) (*RoleResponse, error) {
 	out := new(RoleResponse)
 	err := c.cc.Invoke(ctx, Admin_Role_FullMethodName, in, out, opts...)
@@ -98,6 +109,7 @@ type AdminServer interface {
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	ProcessAll(context.Context, *ProcessAllRequest) (*ProcessAllResponse, error)
 	ProcessHash(context.Context, *ProcessHashRequest) (*ProcessHashResponse, error)
+	RunOperation(context.Context, *RunOperationRequest) (*RunOperationResponse, error)
 	Role(context.Context, *RoleRequest) (*RoleResponse, error)
 	mustEmbedUnimplementedAdminServer()
 }
@@ -117,6 +129,9 @@ func (UnimplementedAdminServer) ProcessAll(context.Context, *ProcessAllRequest) 
 }
 func (UnimplementedAdminServer) ProcessHash(context.Context, *ProcessHashRequest) (*ProcessHashResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ProcessHash not implemented")
+}
+func (UnimplementedAdminServer) RunOperation(context.Context, *RunOperationRequest) (*RunOperationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RunOperation not implemented")
 }
 func (UnimplementedAdminServer) Role(context.Context, *RoleRequest) (*RoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Role not implemented")
@@ -206,6 +221,24 @@ func _Admin_ProcessHash_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Admin_RunOperation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunOperationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).RunOperation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_RunOperation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).RunOperation(ctx, req.(*RunOperationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Admin_Role_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RoleRequest)
 	if err := dec(in); err != nil {
@@ -246,6 +279,10 @@ var Admin_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ProcessHash",
 			Handler:    _Admin_ProcessHash_Handler,
+		},
+		{
+			MethodName: "RunOperation",
+			Handler:    _Admin_RunOperation_Handler,
 		},
 		{
 			MethodName: "Role",

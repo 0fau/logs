@@ -7,7 +7,7 @@ RUN CGO_ENABLED=0 GOOS=linux go mod download
 
 COPY ../../.. ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /bot ./pkg/cmd/bot/
+RUN CGO_ENABLED=0 GOOS=linux go build -o /admin ./pkg/cmd/admin/
 
 FROM --platform=linux/amd64 ubuntu AS build-release-stage
 
@@ -17,6 +17,6 @@ RUN apt-get update && \
 
 WORKDIR /
 
-COPY --from=build-stage /bot /bot
+COPY --from=build-stage /admin /admin
 
-CMD ["/bot"]
+CMD ["/admin"]

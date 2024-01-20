@@ -29,6 +29,9 @@ message ProcessHashRequest {
 message ProcessHashResponse {
 }
 
+message RunOperationRequest {}
+message RunOperationResponse {}
+
 message RoleRequest {
   enum Action {
     Add = 0;
@@ -47,5 +50,6 @@ service Admin {
   rpc Delete(DeleteRequest) returns (DeleteResponse) {}
   rpc ProcessAll(ProcessAllRequest) returns (ProcessAllResponse) {}
   rpc ProcessHash(ProcessHashRequest) returns (ProcessHashResponse) {}
+  rpc RunOperation(RunOperationRequest) returns (RunOperationResponse) {}
   rpc Role(RoleRequest) returns (RoleResponse) {}
 }

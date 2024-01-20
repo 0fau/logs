@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     discord_id   STRING NOT NULL,
     discord_tag  STRING NOT NULL,
-    avatar       STRING,
+    avatar       STRING NOT NULL,
     username     STRING,
     access_token STRING(64),
 

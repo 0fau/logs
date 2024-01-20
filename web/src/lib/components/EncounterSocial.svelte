@@ -10,8 +10,13 @@
                  src="/icons/misc/sus.png"/>
             <span class="text-xs font-medium text-[#413d5b] mr-1.5">Hidden</span>
         {:else}
-            <img alt="avatar" class="rounded-md mr-1.5 w-6 h-6"
-                 src="https://cdn.discordapp.com/avatars/{user.discordId}/{user.avatar}.png"/>
+            {#if user.avatar}
+                <img alt="avatar" class="rounded-md mr-1.5 w-6 h-6"
+                     src="/images/avatar/{user.id}"/>
+            {:else}
+                <img alt="avatar" class="rounded-md mr-1 w-6 h-6"
+                     src="/icons/misc/play.png"/>
+            {/if}
             <span class="text-sm text-[#413d5b] mr-2">{user.username ? user.username : user.discordTag}</span>
         {/if}
     </div>

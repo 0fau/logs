@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/0fau/logs/pkg/admin"
 	"github.com/0fau/logs/pkg/api"
 	"github.com/0fau/logs/pkg/s3"
 	"github.com/spf13/cobra"
@@ -40,10 +39,6 @@ func config() {
 		"S3_ACCESS_KEY_ID",
 		"S3_SECRET_ACCESS_KEY",
 	)
-
-	viper.MustBindEnv(
-		"ADMIN_ADDRESS",
-	)
 }
 
 func main() {
@@ -76,10 +71,6 @@ func main() {
 					Bucket:          viper.GetString("S3_BUCKET"),
 					AccessKeyID:     viper.GetString("S3_ACCESS_KEY_ID"),
 					SecretAccessKey: viper.GetString("S3_SECRET_ACCESS_KEY"),
-				},
-
-				Admin: &admin.Config{
-					Address: viper.GetString("ADMIN_ADDRESS"),
 				},
 			})
 			return s.Run(context.Background())

@@ -14,3 +14,7 @@ web:
 bot:
 	docker build -t ghcr.io/0fau/logs-bot:latest -f pkg/cmd/bot/Dockerfile .
 	docker push ghcr.io/0fau/logs-bot:latest
+
+admin:
+	docker build -t ghcr.io/0fau/logs-admin:latest -f pkg/cmd/admin/Dockerfile .
+	docker push ghcr.io/0fau/logs-admin:latest

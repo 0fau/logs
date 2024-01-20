@@ -54,7 +54,7 @@
                 </div>
                 <p>you've stumbled upon... my website! this is a secret underground black market that deals in the
                     forbidden teachings. FRICC THE POPO.</p>
-                <p class="text-[#57517a] text-sm">(invite only atm)</p>
+                <p class="text-[#57517a] text-sm">(sign up for the <a href="https://docs.fau.dev/logs/alpha/" class="underline">alpha</a>)</p>
             </div>
         {/if}
         {#if settingsModal}

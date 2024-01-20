@@ -1,38 +1,42 @@
 package api
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/0fau/logs/pkg/database/sql/structs"
+	"github.com/bwmarrin/discordgo"
+	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 	"github.com/thanhpk/randstr"
-	"io"
+	"image/png"
 	"log"
 	"net/http"
 )
 
-type DiscordUser struct {
-	ID            string  `json:"id"`
-	Username      string  `json:"username"`
-	Discriminator string  `json:"discriminator"`
-	Avatar        *string `json:"avatar"`
-}
-
 type SessionUser struct {
 	ID         string
 	DiscordTag string
-	DiscordID  string
+	Avatar     bool
 	Username   string
-	Avatar     string
 }
 
 type ReturnedUser struct {
 	ID         string `json:"id"`
 	DiscordTag string `json:"discordTag"`
-	DiscordID  string `json:"discordId"`
-	Avatar     string `json:"avatar"`
+	Avatar     bool   `json:"avatar"`
 	Username   string `json:"username"`
+}
+
+type ReturnedTokenUser struct {
+	ID         string `json:"id"`
+	DiscordTag string `json:"discordTag"`
+	Avatar     bool   `json:"avatar"`
+	Username   string `json:"username"`
+	CanUpload  bool   `json:"canUpload"`
 }
 
 func redirectLoggedIn(c *gin.Context) {
@@ -47,7 +51,7 @@ func (s *Server) oauth2(c *gin.Context) {
 	}
 
 	state := randstr.String(32)
-	url := s.conf.OAuth2.AuthCodeURL(state)
+	url := s.config.OAuth2.AuthCodeURL(state)
 	sesh.Set("oauth_state", state)
 	sesh.Save()
 
@@ -79,42 +83,15 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	}
 
 	ctx := context.Background()
-	token, err := s.conf.OAuth2.Exchange(ctx, c.Query("code"))
+	token, err := s.config.OAuth2.Exchange(ctx, c.Query("code"))
 	if err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	client := s.conf.OAuth2.Client(ctx, token)
-	resp, err := client.Get("https://discord.com/api/users/@me")
-	if err != nil {
-		log.Println(errors.WithStack(err))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(errors.WithStack(err))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	u := DiscordUser{}
-	if err := json.Unmarshal(body, &u); err != nil {
-		log.Println(errors.WithStack(err))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	username := u.Username
-	if u.Discriminator != "0" {
-		username += "#" + u.Discriminator
-	}
-
-	user, err := s.conn.SaveUser(ctx, u.ID, username, u.Avatar)
+	client := s.config.OAuth2.Client(ctx, token)
+	user, err := s.saveUser(ctx, client)
 	if err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -122,12 +99,10 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	}
 
 	uuid, _ := user.ID.Value()
-
 	seshUser := SessionUser{
 		ID:         uuid.(string),
 		DiscordTag: user.DiscordTag,
-		DiscordID:  user.DiscordID,
-		Avatar:     user.Avatar.String,
+		Avatar:     user.Avatar != "",
 		Username:   user.Username.String,
 	}
 
@@ -139,6 +114,91 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	}
 
 	redirectLoggedIn(c)
+}
+
+func (s *Server) saveUser(ctx context.Context, client *http.Client) (*sql.User, error) {
+	dg, _ := discordgo.New("")
+	dgUser, err := dg.User("@me", discordgo.WithClient(client))
+	if err != nil {
+		return nil, err
+	}
+
+	username := dgUser.Username
+	if dgUser.Discriminator != "0" {
+		username += "#" + dgUser.Discriminator
+	}
+
+	var user sql.User
+	if err := crdbpgx.ExecuteTx(ctx, s.conn.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		qtx := s.conn.Queries.WithTx(tx)
+
+		row, err := qtx.GetRolesByDiscordID(ctx, dgUser.ID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return errors.Wrap(err, "getting roles")
+		}
+
+		role, err := qtx.FetchWhitelist(ctx, dgUser.ID)
+		if err != nil {
+			if !errors.Is(err, pgx.ErrNoRows) {
+				return errors.Wrap(err, "fetching whitelist")
+			}
+		} else {
+			row.Roles = append(row.Roles, role)
+		}
+
+		user, err = qtx.UpsertUser(ctx, sql.UpsertUserParams{
+			DiscordID:  dgUser.ID,
+			DiscordTag: username,
+			Roles:      row.Roles,
+			Avatar:     "",
+			Settings: structs.UserSettings{
+				SkipLanding:       false,
+				LogVisibility:     "unlisted",
+				ProfileVisibility: "unlisted",
+			},
+		})
+		if err != nil {
+			return errors.Wrap(err, "upserting user")
+		}
+
+		if user.Avatar != dgUser.Avatar {
+			val, _ := user.ID.Value()
+			uuid := val.(string)
+
+			if dgUser.Avatar == "" {
+				if err := s.s3.RemoveAvatar(ctx, uuid); err != nil {
+					return errors.Wrap(err, "removing avatar from s3")
+				}
+			} else {
+				img, err := dg.UserAvatarDecode(dgUser, discordgo.WithClient(client))
+				if err != nil {
+					return errors.Wrap(err, "user avatar decode")
+				}
+
+				buf := new(bytes.Buffer)
+				if err := png.Encode(buf, img); err != nil {
+					return errors.Wrap(err, "encoding avatar png")
+				}
+
+				if err := s.s3.SaveAvatar(ctx, uuid, buf.Bytes()); err != nil {
+					return errors.Wrap(err, "saving avatar to s3")
+				}
+			}
+
+			if err := qtx.UpdateAvatar(ctx, sql.UpdateAvatarParams{
+				ID:     user.ID,
+				Avatar: dgUser.Avatar,
+			}); err != nil {
+				return errors.Wrap(err, "updating avatar in db")
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return nil, errors.Wrap(err, "executing transaction")
+	}
+
+	return &user, nil
 }
 
 func (s *Server) meHandler(c *gin.Context) {
@@ -156,11 +216,12 @@ func (s *Server) meHandler(c *gin.Context) {
 			username = name.(string)
 		}
 
-		c.JSON(http.StatusOK, ReturnedUser{
+		c.JSON(http.StatusOK, ReturnedTokenUser{
 			ID:         id.(string),
 			Username:   username,
 			DiscordTag: user.DiscordTag,
-			DiscordID:  user.DiscordID,
+			Avatar:     user.Avatar != "",
+			CanUpload:  hasRoles(user.Roles, "alpha", "trusted"),
 		})
 		return
 	}
@@ -172,7 +233,6 @@ func (s *Server) meHandler(c *gin.Context) {
 			ID:         user.ID,
 			Username:   user.Username,
 			DiscordTag: user.DiscordTag,
-			DiscordID:  user.DiscordID,
 			Avatar:     user.Avatar,
 		})
 	} else {

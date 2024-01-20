@@ -6,6 +6,7 @@ import (
 	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/spf13/viper"
 	"net/url"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -36,16 +37,27 @@ type DB struct {
 	Queries *sql.Queries
 }
 
-func Connect(ctx context.Context, dbURL string) (*DB, error) {
-	if err := doMigrate(dbURL); err != nil {
-		return nil, err
+func Connect(ctx context.Context, dbURL string, name string, migrate bool) (*DB, error) {
+	u, err := url.Parse(dbURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse db url")
+	}
+	q := u.Query()
+	q.Set("application_name", name+"_"+viper.GetString("ENVIRONMENT"))
+	u.RawQuery = q.Encode()
+	dbURL = u.String()
+
+	if migrate {
+		if err := doMigrate(dbURL); err != nil {
+			return nil, err
+		}
 	}
 
 	config, err := pgxpool.ParseConfig(dbURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "parsing db url")
 	}
-	config.MinConns = 6
+	config.MinConns = 10
 
 	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {

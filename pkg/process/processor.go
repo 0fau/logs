@@ -37,9 +37,9 @@ func NewLogProcessor(db *database.DB, s3 *s3.Client) *Processor {
 }
 
 func (p *Processor) Initialize() error {
-	if err := p.loadMeterData(); err != nil {
-		return err
-	}
+	//if err := p.loadMeterData(); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -597,7 +597,6 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 		group, err := qtx.GetUniqueGroup(ctx, sql.GetUniqueGroupParams{
 			UniqueHash: hash,
 			Date:       date,
-			Duration:   enc.Raw.Duration,
 		})
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return errors.Wrap(err, "getting unique group")

@@ -4,6 +4,11 @@ FROM users
 WHERE discord_tag = $1
 LIMIT 1;
 
+-- name: UpdateAvatar :exec
+UPDATE users
+SET avatar = $2
+WHERE id = $1;
+
 -- ROLES
 
 -- name: GetUserByID :one
@@ -62,8 +67,7 @@ INTO users (discord_id, discord_tag, roles, avatar, settings)
 VALUES ($1, $2, $3, $4, $5)
 ON CONFLICT (discord_id)
     DO UPDATE SET discord_tag = excluded.discord_tag,
-                  roles       = excluded.roles,
-                  avatar      = excluded.avatar
+                  roles       = excluded.roles
 RETURNING *;
 
 -- name: SetUserRoles :exec
@@ -88,10 +92,8 @@ SELECT unique_group
 FROM encounters
 WHERE unique_hash = $1
   AND unique_group = id
-  AND (date + interval '10 seconds') >= $2
-  AND (date - interval '10 seconds') <= $2
-  AND (duration + 1000) >= $3
-  AND (duration - 1000) <= $3;
+  AND (date + interval '120 seconds') >= $2
+  AND (date - interval '120 seconds') <= $2;
 
 -- name: UpdateUniqueGroup :exec
 UPDATE encounters

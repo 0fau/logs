@@ -14,6 +14,7 @@ func main() {
 	cmd.AddCommand(process())
 	cmd.AddCommand(processAll())
 	cmd.AddCommand(delete())
+	cmd.AddCommand(runOperation())
 	if err := cmd.Execute(); err != nil {
 		panic(err)
 	}

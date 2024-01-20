@@ -49,7 +49,7 @@ type User struct {
 	AccessToken pgtype.Text
 	DiscordID   string
 	DiscordTag  string
-	Avatar      pgtype.Text
+	Avatar      string
 	Friends     []pgtype.UUID
 	Settings    structs.UserSettings
 	Titles      []string

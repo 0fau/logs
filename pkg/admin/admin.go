@@ -9,6 +9,7 @@ import (
 	"github.com/0fau/logs/pkg/process"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/0fau/logs/pkg/s3"
+	"github.com/bwmarrin/discordgo"
 	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
 	"github.com/goccy/go-json"
@@ -26,24 +27,51 @@ import (
 var _ AdminServer = (*Server)(nil)
 
 type Config struct {
-	Address string
+	Address     string
+	DatabaseURL string
+
+	DiscordBotToken string
+
+	S3 *s3.Config
 }
 
 type Server struct {
 	config *Config
 
-	db        *database.DB
+	conn      *database.DB
 	s3        *s3.Client
 	processor *process.Processor
+	dg        *discordgo.Session
 
 	UnimplementedAdminServer
 }
 
-func NewServer(c *Config, db *database.DB, s3 *s3.Client, processor *process.Processor) *Server {
-	return &Server{config: c, db: db, s3: s3}
+func NewServer(c *Config) *Server {
+	return &Server{config: c}
 }
 
-func (s *Server) Run() error {
+func (s *Server) Run(ctx context.Context) error {
+	conn, err := database.Connect(ctx, s.config.DatabaseURL, "logs_admin", false)
+	if err != nil {
+		return errors.Wrap(err, "connecting to database")
+	}
+	s.conn = conn
+
+	s.s3, err = s3.NewClient(s.config.S3)
+	if err != nil {
+		return errors.Wrap(err, "creating minio s3 client")
+	}
+
+	s.processor = process.NewLogProcessor(s.conn, s.s3)
+	if err := s.processor.Initialize(); err != nil {
+		return errors.Wrap(err, "initializing log processor")
+	}
+
+	s.dg, err = discordgo.New("Bot " + s.config.DiscordBotToken)
+	if err != nil {
+		return errors.Wrap(err, "new discordgo client")
+	}
+
 	lis, err := net.Listen("tcp", s.config.Address)
 	if err != nil {
 		return errors.Wrap(err, "listening on endpoint")
@@ -51,6 +79,8 @@ func (s *Server) Run() error {
 
 	grpcServer := grpc.NewServer()
 	RegisterAdminServer(grpcServer, s)
+
+	log.Println("Serving Logs Admin Service at " + s.config.Address)
 
 	if err := grpcServer.Serve(lis); err != nil {
 		return errors.Wrap(err, "grpc serve")
@@ -101,8 +131,8 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 		return nil, errors.Wrap(err, "scanning duration pgtype.Timstamp")
 	}
 
-	if err := crdbpgx.ExecuteTx(ctx, s.db.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
-		qtx := s.db.Queries.WithTx(tx)
+	if err := crdbpgx.ExecuteTx(ctx, s.conn.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		qtx := s.conn.Queries.WithTx(tx)
 
 		user, err := qtx.ProcessEncounter(ctx, sql.ProcessEncounterParams{
 			ID:         req.Encounter,
@@ -117,7 +147,6 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 		group, err := qtx.GetUniqueGroup(ctx, sql.GetUniqueGroupParams{
 			UniqueHash: hash,
 			Date:       date,
-			Duration:   enc.Duration,
 		})
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return errors.Wrap(err, "getting unique group")
@@ -169,7 +198,7 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 }
 
 func (s *Server) ProcessHash(ctx context.Context, req *ProcessHashRequest) (*ProcessHashResponse, error) {
-	row, err := s.db.Queries.GetHeader(ctx, req.Encounter)
+	row, err := s.conn.Queries.GetHeader(ctx, req.Encounter)
 	if err != nil {
 		return nil, errors.Wrap(err, "getting encounter header")
 	}
@@ -182,8 +211,8 @@ func (s *Server) ProcessHash(ctx context.Context, req *ProcessHashRequest) (*Pro
 	enc := process.Encounter{Header: row.Header, Raw: &meter.Encounter{CurrentBossName: row.Boss, Difficulty: row.Difficulty}}
 	hash := enc.UniqueHash(players)
 
-	if err := crdbpgx.ExecuteTx(ctx, s.db.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
-		qtx := s.db.Queries.WithTx(tx)
+	if err := crdbpgx.ExecuteTx(ctx, s.conn.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+		qtx := s.conn.Queries.WithTx(tx)
 		_, err := tx.Exec(ctx, "UPDATE encounters SET unique_hash = $1 WHERE id = $2", hash, req.Encounter)
 		if err != nil {
 			return errors.Wrap(err, "updating encounter unique hash")
@@ -192,7 +221,6 @@ func (s *Server) ProcessHash(ctx context.Context, req *ProcessHashRequest) (*Pro
 		group, err := qtx.GetUniqueGroup(ctx, sql.GetUniqueGroupParams{
 			UniqueHash: hash,
 			Date:       row.Date,
-			Duration:   row.Duration,
 		})
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 			return errors.Wrap(err, "getting unique group")
@@ -224,7 +252,7 @@ func (s *Server) ProcessHash(ctx context.Context, req *ProcessHashRequest) (*Pro
 }
 
 func (s *Server) ProcessAll(ctx context.Context, req *ProcessAllRequest) (*ProcessAllResponse, error) {
-	ids, err := s.db.Queries.ListEncounters(ctx)
+	ids, err := s.conn.Queries.ListEncounters(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "listing encounter ids")
 	}
@@ -254,7 +282,7 @@ func (s *Server) ProcessAll(ctx context.Context, req *ProcessAllRequest) (*Proce
 }
 
 func (s *Server) Role(ctx context.Context, req *RoleRequest) (*RoleResponse, error) {
-	user, err := s.db.Queries.GetUser(ctx, req.Discord)
+	user, err := s.conn.Queries.GetUser(ctx, req.Discord)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetch user")
 	}
@@ -275,7 +303,7 @@ func (s *Server) Role(ctx context.Context, req *RoleRequest) (*RoleResponse, err
 		})
 	}
 
-	if err := s.db.Queries.SetUserRoles(ctx, sql.SetUserRolesParams{
+	if err := s.conn.Queries.SetUserRoles(ctx, sql.SetUserRolesParams{
 		DiscordTag: req.Discord,
 		Roles:      roles,
 	}); err != nil {
@@ -290,8 +318,8 @@ func (s *Server) Delete(ctx context.Context, req *DeleteRequest) (*DeleteRespons
 		return nil, errors.Wrap(err, "s3 delete")
 	}
 
-	if err := s.db.Queries.DeleteEncounter(ctx, req.Encounter); err != nil {
-		return nil, errors.Wrap(err, "db delete")
+	if err := s.conn.Queries.DeleteEncounter(ctx, req.Encounter); err != nil {
+		return nil, errors.Wrap(err, "conn delete")
 	}
 
 	return &DeleteResponse{}, nil

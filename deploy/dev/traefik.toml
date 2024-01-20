@@ -11,7 +11,7 @@ url = "http://localhost:3000/"
 [http.routers]
 
 [http.routers.logs-api]
-rule = "PathPrefix(`/api`) || PathPrefix(`/oauth`) || Path(`/logout`)"
+rule = "PathPrefix(`/api`) || PathPrefix(`/images`) || PathPrefix(`/oauth`) || Path(`/logout`)"
 service = "logs-api"
 priority = 2
 

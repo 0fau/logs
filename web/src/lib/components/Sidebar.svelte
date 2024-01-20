@@ -97,7 +97,7 @@
         <IconRecord class="inline w-6 h-6"/>
         <span class="ml-1 text-sm">Music Box</span>
     </a>
-    <a href="/faq" class="{style(selected, 'faq')}">
+    <a href="https://docs.fau.dev/logs/#faq" class="{style(selected, 'faq')}">
         <IconAbout class="inline w-6 h-6"/>
         <span class="ml-1 text-sm">FAQ</span>
     </a>

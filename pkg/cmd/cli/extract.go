@@ -9,12 +9,6 @@ import (
 	"log"
 )
 
-type Encounter struct {
-}
-
-type Entity struct {
-}
-
 func extract() *cobra.Command {
 	return &cobra.Command{
 		Use:  "extract",

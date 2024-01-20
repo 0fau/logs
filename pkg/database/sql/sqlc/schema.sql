@@ -8,7 +8,7 @@ CREATE TABLE users
 
     discord_id   STRING    NOT NULL,
     discord_tag  STRING    NOT NULL,
-    avatar       STRING,
+    avatar       STRING    NOT NULL,
 
     friends      UUID ARRAY,
     settings     JSONB     NOT NULL,

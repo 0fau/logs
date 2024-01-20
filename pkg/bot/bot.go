@@ -41,7 +41,7 @@ func (b *Bot) Run(ctx context.Context) error {
 		log.Println("Bot is up!")
 	})
 
-	b.db, err = database.Connect(ctx, b.DatabaseURL)
+	b.db, err = database.Connect(ctx, b.DatabaseURL, "logs_bot", false)
 	if err != nil {
 		return errors.Wrap(err, "connecting to database")
 	}

@@ -261,16 +261,14 @@ func (s *Server) logHandler(c *gin.Context) {
 	if u, _ := enc.Username.Value(); u != nil {
 		username = u.(string)
 	}
-	avatar, _ := enc.Avatar.Value()
 
 	full := ReturnedEncounter{
 		ReturnedEncounterShort: ReturnedEncounterShort{
 			Uploader: ReturnedUser{
 				ID:         uploadedBy.(string),
 				DiscordTag: enc.DiscordTag,
-				DiscordID:  enc.DiscordID,
 				Username:   username,
-				Avatar:     avatar.(string),
+				Avatar:     enc.Avatar != "",
 			},
 			ID:              enc.ID,
 			Difficulty:      enc.Difficulty,

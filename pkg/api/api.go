@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/gob"
-	"github.com/0fau/logs/pkg/admin"
 	"github.com/0fau/logs/pkg/database"
 	"github.com/0fau/logs/pkg/process"
 	"github.com/0fau/logs/pkg/s3"
@@ -13,7 +12,6 @@ import (
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/oauth2"
-	"log"
 )
 
 type ServerConfig struct {
@@ -26,12 +24,10 @@ type ServerConfig struct {
 
 	S3     *s3.Config
 	OAuth2 *oauth2.Config
-
-	Admin *admin.Config
 }
 
 type Server struct {
-	conf   *ServerConfig
+	config *ServerConfig
 	router *gin.Engine
 
 	processor *process.Processor
@@ -52,36 +48,29 @@ func NewServer(conf *ServerConfig) *Server {
 	router.Use(cors())
 
 	return &Server{
-		conf:   conf,
+		config: conf,
 		router: router,
 	}
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	conn, err := database.Connect(ctx, s.conf.DatabaseURL)
+	conn, err := database.Connect(ctx, s.config.DatabaseURL, "logs", true)
 	if err != nil {
 		return errors.Wrap(err, "connecting to database")
 	}
 	s.conn = conn
 
-	s.s3, err = s3.NewClient(s.conf.S3)
+	s.s3, err = s3.NewClient(s.config.S3)
 	if err != nil {
 		return errors.Wrap(err, "creating minio s3 client")
 	}
 
 	s.processor = process.NewLogProcessor(s.conn, s.s3)
 	if err := s.processor.Initialize(); err != nil {
-		return errors.Wrap(err, "initializing e processor")
+		return errors.Wrap(err, "initializing log processor")
 	}
 
-	a := admin.NewServer(s.conf.Admin, conn, s.s3, s.processor)
-	go func() {
-		if err := a.Run(); err != nil {
-			log.Println(errors.Wrap(err, "running admin service"))
-		}
-	}()
-
-	store, err := redis.NewStore(10, "tcp", s.conf.RedisAddress, s.conf.RedisPassword, []byte(s.conf.SessionSecret))
+	store, err := redis.NewStore(10, "tcp", s.config.RedisAddress, s.config.RedisPassword, []byte(s.config.SessionSecret))
 	if err != nil {
 		return errors.Wrap(err, "creating redis sessions store")
 	}
@@ -92,8 +81,9 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.POST("oauth2", s.oauth2)
 	s.router.GET("oauth2/redirect", s.oauth2Redirect)
 	s.router.GET("api/users/@me", s.meHandler)
-	s.router.GET("api/users/:user", s.userHandler)
 	s.router.POST("logout", s.logout)
+
+	s.router.GET("images/avatar/:user", s.avatarHandler)
 
 	s.router.GET("api/settings", s.settingsHandler)
 	s.router.PUT("api/settings/username", s.setUsername)
@@ -105,5 +95,5 @@ func (s *Server) Run(ctx context.Context) error {
 
 	s.router.POST("api/users/@me/token", s.generateToken)
 
-	return s.router.Run(s.conf.Address)
+	return s.router.Run(s.config.Address)
 }
