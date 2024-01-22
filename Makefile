@@ -18,3 +18,7 @@ bot:
 admin:
 	docker build -t ghcr.io/0fau/logs-admin:latest -f pkg/cmd/admin/Dockerfile .
 	docker push ghcr.io/0fau/logs-admin:latest
+
+screenshot:
+	docker build -t ghcr.io/0fau/logs-screenshot:latest -f pkg/cmd/screenshot/Dockerfile .
+	docker push ghcr.io/0fau/logs-screenshot:latest

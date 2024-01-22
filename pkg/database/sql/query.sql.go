@@ -49,7 +49,7 @@ func (q *Queries) FetchWhitelist(ctx context.Context, discord string) (string, e
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.tags, e.header, e.data, e.unique_hash, e.unique_group, e.boss, e.difficulty, e.date, e.duration, e.local_player,
+SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.thumbnail, e.tags, e.header, e.data, e.unique_hash, e.unique_group, e.boss, e.difficulty, e.date, e.duration, e.local_player,
        u.discord_id,
        u.discord_tag,
        u.username,
@@ -65,6 +65,7 @@ type GetEncounterRow struct {
 	UploadedBy  pgtype.UUID
 	UploadedAt  pgtype.Timestamp
 	Settings    structs.EncounterSettings
+	Thumbnail   bool
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
@@ -89,6 +90,7 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 		&i.UploadedBy,
 		&i.UploadedAt,
 		&i.Settings,
+		&i.Thumbnail,
 		&i.Tags,
 		&i.Header,
 		&i.Data,
@@ -103,6 +105,56 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 		&i.DiscordTag,
 		&i.Username,
 		&i.Avatar,
+	)
+	return i, err
+}
+
+const getEncounterShort = `-- name: GetEncounterShort :one
+SELECT id,
+       difficulty,
+       uploaded_by,
+       uploaded_at,
+       settings,
+       tags,
+       header,
+       boss,
+       date,
+       duration,
+       local_player
+FROM encounters
+WHERE id = $1
+LIMIT 1
+`
+
+type GetEncounterShortRow struct {
+	ID          int32
+	Difficulty  string
+	UploadedBy  pgtype.UUID
+	UploadedAt  pgtype.Timestamp
+	Settings    structs.EncounterSettings
+	Tags        []string
+	Header      structs.EncounterHeader
+	Boss        string
+	Date        pgtype.Timestamp
+	Duration    int32
+	LocalPlayer string
+}
+
+func (q *Queries) GetEncounterShort(ctx context.Context, id int32) (GetEncounterShortRow, error) {
+	row := q.db.QueryRow(ctx, getEncounterShort, id)
+	var i GetEncounterShortRow
+	err := row.Scan(
+		&i.ID,
+		&i.Difficulty,
+		&i.UploadedBy,
+		&i.UploadedAt,
+		&i.Settings,
+		&i.Tags,
+		&i.Header,
+		&i.Boss,
+		&i.Date,
+		&i.Duration,
+		&i.LocalPlayer,
 	)
 	return i, err
 }
@@ -135,6 +187,34 @@ func (q *Queries) GetHeader(ctx context.Context, id int32) (GetHeaderRow, error)
 		&i.Header,
 	)
 	return i, err
+}
+
+const getNoThumbnailLogs = `-- name: GetNoThumbnailLogs :many
+SELECT id
+FROM encounters
+WHERE thumbnail = false
+ORDER BY id DESC
+LIMIT 50
+`
+
+func (q *Queries) GetNoThumbnailLogs(ctx context.Context) ([]int32, error) {
+	rows, err := q.db.Query(ctx, getNoThumbnailLogs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int32
+	for rows.Next() {
+		var id int32
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getRoles = `-- name: GetRoles :one
@@ -219,14 +299,12 @@ func (q *Queries) GetUser(ctx context.Context, discordTag string) (User, error) 
 }
 
 const getUserByID = `-- name: GetUserByID :one
-
 SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 FROM users
 WHERE id = $1
 LIMIT 1
 `
 
-// ROLES
 func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
@@ -382,6 +460,17 @@ func (q *Queries) ListEncounters(ctx context.Context) ([]int32, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const markThumbnail = `-- name: MarkThumbnail :exec
+UPDATE encounters
+SET thumbnail = true
+WHERE id = $1
+`
+
+func (q *Queries) MarkThumbnail(ctx context.Context, id int32) error {
+	_, err := q.db.Exec(ctx, markThumbnail, id)
+	return err
 }
 
 const processEncounter = `-- name: ProcessEncounter :one

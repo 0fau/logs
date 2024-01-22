@@ -14,6 +14,7 @@ type Encounter struct {
 	UploadedBy  pgtype.UUID
 	UploadedAt  pgtype.Timestamp
 	Settings    structs.EncounterSettings
+	Thumbnail   bool
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData

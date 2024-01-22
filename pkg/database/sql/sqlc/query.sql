@@ -9,8 +9,6 @@ UPDATE users
 SET avatar = $2
 WHERE id = $1;
 
--- ROLES
-
 -- name: GetUserByID :one
 SELECT *
 FROM users
@@ -138,6 +136,22 @@ FROM encounters e
 WHERE e.id = $1
 LIMIT 1;
 
+-- name: GetEncounterShort :one
+SELECT id,
+       difficulty,
+       uploaded_by,
+       uploaded_at,
+       settings,
+       tags,
+       header,
+       boss,
+       date,
+       duration,
+       local_player
+FROM encounters
+WHERE id = $1
+LIMIT 1;
+
 -- name: DeleteEncounter :exec
 DELETE
 FROM encounters
@@ -153,3 +167,15 @@ SELECT boss, difficulty, uploaded_by, date, duration, header
 FROM encounters
 WHERE id = $1
 LIMIT 1;
+
+-- name: GetNoThumbnailLogs :many
+SELECT id
+FROM encounters
+WHERE thumbnail = false
+ORDER BY id DESC
+LIMIT 50;
+
+-- name: MarkThumbnail :exec
+UPDATE encounters
+SET thumbnail = true
+WHERE id = $1;

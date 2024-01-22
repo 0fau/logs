@@ -70,12 +70,18 @@
         return selections
     }
 
+    export let point;
+
     async function load() {
         if ((scoped !== "Arkesia" || $search.search && $search.search !== "") && !loggedIn()) {
             return
         }
 
         let url = location.protocol + '//' + location.host;
+        if (point) {
+            url = "https://logs.fau.dev"
+        }
+
         url += "/api/logs?scope=" + scoped.toLowerCase();
         if (encounters.length > 0) {
             let last = encounters[encounters.length - 1];

@@ -27,8 +27,13 @@ export const load: PageServerLoad = async ({request, cookies}) => {
 
     const [/*stats,*/ me] = await Promise.all(fetches)
 
-    return {
-        me: me,
-        /*stats: stats,*/
+    let data = {
+        me: me
     };
+
+    if (env.LBF_DEV_FRONTEND_ONLY) {
+        data.point = true;
+    }
+
+    return data;
 };

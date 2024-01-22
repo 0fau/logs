@@ -23,6 +23,7 @@ CREATE TABLE encounters
     uploaded_by  UUID      NOT NULL REFERENCES users (id),
     uploaded_at  TIMESTAMP NOT NULL,
     settings     JSONB     NOT NULL,
+    thumbnail    BOOLEAN   NOT NULL,
     tags         STRING[],
 
     header       JSONB     NOT NULL,

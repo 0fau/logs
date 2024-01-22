@@ -43,7 +43,7 @@ spec:
             - name: LBF_API_SERVER_REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: redism
+                  name: redis
                   key: redis-password
             - name: LBF_S3_ACCESS_KEY_ID
               valueFrom:
@@ -184,6 +184,72 @@ spec:
                 name: logs-bot
             - secretRef:
                 name: logs-bot
+      volumes:
+        - name: client-certs
+          projected:
+            sources:
+              - secret:
+                  name: cockroachdb-logs
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+                    - key: tls.crt
+                      path: tls.crt
+                    - key: tls.key
+                      path: tls.key
+                      mode: 0600
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logsbyfaust-screenshot
+  namespace: logsbyfaust
+  labels:
+    app: logsbyfaust-screenshot
+spec:
+  selector:
+    matchLabels:
+      app: logsbyfaust-screenshot
+  template:
+    metadata:
+      labels:
+        app: logsbyfaust-screenshot
+    spec:
+      containers:
+        - name: admin
+          image: ghcr.io/0fau/logs-screenshot:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3010
+          volumeMounts:
+            - name: client-certs
+              mountPath: /cockroach/
+          env:
+            - name: LBF_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: logsbyfaust
+                  key: AWS_ACCESS_KEY_ID
+            - name: LBF_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: logsbyfaust
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: LBF_S3_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: logsbyfaust
+                  key: BUCKET_HOST
+            - name: LBF_S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: logsbyfaust
+                  key: BUCKET_NAME
+          envFrom:
+            - configMapRef:
+                name: logs-screenshot
+            - secretRef:
+                name: logs-screenshot
       volumes:
         - name: client-certs
           projected:

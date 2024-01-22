@@ -1,8 +1,12 @@
-import {formatDistance} from "date-fns";
+import {format, formatDistance} from "date-fns";
 import numeral from "numeral";
 
 export function formatDate(date: number): string {
     return formatDistance(new Date(date), new Date(), {addSuffix: true})
+}
+
+export function formatDateSolid(date: number): string {
+    return format(new Date(date), "MMM do y")
 }
 
 export function formatDuration(duration: number): string {

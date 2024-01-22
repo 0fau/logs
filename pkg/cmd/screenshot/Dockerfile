@@ -7,7 +7,7 @@ RUN CGO_ENABLED=0 GOOS=linux go mod download
 
 COPY ../../.. ./
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /admin ./pkg/cmd/admin/
+RUN CGO_ENABLED=0 GOOS=linux go build -o /screenshot ./pkg/cmd/screenshot/
 
 FROM --platform=linux/amd64 chromedp/headless-shell:latest AS build-release-stage
 
@@ -19,8 +19,8 @@ ENTRYPOINT ["dumb-init", "--"]
 
 WORKDIR /
 
-COPY --from=build-stage /admin /admin
+COPY --from=build-stage /screenshot /screenshot
 
 EXPOSE 3010
 
-CMD ["/admin"]
+CMD ["/screenshot"]

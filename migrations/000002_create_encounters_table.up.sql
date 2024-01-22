@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS encounters
     uploaded_by  UUID      NOT NULL REFERENCES users (id),
     uploaded_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     settings     JSONB     NOT NULL,
+    thumbnail    BOOLEAN   NOT NULL,
     tags         STRING ARRAY,
 
     header       JSONB     NOT NULL,

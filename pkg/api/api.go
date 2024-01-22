@@ -84,14 +84,15 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.POST("logout", s.logout)
 
 	s.router.GET("images/avatar/:user", s.avatarHandler)
+	s.router.GET("images/thumbnail/:log", s.thumbnailHandler)
 
 	s.router.GET("api/settings", s.settingsHandler)
 	s.router.PUT("api/settings/username", s.setUsername)
 
 	s.router.POST("api/logs", s.logs)
 	s.router.POST("api/logs/upload", s.uploadHandler)
-	// s.router.GET("api/logs/stats", s.statsHandler)
 	s.router.GET("api/log/:log", s.logHandler)
+	s.router.GET("api/log/:log/short", s.shortLogHandler)
 
 	s.router.POST("api/users/@me/token", s.generateToken)
 

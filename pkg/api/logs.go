@@ -34,7 +34,8 @@ type ReturnedEncounterShort struct {
 
 type ReturnedEncounter struct {
 	ReturnedEncounterShort
-	Data structs.EncounterData `json:"data"`
+	Thumbnail bool                  `json:"thumbnail"`
+	Data      structs.EncounterData `json:"data"`
 }
 
 type ReturnedEncounterShorts struct {
@@ -278,7 +279,8 @@ func (s *Server) logHandler(c *gin.Context) {
 			LocalPlayer:     enc.LocalPlayer,
 			EncounterHeader: enc.Header,
 		},
-		Data: enc.Data,
+		Thumbnail: enc.Thumbnail,
+		Data:      enc.Data,
 	}
 
 	if u == nil || u.ID != uploadedBy && !hasRoles(roles, "admin", "trusted") {
@@ -287,4 +289,44 @@ func (s *Server) logHandler(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, full)
+}
+
+func (s *Server) shortLogHandler(c *gin.Context) {
+	if c.Param("log") == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(c.Param("log"))
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	ctx := context.Background()
+	enc, err := s.conn.Queries.GetEncounterShort(ctx, int32(id))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.AbortWithStatus(http.StatusNotFound)
+		} else {
+			log.Println(errors.Wrap(err, "fetching encounter"))
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		return
+	}
+
+	short := ReturnedEncounterShort{
+		ID:              enc.ID,
+		Difficulty:      enc.Difficulty,
+		Boss:            enc.Boss,
+		Date:            enc.Date.Time.UnixMilli(),
+		Duration:        enc.Duration,
+		LocalPlayer:     enc.LocalPlayer,
+		EncounterHeader: enc.Header,
+	}
+
+	order := short.Order()
+	short.Anonymize(order)
+
+	c.JSON(http.StatusOK, short)
 }

@@ -78,7 +78,7 @@
             {/if}
         </div>
         <div class="w-[45%] min-w-[500px] border-y-[1px] border-r-[1px] border-[#efdcc5] h-full bg-[#e7cfd6] rounded-r-lg">
-            <EncounterList {search}/>
+            <EncounterList {search} point={data.point}/>
         </div>
     </div>
 </div>

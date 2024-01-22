@@ -3,17 +3,96 @@ package admin
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/chromedp"
 	"github.com/jackc/pgx/v5/pgtype"
 	"image/png"
 	"log"
+	"sync"
 )
 
 func (s *Server) RunOperation(ctx context.Context, req *RunOperationRequest) (*RunOperationResponse, error) {
-	if err := s.fetchDiscordAvatar(ctx); err != nil {
-		return nil, err
+	s.generateLogThumbnail()
+	return &RunOperationResponse{}, nil
+}
+
+func (s *Server) generateLogThumbnail() error {
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", true),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("enable-automation", false),
+		chromedp.Flag("disable-extensions", false),
+		chromedp.WindowSize(1920, 1080),
+	)
+
+	rows, err := s.conn.Pool.Query(context.Background(), "SELECT id FROM encounters WHERE thumbnail = false ORDER BY id DESC LIMIT 10000")
+	if err != nil {
+		return err
 	}
 
-	return &RunOperationResponse{}, nil
+	ids := []int32{}
+	for rows.Next() {
+		var id int32
+		if err := rows.Scan(&id); err != nil {
+			return err
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	sem := make(chan struct{}, 10)
+	var wg sync.WaitGroup
+	wg.Add(len(ids))
+	for _, id := range ids {
+		sem <- struct{}{}
+		go func(enc int32) {
+			defer wg.Done()
+
+			allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+			defer cancel()
+
+			ctx, cancel := chromedp.NewContext(
+				allocCtx,
+			)
+			defer cancel()
+
+			var buf []byte
+			var width, height int64
+			if err := chromedp.Run(ctx,
+				chromedp.ActionFunc(func(ctx context.Context) error {
+					return chromedp.EmulateViewport(width, height, func(sdmop *emulation.SetDeviceMetricsOverrideParams, steep *emulation.SetTouchEmulationEnabledParams) {
+						sdmop.DeviceScaleFactor = 3
+					}).Do(ctx)
+				}), elementScreenshot(`http://logsbyfaust.logsbyfaust.svc.cluster.local:3000/screenshot/log/`+fmt.Sprintf("%d", enc), `.screenshot`, &buf)); err != nil {
+				log.Fatal(err)
+			}
+
+			if err := s.s3.SaveImage(ctx, "thumbnail/"+fmt.Sprintf("%d", enc), buf); err != nil {
+				log.Println(err)
+			}
+
+			if _, err := s.conn.Pool.Exec(context.Background(), "UPDATE encounters SET thumbnail = true WHERE id = $1", enc); err != nil {
+				log.Println(err)
+			} else {
+				log.Printf("Saved encounter %d thumbnail\n", enc)
+			}
+			<-sem
+		}(id)
+	}
+	wg.Wait()
+
+	return nil
+}
+
+// elementScreenshot takes a screenshot of a specific element.
+func elementScreenshot(urlstr, sel string, res *[]byte) chromedp.Tasks {
+	return chromedp.Tasks{
+		chromedp.Navigate(urlstr),
+		chromedp.Screenshot(sel, res, chromedp.NodeVisible),
+	}
 }
 
 func (s *Server) fetchDiscordAvatar(ctx context.Context) error {
