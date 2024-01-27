@@ -11,5 +11,9 @@
 </svelte:head>
 
 {#if encounter}
-    <EncounterPreview width="w-[462px]" screenshot={true} {encounter}/>
+<div class="bg-white h-full">
+    <div class="w-[28em]">
+        <EncounterPreview screenshot={true} {encounter}/>
+    </div>
+</div>
 {/if}
