@@ -6,6 +6,8 @@
     import IconBack from "~icons/ion/arrow-back-outline";
     import IconScope from "~icons/mdi/telescope";
     import IconSort from "~icons/basil/sort-outline";
+    import IconMenu from '~icons/mingcute/menu-fill';
+
     import EncounterRecap from "$lib/components/EncounterRecap.svelte";
     import { onMount } from "svelte";
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
@@ -17,6 +19,13 @@
 
     function focus(encounter) {
         focused = encounter;
+        if (encounter) {
+            const el = document.getElementById("#" + encounter.id);
+            if (!el) return;
+            el.scrollIntoView({
+                behavior: "smooth"
+            });
+        }
     }
 
     let page = 0;
@@ -204,65 +213,68 @@
 
     let order = Order.RecentClear;
     $: scoped = browser && $settings.logs.scope;
-    $: display = focused ? [focused] : encounters.slice(page * 5, (page + 1) * 5);
+    $: display = encounters.slice(page * 5, (page + 1) * 5);
 </script>
 
 <link
     rel="preload"
     as="image"
     href="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless" />
-<div class="mx-auto mt-10 flex max-w-3xl flex-col items-center justify-center">
-    <div class="mb-3 flex flex-row items-center justify-center">
-        <!-- <div class="rounded bg-white opacity-0">
-            <IconSort class="h-6 w-6" />
-        </div> -->
-        <div
-            class="flex h-10 w-60 flex-row items-center justify-center rounded-xl bg-tapestry-600 text-center text-sm text-tapestry-50">
-            {#each ["Arkesia", "Friends", "Roster"] as scope}
-                <div
-                    class="flex h-full w-full items-center justify-center"
-                    class:rounded-lg={browser && scoped === scope}>
+<div class="mx-auto mt-10 flex max-h-screen max-w-3xl flex-col items-center">
+    <div class="mb-3 flex items-center">
+        <button class="block md:hidden absolute left-[7%]">
+            <IconMenu class="size-6 text-tapestry-600 hover:text-tapestry-700" />
+        </button>
+        <div class="flex flex-row items-center justify-center">
+            <div
+                class="flex h-10 w-60 flex-row items-center justify-center rounded-xl bg-tapestry-600 text-center text-sm text-tapestry-50">
+                {#each ["Arkesia", "Friends", "Roster"] as scope}
                     <div
-                        class="flex h-[76%] w-[87%] items-center justify-center rounded-lg"
-                        class:bg-tapestry-100={browser && scoped === scope}>
-                        <button
-                            class:font-medium={browser && scoped === scope}
-                            class:text-tapestry-700={browser && scoped === scope}
-                            on:click={() => changeScope(scope)}>
-                            {scope}
-                        </button>
+                        class="flex h-full w-full items-center justify-center"
+                        class:rounded-lg={browser && scoped === scope}>
+                        <div
+                            class="flex h-[76%] w-[87%] items-center justify-center rounded-lg"
+                            class:bg-tapestry-100={browser && scoped === scope}>
+                            <button
+                                class:font-medium={browser && scoped === scope}
+                                class:text-tapestry-700={browser && scoped === scope}
+                                on:click={() => changeScope(scope)}>
+                                {scope}
+                            </button>
+                        </div>
                     </div>
-                </div>
-            {/each}
-        </div>
-        <div class="relative ml-2 size-6 rounded-md bg-tapestry-600 text-tapestry-50">
-            <button
-                bind:this={toggle}
-                on:click={() => (showSortOptions = !showSortOptions)}
-                class="h-full w-full">
-                <IconSort class="size-6" />
-            </button>
-            {#if showSortOptions}
-                <div
-                    use:unfocus
-                    class="border-bouquet-600 text-bouquet-950 absolute z-50 float-right overflow-hidden rounded-md border bg-white text-sm shadow-sm">
-                    <div class="bg-tapestry-600 text-center text-white">Sort</div>
-                    {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
-                        <button
-                            class:underline={order === sort || (!order && i === 0)}
-                            on:click={() => changeSort(sort)}
-                            class="mx-auto my-0.5 whitespace-nowrap px-1 text-center hover:underline"
-                            >{sort}</button>
-                    {/each}
-                </div>
-            {/if}
+                {/each}
+            </div>
+            <div class="relative ml-2 size-6 rounded-md bg-tapestry-600 text-tapestry-50">
+                <button
+                    bind:this={toggle}
+                    on:click={() => (showSortOptions = !showSortOptions)}
+                    class="h-full w-full">
+                    <IconSort class="size-6" />
+                </button>
+                {#if showSortOptions}
+                    <div
+                        use:unfocus
+                        class="absolute z-50 float-right overflow-hidden rounded-md border border-bouquet-600 bg-white text-sm text-bouquet-950 shadow-sm">
+                        <div class="bg-tapestry-600 text-center text-white">Sort</div>
+                        {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
+                            <button
+                                class:underline={order === sort || (!order && i === 0)}
+                                on:click={() => changeSort(sort)}
+                                class="mx-auto my-0.5 whitespace-nowrap px-1 text-center hover:underline"
+                                >{sort}</button>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         </div>
     </div>
     <div
-        class="mb-3 flex min-h-28 w-[88%] flex-col items-center justify-center overflow-hidden rounded-md bg-tapestry-300 pt-4">
+        class="custom-scroll mb-3 flex w-[88%] flex-col items-center overflow-y-scroll rounded-md bg-tapestry-300 pl-2 pt-4"
+        style="height: calc(100vh - 10rem)">
         {#if display.length === 0}
             {#if loading}
-                <div class="flex flex-col items-center justify-center -mt-3">
+                <div class="mt-3 flex flex-col items-center justify-center">
                     <span class="text-semibold text-sm text-bouquet-950">Loading...</span>
                     <img
                         alt="loading"
@@ -270,16 +282,18 @@
                         src="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless" />
                 </div>
             {:else if (scoped !== "Arkesia" || ($search.search && $search.search !== "")) && !loggedIn()}
-                <div class="flex flex-col items-center justify-center -mt-3">
-                    <span class="text-semibold mb-0.5 text-sm text-bouquet-950">Not signed in.</span>
+                <div class="mt-3 flex flex-col items-center justify-center">
+                    <span class="text-semibold mb-0.5 text-sm text-bouquet-950"
+                        >Not signed in.</span>
                     <img
                         alt="loading"
                         class="size-10"
                         src="https://cdn.discordapp.com/attachments/1154431161993535489/1177165751040360448/emoji_a_38.png?ex=65718409&is=655f0f09&hm=cb2e683112d257a9d89dcc7fc90a54b4a91d73ddf67c0b3e1fd6df225fbff4f6&" />
                 </div>
             {:else}
-                <div class="flex flex-col items-center justify-center -mt-3">
-                    <span class="text-semibold mb-0.5 text-sm text-bouquet-950">No logs found.</span>
+                <div class="mt-3 flex flex-col items-center justify-center">
+                    <span class="text-semibold mb-0.5 text-sm text-bouquet-950"
+                        >No logs found.</span>
                     <img
                         alt="loading"
                         class="size-10"
@@ -288,55 +302,73 @@
             {/if}
         {/if}
         {#each display as encounter}
-            <!-- <button
-                class="mb-4 h-20 w-[95%]"
-                on:click={() => focus(focused ? null : encounter)}> -->
             <button
-                class="mb-4 h-20 w-[95%]">
+                class="mb-2 h-20 w-full px-2"
+                id={"#" + encounter.id}
+                on:click={() => focus(focused && focused.id === encounter.id ? null : encounter)}>
                 <EncounterPreview {encounter} />
             </button>
-        {/each}
-        <!-- {#if focused}
-            <div class="mt-0.5 flex w-[88%] flex-row text-sm">
-                <div class="my-1">
-                    <button
-                        on:click={() => focus(null)}
-                        class="flex items-center justify-center rounded-md border-[0.5px] border-[#b4637a] bg-[#f5efec] p-0.5 px-1.5 text-[#b4637a]">
-                        <IconBack class="mr-0.5 inline" />
-                        Back
-                    </button>
-                </div>
-                <div class="mx-auto mb-1 mt-auto rounded-md bg-[#b96d83] p-0.5 px-6 text-[#f7f2ef]">
-                    Preview
-                </div>
-                <div class="my-1">
-                    <button
-                        class="flex items-center justify-center rounded-md border-[0.5px] border-[#575279] bg-[#f3eeec] p-0.5 px-1.5 text-[#575279]"
-                        on:click={() => window.open("/log/" + focused.id, "_blank").focus()}>
+            {#if focused && focused.id === encounter.id}
+                <div class="mb-2 flex w-full justify-between px-5 text-sm">
+                    <!-- <div class="my-1">
+                        <button
+                            on:click={() => focus(null)}
+                            class="flex items-center justify-center rounded-md border-[0.5px] border-[#b4637a] bg-[#f5efec] p-0.5 px-1.5 text-[#b4637a]">
+                            <IconBack class="mr-0.5 inline" />
+                            Back
+                        </button>
+                    </div> -->
+                    <div class="mt-auto rounded-md bg-tapestry-600 p-0.5 px-6 text-white">
+                        Preview
+                    </div>
+                    <a
+                        class="flex items-center justify-center rounded-md border border-gray-600 bg-tapestry-50 p-0.5 px-1.5 text-gray-700"
+                        href={"/log/" + focused.id}
+                        target="_blank">
                         <IconScope class="mr-0.5 inline" />
                         Open
-                    </button>
+                    </a>
                 </div>
-            </div>
-            <EncounterRecap {focused} />
-        {/if} -->
+                <EncounterRecap {focused} />
+            {/if}
+        {/each}
     </div>
     <!-- {#if !focused} -->
-        <div class="flex flex-row items-center justify-center text-tapestry-600 space-x-10">
-            {#if page > 0}
-                <button
-                    on:click={prev}
-                    class="rounded-3xl border border-tapestry-400 bg-tapestry-50 p-0.5 shadow-sm">
-                    <IconArrow class="size-6 rotate-180" />
-                </button>
-            {/if}
-            {#if more || (page + 1) * 5 < encounters.length}
-                <button
-                    on:click={next}
-                    class="rounded-3xl border border-tapestry-400 bg-tapestry-50 p-0.5 shadow-sm">
-                    <IconArrow class="size-6" />
-                </button>
-            {/if}
-        </div>
+    <div class="flex flex-row items-center justify-center space-x-10 text-tapestry-600">
+        {#if page > 0}
+            <button
+                on:click={prev}
+                class="rounded-3xl border border-tapestry-400 bg-tapestry-50 p-0.5 shadow-sm">
+                <IconArrow class="size-6 rotate-180" />
+            </button>
+        {/if}
+        {#if more || (page + 1) * 5 < encounters.length}
+            <button
+                on:click={next}
+                class="rounded-3xl border border-tapestry-400 bg-tapestry-50 p-0.5 shadow-sm">
+                <IconArrow class="size-6" />
+            </button>
+        {/if}
+    </div>
     <!-- {/if} -->
 </div>
+
+<style lang="postcss">
+    /* * {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    *::-webkit-scrollbar {
+        display: none;
+    } */
+
+    .custom-scroll::-webkit-scrollbar {
+        @apply right-0 block size-2;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        @apply rounded-md bg-tapestry-600;
+    }
+    .custom-scroll::-webkit-scrollbar-corner {
+        @apply bg-zinc-800;
+    }
+</style>
