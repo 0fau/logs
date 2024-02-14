@@ -15,6 +15,12 @@ FROM users
 WHERE id = $1
 LIMIT 1;
 
+-- name: GetUserByDiscordID :one
+SELECT *
+FROM users
+WHERE discord_id = $1
+LIMIT 1;
+
 -- name: GetRoles :one
 SELECT roles
 FROM users
@@ -80,9 +86,10 @@ WHERE id = $1;
 
 -- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player, unique_hash,
+INTO encounters (uploaded_by, settings, tags, header, data, version, difficulty, boss, date, duration,
+                 local_player, unique_hash,
                  unique_group)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id;
 
 -- name: GetUniqueGroup :one
@@ -107,12 +114,12 @@ ON CONFLICT (group_id)
 
 -- name: InsertPlayer :copyfrom
 INSERT
-INTO players (encounter, class, name, dead, data, dps, place)
+INTO players (encounter, class, name, dead, gear_score, dps, place)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: InsertPlayerInternal :exec
 INSERT
-INTO players (encounter, class, name, dead, data, dps, place)
+INTO players (encounter, class, name, dead, gear_score, dps, place)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (encounter, name)
     DO UPDATE SET data = excluded.data;
@@ -179,3 +186,54 @@ LIMIT 50;
 UPDATE encounters
 SET thumbnail = true
 WHERE id = $1;
+
+-- name: CreateFriend :exec
+INSERT INTO friends (user1, user2)
+VALUES ($1, $2),
+       ($2, $1);
+
+-- name: SendFriendRequest :exec
+INSERT INTO friend_requests (user1, user2)
+VALUES ($1, $2);
+
+-- name: HasFriendRequest :one
+SELECT EXISTS (SELECT 1
+               FROM friend_requests
+               WHERE user1 = $1
+                 AND user2 = $2);
+
+-- name: AreFriends :one
+SELECT EXISTS (SELECT 1
+               FROM friends
+               WHERE (user1 = $1 AND user2 = $2)
+                  OR (user1 = $2 AND user2 = $1));
+
+-- name: ListFriends :many
+SELECT u.discord_tag, u.username, f.date
+FROM friends f
+         JOIN users u on f.user2 = u.id
+WHERE user1 = $1;
+
+-- name: ListSentFriendRequests :many
+SELECT u.discord_tag, u.username, date
+FROM friend_requests fr
+         JOIN users u ON fr.user2 = u.discord_id
+WHERE user1 = $1;
+
+-- name: ListReceivedFriendRequests :many
+SELECT u.discord_tag, u.username, date
+FROM friend_requests fr
+         JOIN users u ON fr.user1 = u.discord_id
+WHERE user2 = $1;
+
+-- name: DeleteFriendRequest :exec
+DELETE
+FROM friend_requests
+WHERE user1 = $1
+  AND user2 = $2;
+
+-- name: DeleteFriend :exec
+DELETE
+FROM friends
+WHERE (user1 = $1 AND user2 = $2)
+   OR (user1 = $2 AND user2 = $1);

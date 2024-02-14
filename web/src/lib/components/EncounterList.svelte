@@ -97,6 +97,10 @@
         }
         url += "&order=" + order.toLowerCase()
 
+        if (gearScore) {
+            url += "&gear_score=" + encodeURIComponent(gearScore)
+        }
+
         const recent = await fetch(url, {
             credentials: 'same-origin',
             method: 'POST',
@@ -173,6 +177,16 @@
         await refresh()
     }
 
+    async function changeGearScore(score) {
+        showSortOptions = false;
+        if (gearScore !== score) {
+            gearScore = score
+        } else {
+            gearScore = null
+        }
+        await refresh()
+    }
+
     let showSortOptions = false;
 
     let toggle;
@@ -198,6 +212,26 @@
         Duration = "Raid Duration",
         Performance = "Performance"
     }
+
+    enum GearScoreRange {
+        Range1540To1560 = "1540-1560",
+        Range1560To1580 = "1560-1580",
+        Range1580To1600 = "1580-1600",
+        Range1600To1610 = "1600-1610",
+        Range1610To1620 = "1610-1620",
+        Range1620Plus = "1620+"
+    }
+
+    const gearScores = [
+        GearScoreRange.Range1540To1560,
+        GearScoreRange.Range1560To1580,
+        GearScoreRange.Range1580To1600,
+        GearScoreRange.Range1600To1610,
+        GearScoreRange.Range1610To1620,
+        GearScoreRange.Range1620Plus
+    ]
+
+    let gearScore;
 
     let order = Order.RecentClear;
     $: scoped = browser && $settings.logs.scope
@@ -232,13 +266,23 @@
             </button>
             {#if showSortOptions}
                 <div use:unfocus transition:blur={{duration: 10}}
-                     class="absolute overflow-hidden float-right text-[#575279] border-[#a7738b] border-[0.5px] shadow-sm rounded-md bg-[#F4EDE9] text-sm z-50">
-                    <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Sort</div>
-                    {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
-                        <button class:underline={order === sort || (!order && i === 0)}
-                                on:click={() => changeSort(sort)}
-                                class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{sort}</button>
-                    {/each}
+                     class="absolute overflow-hidden float-right text-[#575279] text-sm z-50">
+                    <div class="bg-[#F4EDE9] border-[#a7738b] border-[0.5px] shadow-sm rounded-md overflow-hidden">
+                        <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Sort</div>
+                        {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
+                            <button class:underline={order === sort || (!order && i === 0)}
+                                    on:click={() => changeSort(sort)}
+                                    class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{sort}</button>
+                        {/each}
+                    </div>
+                    <div class="mt-1 bg-[#F4EDE9] border-[#a7738b] border-[0.5px] shadow-sm rounded-md overflow-hidden">
+                        <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Gear Score</div>
+                        {#each gearScores as range, i}
+                            <button class:underline={gearScore === range}
+                                    on:click={() => changeGearScore(range)}
+                                    class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{range}</button>
+                        {/each}
+                    </div>
                 </div>
             {/if}
         </div>
@@ -272,7 +316,7 @@
             <button
                     class="{focused ? '' : 'mb-5'} h-[80px] w-[94%]"
                     on:click={() => focus(focused ? null : encounter)}>
-                <EncounterPreview width="w-full" {encounter}/>
+                <EncounterPreview gearScore={gearScore} width="w-full" {encounter}/>
             </button>
         {/each}
         {#if focused}

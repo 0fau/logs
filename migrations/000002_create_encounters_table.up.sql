@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS encounters
     difficulty   STRING    NOT NULL,
     date         TIMESTAMP NOT NULL,
     duration     INT       NOT NULL,
+    version      INT       NOT NULL DEFAULT 0,
     local_player STRING    NOT NULL,
 
     unique_hash  STRING    NOT NULL,
@@ -26,21 +27,22 @@ CREATE TABLE IF NOT EXISTS encounters
     INDEX (uploaded_by),
     INDEX (date),
     INDEX (boss),
+    INDEX (version),
     INDEX (unique_hash)
 );
 
 CREATE TABLE IF NOT EXISTS players
 (
-    encounter INT    NOT NULL REFERENCES encounters (id) ON DELETE CASCADE,
-    class     STRING NOT NULL,
-    name      STRING NOT NULL,
-    dead      BOOL   NOT NULL,
-    data      JSONB  NOT NULL,
-    dps       BIGINT NOT NULL,
-    place     INT    NOT NULL,
+    encounter  INT    NOT NULL REFERENCES encounters (id) ON DELETE CASCADE,
+    class      STRING NOT NULL,
+    name       STRING NOT NULL,
+    dead       BOOL   NOT NULL,
+    dps        BIGINT NOT NULL,
+    place      INT    NOT NULL,
+    gear_score FLOAT  NOT NULL,
     PRIMARY KEY (encounter, name),
     INDEX (name),
     INDEX (class),
-    INDEX (dps),
-    INDEX (((data ->> 'dps')::BIGINT) DESC, place)
+    INDEX (gear_score),
+    INDEX (dps)
 );

@@ -36,18 +36,19 @@ CREATE TABLE encounters
     difficulty   STRING    NOT NULL,
     date         TIMESTAMP NOT NULL,
     duration     INT       NOT NULL,
+    version      INT       NOT NULL,
     local_player STRING    NOT NULL
 );
 
 CREATE TABLE players
 (
-    encounter INT    NOT NULL REFERENCES encounters (id),
-    class     STRING NOT NULL,
-    name      STRING NOT NULL,
-    dead      BOOL   NOT NULL,
-    data      JSONB  NOT NULL,
-    dps       BIGINT NOT NULL,
-    place     INT    NOT NULL
+    encounter  INT    NOT NULL REFERENCES encounters (id),
+    class      STRING NOT NULL,
+    name       STRING NOT NULL,
+    dead       BOOL   NOT NULL,
+    dps        BIGINT NOT NULL,
+    gear_score FLOAT  NOT NULL,
+    place      INT    NOT NULL
 );
 
 CREATE TABLE grouped_encounters
@@ -60,4 +61,18 @@ CREATE TABLE whitelist
 (
     discord STRING NOT NULL,
     role    STRING NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS friends
+(
+    user1 UUID      NOT NULL REFERENCES users (id),
+    user2 UUID      NOT NULL REFERENCES users (id),
+    date  TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS friend_requests
+(
+    user1 string    NOT NULL REFERENCES users (discord_id),
+    user2 string    NOT NULL REFERENCES users (discord_id),
+    date  TIMESTAMP NOT NULL
 );

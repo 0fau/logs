@@ -4,8 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
+	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
+	"github.com/cockroachdb/errors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"image/png"
 	"log"
@@ -13,8 +17,62 @@ import (
 )
 
 func (s *Server) RunOperation(ctx context.Context, req *RunOperationRequest) (*RunOperationResponse, error) {
-	s.generateLogThumbnail()
+	s.populatePlayerData()
 	return &RunOperationResponse{}, nil
+}
+
+func (s *Server) populatePlayerData() error {
+	for {
+		rows, err := s.conn.Pool.Query(context.Background(), "SELECT id, header FROM encounters WHERE version = 0 ORDER BY id DESC LIMIT 50")
+		if err != nil {
+			if !errors.Is(err, pgx.ErrNoRows) {
+				log.Println(err)
+			}
+			break
+		}
+
+		has := false
+
+		var wg sync.WaitGroup
+		for rows.Next() {
+			has = true
+			var id int32
+			var header structs.EncounterHeader
+			if err := rows.Scan(&id, &header); err != nil {
+				return err
+			}
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				crdbpgx.ExecuteTx(context.Background(), s.conn.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
+					for name, player := range header.Players {
+						if _, err := tx.Exec(
+							context.Background(),
+							"UPDATE players SET gear_score = $3 WHERE encounter = $1 AND name = $2",
+							id, name, player.GearScore,
+						); err != nil {
+							return err
+						}
+					}
+
+					_, err = tx.Exec(context.Background(), "UPDATE encounters SET version = 1 WHERE id = $1", id)
+					return err
+				})
+			}()
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+
+		if !has {
+			break
+		}
+
+		wg.Wait()
+	}
+	return nil
 }
 
 func (s *Server) generateLogThumbnail() error {

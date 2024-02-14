@@ -611,6 +611,7 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 			LocalPlayer: raw.LocalPlayer,
 			Header:      enc.Header,
 			Data:        enc.Data,
+			Version:     1,
 			UniqueHash:  hash,
 			UniqueGroup: group,
 		})
@@ -643,11 +644,8 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 				Name:      player,
 				Dead:      header.Dead,
 				Place:     int32(i + 1),
-				Data: structs.IndexedPlayerData{
-					Damage: header.Damage,
-					DPS:    header.DPS,
-				},
-				Dps: header.DPS,
+				GearScore: header.GearScore,
+				Dps:       header.DPS,
 			})
 		}
 		if _, err := qtx.InsertPlayer(ctx, players); err != nil {

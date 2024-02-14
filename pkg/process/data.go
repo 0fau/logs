@@ -3,6 +3,7 @@ package process
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 
 	"github.com/cockroachdb/errors"
@@ -85,6 +86,10 @@ var Raids = map[string][][]string{
 }
 
 var RaidLookup = make(map[string][2]string)
+
+func IsEqualized(difficulty string) bool {
+	return slices.Contains([]string{"Inferno", "Trial", "Challenge"}, difficulty)
+}
 
 func init() {
 	for raid, gates := range Raids {

@@ -24,7 +24,20 @@ type Encounter struct {
 	Difficulty  string
 	Date        pgtype.Timestamp
 	Duration    int32
+	Version     int32
 	LocalPlayer string
+}
+
+type Friend struct {
+	User1 pgtype.UUID
+	User2 pgtype.UUID
+	Date  pgtype.Timestamp
+}
+
+type FriendRequest struct {
+	User1 string
+	User2 string
+	Date  pgtype.Timestamp
 }
 
 type GroupedEncounter struct {
@@ -37,8 +50,8 @@ type Player struct {
 	Class     string
 	Name      string
 	Dead      bool
-	Data      structs.IndexedPlayerData
 	Dps       int64
+	GearScore float64
 	Place     int32
 }
 

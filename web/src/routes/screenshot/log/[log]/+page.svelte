@@ -11,5 +11,5 @@
 </svelte:head>
 
 {#if encounter}
-    <EncounterPreview width="w-[462px]" screenshot={true} {encounter}/>
+    <EncounterPreview gearScore={true} width="w-[462px]" screenshot={true} {encounter}/>
 {/if}

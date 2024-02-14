@@ -12,6 +12,41 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const areFriends = `-- name: AreFriends :one
+SELECT EXISTS (SELECT 1
+               FROM friends
+               WHERE (user1 = $1 AND user2 = $2)
+                  OR (user1 = $2 AND user2 = $1))
+`
+
+type AreFriendsParams struct {
+	User1 pgtype.UUID
+	User2 pgtype.UUID
+}
+
+func (q *Queries) AreFriends(ctx context.Context, arg AreFriendsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, areFriends, arg.User1, arg.User2)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const createFriend = `-- name: CreateFriend :exec
+INSERT INTO friends (user1, user2)
+VALUES ($1, $2),
+       ($2, $1)
+`
+
+type CreateFriendParams struct {
+	User1 pgtype.UUID
+	User2 pgtype.UUID
+}
+
+func (q *Queries) CreateFriend(ctx context.Context, arg CreateFriendParams) error {
+	_, err := q.db.Exec(ctx, createFriend, arg.User1, arg.User2)
+	return err
+}
+
 const deleteEncounter = `-- name: DeleteEncounter :exec
 DELETE
 FROM encounters
@@ -20,6 +55,40 @@ WHERE id = $1
 
 func (q *Queries) DeleteEncounter(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deleteEncounter, id)
+	return err
+}
+
+const deleteFriend = `-- name: DeleteFriend :exec
+DELETE
+FROM friends
+WHERE (user1 = $1 AND user2 = $2)
+   OR (user1 = $2 AND user2 = $1)
+`
+
+type DeleteFriendParams struct {
+	User1 pgtype.UUID
+	User2 pgtype.UUID
+}
+
+func (q *Queries) DeleteFriend(ctx context.Context, arg DeleteFriendParams) error {
+	_, err := q.db.Exec(ctx, deleteFriend, arg.User1, arg.User2)
+	return err
+}
+
+const deleteFriendRequest = `-- name: DeleteFriendRequest :exec
+DELETE
+FROM friend_requests
+WHERE user1 = $1
+  AND user2 = $2
+`
+
+type DeleteFriendRequestParams struct {
+	User1 string
+	User2 string
+}
+
+func (q *Queries) DeleteFriendRequest(ctx context.Context, arg DeleteFriendRequestParams) error {
+	_, err := q.db.Exec(ctx, deleteFriendRequest, arg.User1, arg.User2)
 	return err
 }
 
@@ -49,7 +118,7 @@ func (q *Queries) FetchWhitelist(ctx context.Context, discord string) (string, e
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.thumbnail, e.tags, e.header, e.data, e.unique_hash, e.unique_group, e.boss, e.difficulty, e.date, e.duration, e.local_player,
+SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.thumbnail, e.tags, e.header, e.data, e.unique_hash, e.unique_group, e.boss, e.difficulty, e.date, e.duration, e.version, e.local_player,
        u.discord_id,
        u.discord_tag,
        u.username,
@@ -75,6 +144,7 @@ type GetEncounterRow struct {
 	Difficulty  string
 	Date        pgtype.Timestamp
 	Duration    int32
+	Version     int32
 	LocalPlayer string
 	DiscordID   string
 	DiscordTag  string
@@ -100,6 +170,7 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 		&i.Difficulty,
 		&i.Date,
 		&i.Duration,
+		&i.Version,
 		&i.LocalPlayer,
 		&i.DiscordID,
 		&i.DiscordTag,
@@ -298,6 +369,33 @@ func (q *Queries) GetUser(ctx context.Context, discordTag string) (User, error) 
 	return i, err
 }
 
+const getUserByDiscordID = `-- name: GetUserByDiscordID :one
+SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
+FROM users
+WHERE discord_id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByDiscordID, discordID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AccessToken,
+		&i.DiscordID,
+		&i.DiscordTag,
+		&i.Avatar,
+		&i.Friends,
+		&i.Settings,
+		&i.Titles,
+		&i.Roles,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, username, created_at, updated_at, access_token, discord_id, discord_tag, avatar, friends, settings, titles, roles
 FROM users
@@ -352,11 +450,31 @@ func (q *Queries) GetUserByToken(ctx context.Context, accessToken pgtype.Text) (
 	return i, err
 }
 
+const hasFriendRequest = `-- name: HasFriendRequest :one
+SELECT EXISTS (SELECT 1
+               FROM friend_requests
+               WHERE user1 = $1
+                 AND user2 = $2)
+`
+
+type HasFriendRequestParams struct {
+	User1 string
+	User2 string
+}
+
+func (q *Queries) HasFriendRequest(ctx context.Context, arg HasFriendRequestParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasFriendRequest, arg.User1, arg.User2)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const insertEncounter = `-- name: InsertEncounter :one
 INSERT
-INTO encounters (uploaded_by, settings, tags, header, data, difficulty, boss, date, duration, local_player, unique_hash,
+INTO encounters (uploaded_by, settings, tags, header, data, version, difficulty, boss, date, duration,
+                 local_player, unique_hash,
                  unique_group)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id
 `
 
@@ -366,6 +484,7 @@ type InsertEncounterParams struct {
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
+	Version     int32
 	Difficulty  string
 	Boss        string
 	Date        pgtype.Timestamp
@@ -382,6 +501,7 @@ func (q *Queries) InsertEncounter(ctx context.Context, arg InsertEncounterParams
 		arg.Tags,
 		arg.Header,
 		arg.Data,
+		arg.Version,
 		arg.Difficulty,
 		arg.Boss,
 		arg.Date,
@@ -400,14 +520,14 @@ type InsertPlayerParams struct {
 	Class     string
 	Name      string
 	Dead      bool
-	Data      structs.IndexedPlayerData
+	GearScore float64
 	Dps       int64
 	Place     int32
 }
 
 const insertPlayerInternal = `-- name: InsertPlayerInternal :exec
 INSERT
-INTO players (encounter, class, name, dead, data, dps, place)
+INTO players (encounter, class, name, dead, gear_score, dps, place)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (encounter, name)
     DO UPDATE SET data = excluded.data
@@ -418,7 +538,7 @@ type InsertPlayerInternalParams struct {
 	Class     string
 	Name      string
 	Dead      bool
-	Data      structs.IndexedPlayerData
+	GearScore float64
 	Dps       int64
 	Place     int32
 }
@@ -429,7 +549,7 @@ func (q *Queries) InsertPlayerInternal(ctx context.Context, arg InsertPlayerInte
 		arg.Class,
 		arg.Name,
 		arg.Dead,
-		arg.Data,
+		arg.GearScore,
 		arg.Dps,
 		arg.Place,
 	)
@@ -455,6 +575,105 @@ func (q *Queries) ListEncounters(ctx context.Context) ([]int32, error) {
 			return nil, err
 		}
 		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listFriends = `-- name: ListFriends :many
+SELECT u.discord_tag, u.username, f.date
+FROM friends f
+         JOIN users u on f.user2 = u.id
+WHERE user1 = $1
+`
+
+type ListFriendsRow struct {
+	DiscordTag string
+	Username   pgtype.Text
+	Date       pgtype.Timestamp
+}
+
+func (q *Queries) ListFriends(ctx context.Context, user1 pgtype.UUID) ([]ListFriendsRow, error) {
+	rows, err := q.db.Query(ctx, listFriends, user1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFriendsRow
+	for rows.Next() {
+		var i ListFriendsRow
+		if err := rows.Scan(&i.DiscordTag, &i.Username, &i.Date); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReceivedFriendRequests = `-- name: ListReceivedFriendRequests :many
+SELECT u.discord_tag, u.username, date
+FROM friend_requests fr
+         JOIN users u ON fr.user1 = u.discord_id
+WHERE user2 = $1
+`
+
+type ListReceivedFriendRequestsRow struct {
+	DiscordTag string
+	Username   pgtype.Text
+	Date       pgtype.Timestamp
+}
+
+func (q *Queries) ListReceivedFriendRequests(ctx context.Context, user2 string) ([]ListReceivedFriendRequestsRow, error) {
+	rows, err := q.db.Query(ctx, listReceivedFriendRequests, user2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListReceivedFriendRequestsRow
+	for rows.Next() {
+		var i ListReceivedFriendRequestsRow
+		if err := rows.Scan(&i.DiscordTag, &i.Username, &i.Date); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSentFriendRequests = `-- name: ListSentFriendRequests :many
+SELECT u.discord_tag, u.username, date
+FROM friend_requests fr
+         JOIN users u ON fr.user2 = u.discord_id
+WHERE user1 = $1
+`
+
+type ListSentFriendRequestsRow struct {
+	DiscordTag string
+	Username   pgtype.Text
+	Date       pgtype.Timestamp
+}
+
+func (q *Queries) ListSentFriendRequests(ctx context.Context, user1 string) ([]ListSentFriendRequestsRow, error) {
+	rows, err := q.db.Query(ctx, listSentFriendRequests, user1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSentFriendRequestsRow
+	for rows.Next() {
+		var i ListSentFriendRequestsRow
+		if err := rows.Scan(&i.DiscordTag, &i.Username, &i.Date); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -499,6 +718,21 @@ func (q *Queries) ProcessEncounter(ctx context.Context, arg ProcessEncounterPara
 	var uploaded_by pgtype.UUID
 	err := row.Scan(&uploaded_by)
 	return uploaded_by, err
+}
+
+const sendFriendRequest = `-- name: SendFriendRequest :exec
+INSERT INTO friend_requests (user1, user2)
+VALUES ($1, $2)
+`
+
+type SendFriendRequestParams struct {
+	User1 string
+	User2 string
+}
+
+func (q *Queries) SendFriendRequest(ctx context.Context, arg SendFriendRequestParams) error {
+	_, err := q.db.Exec(ctx, sendFriendRequest, arg.User1, arg.User2)
+	return err
 }
 
 const setAccessToken = `-- name: SetAccessToken :exec

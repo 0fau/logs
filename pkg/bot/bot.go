@@ -3,15 +3,11 @@ package bot
 import (
 	"context"
 	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/bwmarrin/discordgo"
-	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
-	"github.com/jackc/pgx/v5"
 	"log"
 	"os"
 	"os/signal"
-	"slices"
 	"syscall"
 )
 
@@ -21,100 +17,100 @@ type DiscordConfig struct {
 	GuildID   string
 	MessageID string
 	RoleID    string
+
+	LogChannelID string
+}
+
+type Config struct {
+	DiscordConfig
+
+	DatabaseURL string
 }
 
 type Bot struct {
-	DiscordConfig DiscordConfig
+	config *Config
+	db     *database.DB
+	sesh   *discordgo.Session
 
-	DatabaseURL string
+	commands map[string]*Command
+}
 
-	db *database.DB
+func NewBot(config *Config) *Bot {
+	return &Bot{config: config}
+}
+
+type InteractionHandler func(*discordgo.Session, *discordgo.InteractionCreate)
+
+type Command struct {
+	Command *discordgo.ApplicationCommand
+	Handler InteractionHandler
 }
 
 func (b *Bot) Run(ctx context.Context) error {
-	sesh, err := discordgo.New("Bot " + b.DiscordConfig.Token)
+	var err error
+	b.sesh, err = discordgo.New("Bot " + b.config.Token)
 	if err != nil {
 		return errors.Wrap(err, "new discord session")
 	}
 
-	sesh.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+	b.sesh.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is up!")
 	})
 
-	b.db, err = database.Connect(ctx, b.DatabaseURL, "logs_bot", false)
+	b.db, err = database.Connect(ctx, b.config.DatabaseURL, "logs_bot", false)
 	if err != nil {
 		return errors.Wrap(err, "connecting to database")
 	}
 
-	sesh.AddHandler(b.handleWhitelist)
+	b.sesh.AddHandler(b.handleWhitelist)
 
-	if err := sesh.Open(); err != nil {
+	if err := b.sesh.Open(); err != nil {
 		return errors.Wrap(err, "opening discord session")
+	}
+	defer b.sesh.Close()
+
+	if err := b.RegisterCommands(
+		b.friendCommand(),
+		b.friendUserCommand(),
+		b.unfriendCommand(),
+		b.friendsCommand(),
+	); err != nil {
+		return errors.Wrap(err, "registering commands")
 	}
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
-	if err := sesh.Close(); err != nil {
-		return errors.Wrap(err, "closing discord session")
+	for _, cmd := range b.commands {
+		if err := b.sesh.ApplicationCommandDelete(
+			b.sesh.State.User.ID, b.config.GuildID, cmd.Command.ID,
+		); err != nil {
+			return errors.Wrapf(err, "deleting command %s", cmd.Command.Name)
+		}
 	}
 
 	return nil
 }
 
-func (b *Bot) handleWhitelist(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
-	if r.GuildID != b.DiscordConfig.GuildID || r.MessageID != b.DiscordConfig.MessageID {
-		return
-	}
-
-	if slices.Contains(r.Member.Roles, b.DiscordConfig.RoleID) {
-		return
-	}
-
-	if err := b.whitelist(context.Background(), r.UserID); err != nil {
-		log.Println(errors.Wrap(err, "whitelisting "+r.UserID))
-		return
-	}
-
-	if err := s.GuildMemberRoleAdd(r.GuildID, r.UserID, b.DiscordConfig.RoleID); err != nil {
-		log.Println(errors.Wrap(err, "GuildMemberRoleAdd "+r.UserID))
-		return
-	}
-
-	log.Println("Whitelisted " + r.Member.User.ID + " (" + r.Member.User.Username + ")")
-}
-
-func (b *Bot) whitelist(ctx context.Context, discordID string) error {
-	if err := crdbpgx.ExecuteTx(ctx, b.db.Pool, pgx.TxOptions{}, func(tx pgx.Tx) error {
-		qtx := b.db.Queries.WithTx(tx)
-
-		row, err := qtx.GetRolesByDiscordID(ctx, discordID)
-		if err == nil {
-			if slices.Contains(row.Roles, "alpha") || slices.Contains(row.Roles, "trusted") {
-				return nil
-			}
-
-			if err := qtx.UpdateRoles(ctx, sql.UpdateRolesParams{
-				ID:    row.ID,
-				Roles: append(row.Roles, "alpha"),
-			}); err != nil {
-				return errors.Wrap(err, "updating roles")
-			}
-		} else if errors.Is(err, pgx.ErrNoRows) {
-			if err := qtx.Whitelist(ctx, sql.WhitelistParams{
-				Discord: discordID,
-				Role:    "alpha",
-			}); err != nil {
-				return errors.Wrap(err, "whitelist")
-			}
-		} else {
-			return errors.Wrap(err, "getting roles")
+func (b *Bot) RegisterCommands(cmds ...*Command) error {
+	b.commands = make(map[string]*Command)
+	for _, cmd := range cmds {
+		var err error
+		cmd.Command, err = b.sesh.ApplicationCommandCreate(
+			b.sesh.State.User.ID, b.config.GuildID, cmd.Command,
+		)
+		if err != nil {
+			return errors.Wrap(err, "registering command")
 		}
-
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "executing transaction")
+		b.commands[cmd.Command.Name] = cmd
 	}
+
+	b.sesh.AddHandler(func(s *discordgo.Session, ic *discordgo.InteractionCreate) {
+		if cmd, ok := b.commands[ic.ApplicationCommandData().Name]; ok {
+			cmd.Handler(s, ic)
+		}
+	})
+
 	return nil
 }
