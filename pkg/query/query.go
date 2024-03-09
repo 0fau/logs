@@ -2,12 +2,14 @@ package query
 
 import (
 	"context"
+	"fmt"
 	"github.com/0fau/logs/pkg/database"
 	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/0fau/logs/pkg/process"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
+	"slices"
 	"time"
 )
 
@@ -29,6 +31,7 @@ type Params struct {
 	User      pgtype.UUID
 	Order     string
 	Scope     string
+	GearScore string
 	PastID    *int32
 	PastField *int64
 	PastPlace *int32
@@ -61,7 +64,10 @@ type Encounter struct {
 
 func Query(db *database.DB, params *Params) ([]Encounter, error) {
 	player := "e.local_player"
-	focused := len(params.Selections.Classes) > 0 || params.Order == "performance" || params.Selections.Search != ""
+	focused := len(params.Selections.Classes) > 0 ||
+		params.Order == "performance" ||
+		params.Selections.Search != "" ||
+		params.GearScore != ""
 	if focused {
 		player = "p.name"
 	}
@@ -94,44 +100,117 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		q = q.From("encounters e")
 	}
 	q = q.Join("users u ON u.id = e.uploaded_by")
-	q = q.LeftJoin("grouped_encounters g ON e.unique_group = g.group_id")
 
-	selection := sq.Or{}
-	for name, raid := range params.Selections.Raids {
-		if len(raid.Gates) == 0 && len(raid.Difficulties) == 0 {
-			continue
+	if params.Scope == "friends" {
+		q = q.Join("friends f ON f.user1 = u.id AND f.user2 = ?", params.User)
+	} else {
+		q = q.LeftJoin("grouped_encounters g ON e.unique_group = g.group_id")
+	}
+
+	difficulties := map[string]struct{}{}
+	for _, raid := range params.Selections.Raids {
+		if len(raid.Gates) > 0 && len(raid.Difficulties) == 0 {
+			difficulties[""] = struct{}{}
 		}
 
-		bosses := make([]string, len(raid.Gates))
-		if len(raid.Gates) == 0 && len(raid.Difficulties) > 0 {
-			gates := process.Raids[name]
-			for _, bs := range gates {
-				bosses = append(bosses, bs...)
-			}
-		} else {
-			for _, gate := range raid.Gates {
-				l := len(process.Raids[name])
-				if gate < 0 || gate > l {
-					continue
-				}
-
-				bosses = append(bosses, process.Raids[name][gate-1]...)
-			}
-		}
-
-		if len(raid.Difficulties) > 0 {
-			selection = append(selection, sq.And{
-				sq.Eq{"e.boss": bosses},
-				sq.Eq{"e.difficulty": raid.Difficulties},
-			})
-		} else {
-			selection = append(selection, sq.Eq{
-				"e.boss": bosses,
-			})
+		for _, difficulty := range raid.Difficulties {
+			difficulties[difficulty] = struct{}{}
 		}
 	}
 
-	if len(params.Selections.Guardians) > 0 {
+	selection := sq.Or{}
+	if len(difficulties) == 1 {
+		var bosses []string
+		for name, raid := range params.Selections.Raids {
+			if len(raid.Gates) == 0 && len(raid.Difficulties) == 0 {
+				continue
+			}
+
+			if len(raid.Gates) == 0 && len(raid.Difficulties) > 0 {
+				gates := process.Raids[name]
+				for _, bs := range gates {
+					bosses = append(bosses, bs...)
+				}
+			} else {
+				for _, gate := range raid.Gates {
+					l := len(process.Raids[name])
+					if gate < 0 || gate > l {
+						continue
+					}
+
+					bosses = append(bosses, process.Raids[name][gate-1]...)
+				}
+			}
+		}
+
+		difficulty := ""
+		for d := range difficulties {
+			difficulty = d
+			break
+		}
+
+		var cmp interface{}
+		if len(bosses) == 1 {
+			cmp = bosses[0]
+		} else {
+			cmp = bosses
+		}
+
+		if difficulty == "" {
+			selection = append(selection, sq.Eq{"e.boss": cmp})
+		} else {
+			selection = append(selection, sq.And{
+				sq.Eq{
+					"e.boss": cmp,
+				},
+				sq.Eq{
+					"e.difficulty": difficulty,
+				},
+			})
+		}
+	} else {
+		for name, raid := range params.Selections.Raids {
+			if len(raid.Gates) == 0 && len(raid.Difficulties) == 0 {
+				continue
+			}
+
+			bosses := make([]string, len(raid.Gates))
+			if len(raid.Gates) == 0 && len(raid.Difficulties) > 0 {
+				gates := process.Raids[name]
+				for _, bs := range gates {
+					bosses = append(bosses, bs...)
+				}
+			} else {
+				for _, gate := range raid.Gates {
+					l := len(process.Raids[name])
+					if gate < 0 || gate > l {
+						continue
+					}
+
+					bosses = append(bosses, process.Raids[name][gate-1]...)
+				}
+			}
+
+			if len(raid.Difficulties) > 0 {
+				selection = append(selection, sq.And{
+					sq.Eq{"e.boss": bosses},
+					sq.Eq{"e.difficulty": raid.Difficulties},
+				})
+			} else {
+				selection = append(selection, sq.Eq{
+					"e.boss": bosses,
+				})
+			}
+		}
+	}
+
+	if len(params.Selections.Guardians) == 1 && params.Selections.Guardians[0] != "Caliligos" {
+		selection = append(selection,
+			sq.Eq{
+				"e.boss": params.Selections.Guardians,
+			},
+		)
+	} else if len(params.Selections.Guardians) > 0 {
 		selection = append(selection, sq.And{
 			sq.Eq{
 				"e.boss": params.Selections.Guardians,
@@ -215,8 +294,6 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 			} else {
 				q = q.Where(pastID)
 			}
-
-			q = q.Where(sq.Lt{"e.id": *params.PastID})
 		}
 		q = q.OrderBy("e.id DESC")
 	case "raid duration":
@@ -279,12 +356,27 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 				sq.Expr("e.id = e.unique_group"),
 			})
 		}
-	case "friends":
-		q = q.Where("?::UUID = ANY (u.friends)", params.User)
 	}
 
-	if params.Scope == "roster" || (params.Selections.Search != "" && !params.Privileged) {
+	if params.Scope == "roster" || (params.Scope == "arkesia" && params.Selections.Search != "" && !params.Privileged) {
 		q = q.Where(sq.Eq{"u.id": params.User})
+	}
+
+	if params.GearScore != "" && slices.Contains([]string{
+		"1540-1560", "1560-1580", "1580-1600", "1600-1610", "1610-1620", "1620+",
+	}, params.GearScore) {
+		if params.GearScore == "1620+" {
+			q = q.Where(sq.GtOrEq{"p.gear_score": 1620})
+		} else {
+			var min, max int
+			_, err := fmt.Sscanf(params.GearScore, "%d-%d", &min, &max)
+			if err == nil {
+				q = q.Where(sq.And{
+					sq.GtOrEq{"p.gear_score": min},
+					sq.Lt{"p.gear_score": max},
+				})
+			}
+		}
 	}
 
 	q = q.Limit(6).PlaceholderFormat(sq.Dollar)

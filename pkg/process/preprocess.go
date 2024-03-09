@@ -22,5 +22,20 @@ func (p *Processor) Preprocess(raw *meter.Encounter) {
 }
 
 func (p *Processor) PopulateDifficulty(raw *meter.Encounter) {
-
+	switch raw.CurrentBossName {
+	case "Sonavel", "Hanumatan":
+		raw.Difficulty = "Normal"
+	case "Saydon":
+		if raw.DamageStats.TotalDamageDealt < 3000000000 {
+			raw.Difficulty = "Normal"
+		} else if raw.DamageStats.TotalDamageDealt > 4000000000 {
+			raw.Difficulty = "Inferno"
+		}
+	case "Kakul":
+		if raw.DamageStats.TotalDamageDealt < 3500000000 {
+			raw.Difficulty = "Normal"
+		} else {
+			raw.Difficulty = "Inferno"
+		}
+	}
 }

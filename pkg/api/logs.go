@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"github.com/0fau/logs/pkg/database/sql"
 	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/0fau/logs/pkg/query"
 	"github.com/cockroachdb/errors"
@@ -92,8 +93,13 @@ func (enc *ReturnedEncounterShort) Anonymize(order map[string]string) {
 
 func (s *Server) logs(c *gin.Context) {
 	params := &query.Params{
-		Order: c.Query("order"),
-		Scope: c.Query("scope"),
+		Order:     c.Query("order"),
+		Scope:     c.Query("scope"),
+		GearScore: c.Query("gear_score"),
+	}
+
+	if !slices.Contains([]string{"arkesia", "friends", "roster"}, c.Query("scope")) {
+		params.Scope = "arkesia"
 	}
 
 	if c.Query("past_id") != "" {
@@ -196,7 +202,7 @@ func (s *Server) logs(c *gin.Context) {
 		}
 
 		uploaderID, _ := enc.UploadedBy.Value()
-		if u == nil || uploaderID != u.ID && !hasRoles(roles, "admin", "trusted") {
+		if u == nil || (params.Scope != "friends" && uploaderID != u.ID && !hasRoles(roles, "admin", "trusted")) {
 			order := short.Order()
 			short.Anonymize(order)
 		}
@@ -263,6 +269,14 @@ func (s *Server) logHandler(c *gin.Context) {
 		username = u.(string)
 	}
 
+	friends, err := s.conn.Queries.AreFriends(ctx, sql.AreFriendsParams{
+		User1: uuid, User2: enc.UploadedBy,
+	})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		log.Println(errors.Wrap(err, "fetching rows"))
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
 	full := ReturnedEncounter{
 		ReturnedEncounterShort: ReturnedEncounterShort{
 			Uploader: ReturnedUser{
@@ -283,7 +297,7 @@ func (s *Server) logHandler(c *gin.Context) {
 		Data:      enc.Data,
 	}
 
-	if u == nil || u.ID != uploadedBy && !hasRoles(roles, "admin", "trusted") {
+	if u == nil || u.ID != uploadedBy && !hasRoles(roles, "admin", "trusted") && !friends {
 		order := full.Order()
 		full.Anonymize(order)
 	}

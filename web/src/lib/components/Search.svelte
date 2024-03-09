@@ -10,6 +10,7 @@
     import IconNumberSix from '~icons/mdi/number-6-box';
     import IconN from '~icons/mdi/letter-n-box';
     import IconH from '~icons/mdi/letter-h-box';
+    import IconE from '~icons/mdi/letter-e-box';
     import IconI from '~icons/heroicons-solid/fire';
     import IconNumberOneO from '~icons/mdi/number-1-box-outline';
     import IconNumberTwoO from '~icons/mdi/number-2-box-outline';
@@ -19,6 +20,7 @@
     import IconNumberSixO from '~icons/mdi/number-6-box-outline';
     import IconNO from '~icons/mdi/letter-n-box-outline';
     import IconHO from '~icons/mdi/letter-h-box-outline';
+    import IconEO from '~icons/mdi/letter-e-box-outline';
     import IconIO from '~icons/heroicons-outline/fire';
     import IconFrog from '~icons/icon-park-outline/frog';
     import IconTree from '~icons/typcn/tree';
@@ -27,7 +29,6 @@
     import IconBird from '~icons/lucide/bird';
     import IconLion from '~icons/emojione-monotone/lion-face';
     import IconScaryDragon from '~icons/game-icons/spiked-dragon-head';
-    import IconCheck from '~icons/icon-park-solid/check-one';
 
     export let search;
 
@@ -52,13 +53,15 @@
     let difficulties = {
         "Normal": IconN,
         "Hard": IconH,
-        "Inferno": IconI
+        "Inferno": IconI,
+        "Extreme": IconE,
     }
 
     let difficultiesO = {
         "Normal": IconNO,
         "Hard": IconHO,
-        "Inferno": IconIO
+        "Inferno": IconIO,
+        "Extreme": IconEO
     }
 
     let raids = [[
@@ -96,7 +99,7 @@
             primary: "bg-[#7ea6b2]",
             secondary: "bg-[#5f909e]",
             gates: 2,
-            difficulties: ["Normal", "Hard", "Inferno"],
+            difficulties: ["Normal", "Hard", "Extreme", "Inferno"],
         },
         {
             name: "Vykas",

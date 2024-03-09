@@ -109,6 +109,10 @@
         }
         url += "&order=" + order.toLowerCase();
 
+        if (gearScore) {
+            url += "&gear_score=" + encodeURIComponent(gearScore)
+        }
+
         const recent = await fetch(url, {
             credentials: "same-origin",
             method: "POST",
@@ -185,6 +189,16 @@
         await refresh();
     }
 
+    async function changeGearScore(score) {
+        showSortOptions = false;
+        if (gearScore !== score) {
+            gearScore = score
+        } else {
+            gearScore = null
+        }
+        await refresh()
+    }
+
     let showSortOptions = false;
 
     let toggle;
@@ -210,6 +224,26 @@
         Duration = "Raid Duration",
         Performance = "Performance"
     }
+
+    enum GearScoreRange {
+        Range1540To1560 = "1540-1560",
+        Range1560To1580 = "1560-1580",
+        Range1580To1600 = "1580-1600",
+        Range1600To1610 = "1600-1610",
+        Range1610To1620 = "1610-1620",
+        Range1620Plus = "1620+"
+    }
+
+    const gearScores = [
+        GearScoreRange.Range1540To1560,
+        GearScoreRange.Range1560To1580,
+        GearScoreRange.Range1580To1600,
+        GearScoreRange.Range1600To1610,
+        GearScoreRange.Range1610To1620,
+        GearScoreRange.Range1620Plus
+    ]
+
+    let gearScore;
 
     let order = Order.RecentClear;
     $: scoped = browser && $settings.logs.scope;
@@ -264,6 +298,14 @@
                                 class="mx-auto my-0.5 whitespace-nowrap px-1 text-center hover:underline"
                                 >{sort}</button>
                         {/each}
+                        <div class="mt-1 bg-[#F4EDE9] border-[#a7738b] border-[0.5px] shadow-sm rounded-md overflow-hidden">
+                            <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Gear Score</div>
+                            {#each gearScores as range, i}
+                                <button class:underline={gearScore === range}
+                                        on:click={() => changeGearScore(range)}
+                                        class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{range}</button>
+                            {/each}
+                        </div>
                     </div>
                 {/if}
             </div>
@@ -352,6 +394,7 @@
     </div>
     <!-- {/if} -->
 </div>
+
 
 <style lang="postcss">
     /* * {

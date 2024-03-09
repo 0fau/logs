@@ -33,7 +33,7 @@ func (r iteratorForInsertPlayer) Values() ([]interface{}, error) {
 		r.rows[0].Class,
 		r.rows[0].Name,
 		r.rows[0].Dead,
-		r.rows[0].Data,
+		r.rows[0].GearScore,
 		r.rows[0].Dps,
 		r.rows[0].Place,
 	}, nil
@@ -44,5 +44,5 @@ func (r iteratorForInsertPlayer) Err() error {
 }
 
 func (q *Queries) InsertPlayer(ctx context.Context, arg []InsertPlayerParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"players"}, []string{"encounter", "class", "name", "dead", "data", "dps", "place"}, &iteratorForInsertPlayer{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"players"}, []string{"encounter", "class", "name", "dead", "gear_score", "dps", "place"}, &iteratorForInsertPlayer{rows: arg})
 }

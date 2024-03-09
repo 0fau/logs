@@ -5,7 +5,6 @@ import (
 	"context"
 	"github.com/0fau/logs/pkg/database"
 	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/0fau/logs/pkg/process"
 	"github.com/0fau/logs/pkg/process/meter"
 	"github.com/0fau/logs/pkg/s3"
@@ -178,11 +177,8 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 				Name:      player,
 				Dead:      header.Dead,
 				Place:     int32(i + 1),
-				Data: structs.IndexedPlayerData{
-					Damage: header.Damage,
-					DPS:    header.DPS,
-				},
-				Dps: header.DPS,
+				GearScore: header.GearScore,
+				Dps:       header.DPS,
 			}
 			if err := qtx.InsertPlayerInternal(ctx, params); err != nil {
 				return errors.Wrap(err, "inserting player")

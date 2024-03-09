@@ -1,48 +1,19 @@
 <script lang="ts">
-    import { getBossIcon } from "$lib/raids";
-    import { formatDamage, formatDate, formatDateSolid, formatDuration } from "$lib/print";
+    import {getBossIcon, shortBossName} from "$lib/raids";
+    import {formatDamage, formatDate, formatDateSolid, formatDuration} from "$lib/print";
 
     const difficultyColors = {
-        Inferno: "#9a3148",
-        Trial: "#9a3148",
-        Challenge: "#625f77",
-        Hard: "#b9982e",
-        Normal: "#625f77"
+        "Inferno": "#9a3148",
+        "Trial": "#9a3148",
+        "Extreme": "#9a3148",
+        "Challenge": "#625f77",
+        "Hard": "#b9982e",
+        "Normal": "#625f77",
     };
 
-    function shortBossName(boss: string): string {
-        if (boss === "Phantom Legion Commander Brelshaza") {
-            return "Phantom LC Brelshaza";
-        }
-
-        if (boss === "Covetous Legion Commander Vykas") {
-            return "Covetous LC Vykas";
-        }
-
-        if (boss === "Plague Legion Commander Akkan") {
-            return "Plague LC Akkan";
-        }
-
-        if (boss === "Lazaram, the Trailblazer") {
-            return "Lazaram";
-        }
-
-        if (boss === "Firehorn, Trampler of Earth") {
-            return "Firehorn";
-        }
-
-        if (boss === "Rakathus, the Lurking Arrogance") {
-            return "Rakathus";
-        }
-
-        if (boss === "Kaltaya, the Blooming Chaos") {
-            return "Kaltaya";
-        }
-
-        return boss;
-    }
-
     export let encounter;
+    export let width;
+    export let gearScore;
     export let screenshot = false;
 
     $: player = encounter.players[encounter.localPlayer];

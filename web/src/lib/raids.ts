@@ -50,6 +50,42 @@ const raids = {
     ],
 }
 
+export function shortBossName(boss: string): string {
+    if (boss === "Phantom Legion Commander Brelshaza") {
+        return "Phantom LC Brelshaza"
+    }
+
+    if (boss === "Covetous Legion Commander Vykas") {
+        return "Covetous LC Vykas"
+    }
+
+    if (boss === "Plague Legion Commander Akkan") {
+        return "Plague LC Akkan"
+    }
+
+    if (boss === "Lazaram, the Trailblazer") {
+        return "Lazaram"
+    }
+
+    if (boss === "Firehorn, Trampler of Earth") {
+        return "Firehorn"
+    }
+
+    if (boss === "Rakathus, the Lurking Arrogance") {
+        return "Rakathus"
+    }
+
+    if (boss === "Kaltaya, the Blooming Chaos") {
+        return "Kaltaya"
+    }
+
+    return boss
+}
+
+const guardians = [
+    "Gargadeth", "Sonavel", "Hanumatan", "Caliligos", "Deskaluda",
+]
+
 const raidLookup = {}
 for (const [raid, gates] of Object.entries(raids)) {
     for (let gate = 0; gate < gates.length; gate++) {
@@ -73,3 +109,43 @@ export function getRaidIcon(raid: string): string {
 export function getRaid(boss: string) {
     return raidLookup[boss]
 }
+
+export function isGuardian(boss: string) {
+    return guardians.includes(boss)
+}
+
+export const bossHpMap = {
+    "Dark Mountain Predator": 50,
+    "Destroyer Lucas": 50,
+    "Leader Lugaru": 50,
+    "Demon Beast Commander Valtan": 160,
+    "Ravaged Tyrant of Beasts": 40,
+    "Incubus Morphe": 60,
+    "Nightmarish Morphe": 60,
+    "Covetous Devourer Vykas": 160,
+    "Covetous Legion Commander Vykas": 180,
+    "Saydon": 160,
+    "Kakul": 140,
+    "Kakul-Saydon": 180,
+    "Encore-Desiring Kakul-Saydon": 77,
+    "Gehenna Helkasirs": 120,
+    "Ashtarot": 170,
+    "Primordial Nightmare": 190,
+    "Brelshaza, Monarch of Nightmares": 200,
+    "Imagined Primordial Nightmare": 20,
+    "Pseudospace Primordial Nightmare": 20,
+    "Phantom Legion Commander Brelshaza": 250,
+    "Griefbringer Maurug": 150,
+    "Evolved Maurug": 30,
+    "Lord of Degradation Akkan": 190,
+    "Plague Legion Commander Akkan": 220,
+    "Lord of Kartheon Akkan": 300,
+    "Tienis": 110,
+    "Celestial Sentinel" : 60,
+    "Prunya": 90,
+    "Lauriel": 200,
+    "Kaltaya, the Blooming Chaos": 120,
+    "Rakathus, the Lurking Arrogance": 160,
+    "Firehorn, Trampler of Earth": 160,
+    "Lazaram, the Trailblazer": 200
+};

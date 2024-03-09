@@ -18,6 +18,7 @@ func config() {
 		"DISCORD_GUILDID",
 		"DISCORD_MESSAGEID",
 		"DISCORD_ROLEID",
+		"DISCORD_LOG_CHANNELID",
 	)
 }
 
@@ -27,16 +28,18 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config()
 
-			b := bot.Bot{
+			b := bot.NewBot(&bot.Config{
 				DiscordConfig: bot.DiscordConfig{
 					Token: viper.GetString("DISCORD_BOT_TOKEN"),
 
 					GuildID:   viper.GetString("DISCORD_GUILDID"),
 					MessageID: viper.GetString("DISCORD_MESSAGEID"),
 					RoleID:    viper.GetString("DISCORD_ROLEID"),
+
+					LogChannelID: viper.GetString("DISCORD_LOG_CHANNELID"),
 				},
 				DatabaseURL: viper.GetString("DATABASE_URL"),
-			}
+			})
 			return b.Run(context.Background())
 		},
 	}

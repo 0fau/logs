@@ -8,7 +8,6 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/spf13/viper"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -65,7 +64,6 @@ func (c *Client) DeleteEncounter(ctx context.Context, id int32) error {
 }
 
 func (c *Client) FetchImage(ctx context.Context, path string) ([]byte, error) {
-	log.Println("images/" + viper.GetString("ENVIRONMENT") + "/" + path)
 	reader, err := c.client.GetObject(ctx, c.bucket, "images/"+viper.GetString("ENVIRONMENT")+"/"+path, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching image from s3")
