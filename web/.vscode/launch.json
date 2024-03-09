@@ -1,0 +1,18 @@
+{
+	"configurations": [
+		{
+			"name": "dev",
+			"request": "launch",
+			"runtimeArgs": ["run", "dev"],
+			"runtimeExecutable": "npm",
+			"skipFiles": ["<node_internals>/**"],
+			"type": "node",
+			"env": {
+				"LBF_ENVIRONMENT": "dev",
+				"LBF_API_SERVER_ADDRESS": "logs.fau.dev",
+				"LBF_API_SERVER_ADDRESS_SECURE": "true",
+				"LBF_DEV_FRONTEND_ONLY": "true"
+			}
+		}
+	]
+}
