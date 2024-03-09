@@ -6,7 +6,7 @@
     import IconBack from "~icons/ion/arrow-back-outline";
     import IconScope from "~icons/mdi/telescope";
     import IconSort from "~icons/basil/sort-outline";
-    import IconMenu from '~icons/mingcute/menu-fill';
+    import IconMenu from "~icons/mingcute/menu-fill";
 
     import EncounterRecap from "$lib/components/EncounterRecap.svelte";
     import { onMount } from "svelte";
@@ -110,7 +110,7 @@
         url += "&order=" + order.toLowerCase();
 
         if (gearScore) {
-            url += "&gear_score=" + encodeURIComponent(gearScore)
+            url += "&gear_score=" + encodeURIComponent(gearScore);
         }
 
         const recent = await fetch(url, {
@@ -192,11 +192,11 @@
     async function changeGearScore(score) {
         showSortOptions = false;
         if (gearScore !== score) {
-            gearScore = score
+            gearScore = score;
         } else {
-            gearScore = null
+            gearScore = null;
         }
-        await refresh()
+        await refresh();
     }
 
     let showSortOptions = false;
@@ -241,7 +241,7 @@
         GearScoreRange.Range1600To1610,
         GearScoreRange.Range1610To1620,
         GearScoreRange.Range1620Plus
-    ]
+    ];
 
     let gearScore;
 
@@ -256,7 +256,7 @@
     href="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless" />
 <div class="mx-auto mt-10 flex max-h-screen max-w-3xl flex-col items-center">
     <div class="mb-3 flex items-center">
-        <button class="block md:hidden absolute left-[7%]">
+        <button class="absolute left-[7%] block md:hidden">
             <IconMenu class="size-6 text-tapestry-600 hover:text-tapestry-700" />
         </button>
         <div class="flex flex-row items-center justify-center">
@@ -266,16 +266,13 @@
                     <div
                         class="flex h-full w-full items-center justify-center"
                         class:rounded-lg={browser && scoped === scope}>
-                        <div
+                        <button
                             class="flex h-[76%] w-[87%] items-center justify-center rounded-lg"
-                            class:bg-tapestry-100={browser && scoped === scope}>
-                            <button
-                                class:font-medium={browser && scoped === scope}
-                                class:text-tapestry-700={browser && scoped === scope}
-                                on:click={() => changeScope(scope)}>
-                                {scope}
-                            </button>
-                        </div>
+                            class:bg-tapestry-100={browser && scoped === scope}
+                            class:text-tapestry-700={browser && scoped === scope}
+                            on:click={() => changeScope(scope)}>
+                            {scope}
+                        </button>
                     </div>
                 {/each}
             </div>
@@ -289,21 +286,30 @@
                 {#if showSortOptions}
                     <div
                         use:unfocus
-                        class="absolute z-50 float-right overflow-hidden rounded-md border border-bouquet-600 bg-white text-sm text-bouquet-950 shadow-sm">
-                        <div class="bg-tapestry-600 text-center text-white">Sort</div>
-                        {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
-                            <button
-                                class:underline={order === sort || (!order && i === 0)}
-                                on:click={() => changeSort(sort)}
-                                class="mx-auto my-0.5 whitespace-nowrap px-1 text-center hover:underline"
-                                >{sort}</button>
-                        {/each}
-                        <div class="mt-1 bg-[#F4EDE9] border-[#a7738b] border-[0.5px] shadow-sm rounded-md overflow-hidden">
-                            <div class="text-center text-[#F4EDE9] bg-[#a7738b]">Gear Score</div>
-                            {#each gearScores as range, i}
-                                <button class:underline={gearScore === range}
-                                        on:click={() => changeGearScore(range)}
-                                        class="whitespace-nowrap mx-auto text-center px-1 my-0.5">{range}</button>
+                        class="absolute z-50 float-right overflow-hidden text-sm text-bouquet-950 shadow-sm">
+                        <div class="rounded-md border border-bouquet-600 bg-white">
+                            <div class="rounded-t-md bg-tapestry-600 text-center text-white">
+                                Sort
+                            </div>
+                            {#each [Order.RecentClear, Order.RecentLog, Order.Duration, Order.Performance] as sort, i}
+                                <button
+                                    class:underline={order === sort || (!order && i === 0)}
+                                    on:click={() => changeSort(sort)}
+                                    class="mx-auto my-0.5 whitespace-nowrap px-1 text-center hover:underline"
+                                    >{sort}</button>
+                            {/each}
+                        </div>
+                        <div
+                            class="mt-1 overflow-hidden rounded-md border border-bouquet-600 bg-white shadow-sm">
+                            <div class="text-wite bg-tapestry-600 text-center text-white">
+                                Gear Score
+                            </div>
+                            {#each gearScores as range, i (i)}
+                                <button
+                                    class:underline={gearScore === range}
+                                    on:click={() => changeGearScore(range)}
+                                    class="mx-auto my-0.5 whitespace-nowrap px-1 text-center"
+                                    >{range}</button>
                             {/each}
                         </div>
                     </div>
@@ -348,7 +354,7 @@
                 class="mb-2 h-20 w-full px-2"
                 id={"#" + encounter.id}
                 on:click={() => focus(focused && focused.id === encounter.id ? null : encounter)}>
-                <EncounterPreview {encounter} />
+                <EncounterPreview {encounter} {gearScore} />
             </button>
             {#if focused && focused.id === encounter.id}
                 <div class="mb-2 flex w-full justify-between px-5 text-sm">
@@ -394,7 +400,6 @@
     </div>
     <!-- {/if} -->
 </div>
-
 
 <style lang="postcss">
     /* * {

@@ -58,7 +58,7 @@
                                     <div class="flex flex-col items-center justify-evenly">
                                         <p class="text-sm font-medium">{player}</p>
                                         <p class="text-xs"><span class="font-medium">{["Inferno", "Trial"].includes(focused.difficulty) ? "" : Math.floor(focused.players[player].gearScore)}</span>&nbsp;{focused.players[player].class}</p>
-                                        <p class="font-medium">{formatDamage(focused.players[player].dps)}</p>
+                                        <p class="font-medium text-tapestry-700">{formatDamage(focused.players[player].dps)}</p>
                                     </div>
                                     <div class="mx-auto mb-auto w-[50%] h-[1.5px]">
                                     </div>

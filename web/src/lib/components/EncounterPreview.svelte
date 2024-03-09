@@ -12,7 +12,6 @@
     };
 
     export let encounter;
-    export let width;
     export let gearScore;
     export let screenshot = false;
 
@@ -24,7 +23,7 @@
     class:screenshot>
     <div class="flex h-full w-full flex-row items-center pl-3 pr-2">
         <div>
-            <div class="self-start text-left text-gray-600">
+            <div class="self-start text-left text-zinc-800">
                 <div class="flex items-center space-x-1">
                     <img alt={encounter.boss} src={getBossIcon(encounter.boss)} class="size-6" />
                     <span class="truncate font-medium tracking-tight">{shortBossName(encounter.boss)}</span>
@@ -49,9 +48,7 @@
         <div class="ml-auto flex h-full flex-col self-end rounded-r-md py-1 text-white">
             <span
                 class="mr-0.5 mt-1.5 self-end rounded-sm bg-tapestry-500 px-1 py-0.5 text-center text-xs font-medium"
-                >{encounter.anonymized
-                    ? player.class + " " + encounter.localPlayer
-                    : encounter.localPlayer}</span>
+                >{encounter.localPlayer}</span>
             <span class="mr-1 mt-0.5 self-end text-right text-xs font-medium text-tapestry-500"
                 >{player.class}</span>
             <span class="my-auto mr-1 text-right text-lg font-medium text-gray-600"

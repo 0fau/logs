@@ -286,7 +286,7 @@
                             class="h-7 w-7  p-0.5 mx-1 rounded-md my-auto"
                             this={guardian.icon}/>
                     {#if hovered === hoverkey}
-                        <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-0.15rem)] text-[#575279]">
+                        <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-bouquet-50 border-[1px] border-[#c58597] -translate-y-[calc(100%-0.15rem)] text-[#575279]">
                             <svelte:component
                                     style="{selectedGuardians[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
                                     class="h-6 w-6 p-0.5 mx-1 rounded-md my-auto"
@@ -313,7 +313,7 @@
                             class="h-7 w-7 p-0.5 mx-1 rounded-md my-auto"
                             this={guardian.icon}/>
                     {#if hovered === hoverkey}
-                        <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-0.15rem)] text-[#575279]">
+                        <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-bouquet-50 border-[1px] border-[#c58597] -translate-y-[calc(100%-0.15rem)] text-[#575279]">
                             <svelte:component
                                     style="{selectedTrials[guardian.name] ? 'background-color: #76708f; color: #fff' : 'color: #56516f'}"
                                     class="h-6 w-6 p-0.5 mx-1 rounded-md my-auto"
@@ -346,7 +346,7 @@
                      class="w-5 h-5 blur-[0.1px] z-50 m-auto"
                      src="{getClassIconNew(c)}"/>
                 {#if hovered === hoverkey}
-                    <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%)] text-[#575279]">
+                    <div class="absolute flex flex-row items-center justify-center p-1.5 z-50 rounded-lg whitespace-nowrap bg-bouquet-50 border-[1px] border-[#c58597] -translate-y-[calc(100%)] text-[#575279]">
                         <p class="font-medium text-sm">{c}</p>
                     </div>
                 {/if}

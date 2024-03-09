@@ -21,7 +21,7 @@
          on:mouseleave={() => hovered = false}>
         <IconSkull/>
         {#if hovered}
-            <div class="absolute flex flex-row items-center justify-center p-1 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-0.1rem)] text-[#575279]">
+            <div class="absolute flex flex-row items-center justify-center p-1 z-50 rounded-lg whitespace-nowrap bg-bouquet-50 border-[1px] border-[#c58597] -translate-y-[calc(100%-0.1rem)] text-[#575279]">
                 <IconSkull/>
                 <p class="ml-1">Dead for {formatDuration(player.deadFor)}</p>
             </div>

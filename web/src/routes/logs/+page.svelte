@@ -85,7 +85,7 @@
 <!--        <Search {search} />-->
 <!--    </div>-->
     <div
-        class="bg-[#e7cfd6] w-full min-w-[30rem]"
+        class="bg-tapestry-100 w-full min-w-[30rem]"
     >
         <EncounterList {search} point={data.point} />
     </div>

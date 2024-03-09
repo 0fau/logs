@@ -12,7 +12,7 @@
 
 {#if encounter}
 <div class="bg-white h-full">
-    <div class="w-[28em]">
+    <div class="w-[28rem]">
         <EncounterPreview screenshot={true} {encounter}/>
     </div>
 </div>
