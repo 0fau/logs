@@ -34,9 +34,9 @@
     }
 </script>
 
-<!--<div class="h-[23px] w-[490px] mb-3.5 flex flex-row items-center">-->
-<!--    <a href="/logs" class="mt-1 text-sm text-[#9a4a61]">← Logs</a>-->
-<!--</div>-->
+<div class="h-4 mb-2 flex flex-row items-center max-w-xl w-full">
+    <a href="/logs" class="mt-1 text-sm text-tapestry-800 hover:underline">← Logs</a>
+</div>
 <div class="h-8 w-full mb-2 flex items-center max-w-md px-1">
     <div class="flex p-0.5 items-center shadow-sm rounded-lg bg-tapestry-50 border border-tapestry-500">
         {#if !uploader}

@@ -65,7 +65,7 @@
         </p>
         <p class="translate-y-1 text-sm text-[#fcf9f6]">by faust</p>
     </div>
-    <div class="mb-5 flex w-full flex-col pl-[16%] text-lg text-[#fff]">
+    <div class="pb-5 flex w-full flex-col pl-[16%] text-lg text-white bg-tapestry-600">
         <p class="mb-1 text-sm font-semibold">General</p>
         <a href="/logs" class={style(selected, "logs")}>
             <IconLog class="inline h-6 w-6" />
@@ -105,13 +105,13 @@
             <IconAbout class="inline h-6 w-6" />
             <span class="ml-1 text-sm">FAQ</span>
         </a>
-         <button
-            class="h-8 w-20 rounded-md bg-tapestry-400 p-1 text-sm"
-            on:click={() => {
-                $settings.darkMode = !$settings.darkMode;
-            }}>
-            dark mode
-        </button>
+<!--         <button-->
+<!--            class="h-8 w-20 rounded-md bg-tapestry-400 p-1 text-sm"-->
+<!--            on:click={() => {-->
+<!--                $settings.darkMode = !$settings.darkMode;-->
+<!--            }}>-->
+<!--            dark mode-->
+<!--        </button>-->
         {#if browser && !greeting}
             <button
                 transition:blur={{ duration: 10 }}
@@ -166,7 +166,7 @@
             {/if}
         </div>
     {:else}
-        <div class="mx-auto mt-auto">
+        <div class="w-full flex items-center justify-center bg-tapestry-600">
             <form action="/oauth2" method="post">
                 <button
                     class="mb-10 w-[50%] min-w-[110px] rounded bg-[#9a4a61] p-1 py-1.5 text-center text-[#fcf9f6]">

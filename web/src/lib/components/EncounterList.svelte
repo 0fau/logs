@@ -11,6 +11,7 @@
     import EncounterRecap from "$lib/components/EncounterRecap.svelte";
     import { onMount } from "svelte";
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
+    import Search from "$lib/components/Search.svelte";
 
     export let search;
 
@@ -248,6 +249,8 @@
     let order = Order.RecentClear;
     $: scoped = browser && $settings.logs.scope;
     $: display = encounters.slice(page * 5, (page + 1) * 5);
+
+
 </script>
 
 <link
@@ -255,6 +258,7 @@
     as="image"
     href="https://cdn.discordapp.com/emojis/1056373578733461554.gif?size=240&quality=lossless" />
 <div class="mx-auto mt-10 flex max-h-screen max-w-3xl flex-col items-center">
+    <Search {search}/>
     <div class="mb-3 flex items-center">
         <button class="absolute left-[7%] block md:hidden">
             <IconMenu class="size-6 text-tapestry-600 hover:text-tapestry-700" />
@@ -308,7 +312,7 @@
                                 <button
                                     class:underline={gearScore === range}
                                     on:click={() => changeGearScore(range)}
-                                    class="mx-auto my-0.5 whitespace-nowrap px-1 text-center"
+                                    class="mx-auto my-0.5 whitespace-nowrap px-1 text-center hover:underline"
                                     >{range}</button>
                             {/each}
                         </div>
@@ -358,14 +362,6 @@
             </button>
             {#if focused && focused.id === encounter.id}
                 <div class="mb-2 flex w-full justify-between px-5 text-sm">
-                    <!-- <div class="my-1">
-                        <button
-                            on:click={() => focus(null)}
-                            class="flex items-center justify-center rounded-md border-[0.5px] border-[#b4637a] bg-[#f5efec] p-0.5 px-1.5 text-[#b4637a]">
-                            <IconBack class="mr-0.5 inline" />
-                            Back
-                        </button>
-                    </div> -->
                     <div class="mt-auto rounded-md bg-tapestry-600 p-0.5 px-6 text-white">
                         Preview
                     </div>
