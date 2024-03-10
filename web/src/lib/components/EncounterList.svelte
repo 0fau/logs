@@ -400,23 +400,3 @@
     </div>
     <!-- {/if} -->
 </div>
-
-<style lang="postcss">
-    /* * {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-    *::-webkit-scrollbar {
-        display: none;
-    } */
-
-    .custom-scroll::-webkit-scrollbar {
-        @apply right-0 block size-2;
-    }
-    .custom-scroll::-webkit-scrollbar-thumb {
-        @apply rounded-md bg-tapestry-600;
-    }
-    .custom-scroll::-webkit-scrollbar-corner {
-        @apply bg-zinc-800;
-    }
-</style>

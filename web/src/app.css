@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    .custom-scroll::-webkit-scrollbar {
+        @apply right-0 block size-2;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        @apply rounded-md bg-tapestry-600;
+    }
+    .custom-scroll::-webkit-scrollbar-corner {
+        @apply bg-bouquet-50;
+    }
+}

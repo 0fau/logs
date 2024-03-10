@@ -32,9 +32,9 @@
 </script>
 
 <div class="w-full">
-<div class="mt-2.5 flex justify-center items-center">
+<div class="my-2.5 flex justify-center items-center">
     {#each tabs as tab}
-        <button class="p-1 px-1.5 m-0.5 mb-1 font-medium w-20 border text-sm border-tapestry-500 rounded-lg"
+        <button class="p-1 m-0.5 font-medium w-20 border text-sm border-tapestry-500 rounded-lg"
                 class:bg-tapestry-500={current === tab}
                 class:bg-bouquet-50={current !== tab}
                 class:text-tapestry-500={current !== tab}
@@ -45,10 +45,10 @@
     {/each}
 </div>
 <!-- TODO adject max-w based off of screen -->
-<div class="max-w-4xl mx-auto overflow-hidden">
+<div class="max-w-4xl mx-auto overflow-hidden px-1">
     {#if current === MeterTab.Damage}
         {#if $focus === ""}
-            <div class="rounded-xl min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
                 <DamageView {encounter} {focus}/>
             </div>
             {#if encounter.data.bossHPLog}
@@ -57,7 +57,7 @@
                 </div>
             {/if}
         {:else}
-            <div class="rounded-xl min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
                 <PlayerDamageView {encounter} {focus}/>
             </div>
         {/if}

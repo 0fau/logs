@@ -7,6 +7,9 @@ const config = {
     content: ["./src/**/*.{html,js,svelte,ts}", './node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}'],
     theme: {
         extend: {
+            screens: {
+                'xs': '475px'
+            },
             fontFamily: {
                 sans: ['Inter Variable', ...defaultTheme.fontFamily.sans]
             },
@@ -50,7 +53,7 @@ const config = {
                     '900': '#5f3c4b',
                     '950': '#372029',
                 },
-                
+
             }
         }
     }

@@ -3,7 +3,7 @@
     let user = encounter.uploader;
 </script>
 
-<div class="h-8 w-full mb-2 flex items-center max-w-md">
+<div class="h-8 w-full mb-2 flex items-center max-w-md px-1">
     <div class="flex py-1 px-2 items-center shadow-sm rounded-lg bg-tapestry-50 border border-tapestry-500">
         {#if encounter.anonymized}
             <img alt="avatar" class="rounded-md mr-1 w-6 h-6"

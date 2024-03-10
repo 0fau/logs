@@ -2,6 +2,8 @@
     import { cards, getClassIcon, getSkillIcon } from "$lib/game";
     import { formatDamage, formatPercent } from "$lib/print";
     import Player from "$lib/components/meter/Player.svelte";
+    import { horizontalWheel } from "$lib/scroll";
+    import { onMount } from "svelte";
 
     export let encounter;
     export let focus;
@@ -53,6 +55,8 @@
     let rows = [];
     let bars = [];
 
+    let cWidth = 0;
+
     let most = data.skillDamage[skills[0]].damage;
     $: {
         for (let i = 0; i < rows.length; i++) {
@@ -63,14 +67,19 @@
                 percent = data.skillDamage[skills[i - 1]].damage / most;
             }
             bars[i].style.height = rows[i].clientHeight + "px";
-            bars[i].style.width = percent * rows[i].clientWidth + "px";
+            bars[i].style.width = percent * cWidth + "px";
             bars[i].style.backgroundColor = barColors[i % 2];
         }
     }
+
+    let div: HTMLElement;
+    onMount(() => {
+        horizontalWheel(div);
+    });
 </script>
 
-<div class="h-full w-full overflow-scroll rounded-lg">
-    <table on:contextmenu|preventDefault={() => focus.set("")} class="table-fixed relative">
+<div class="custom-scroll h-full w-full overflow-scroll rounded-lg" bind:this={div}>
+    <table on:contextmenu|preventDefault={() => focus.set("")} class="relative table-fixed" bind:clientWidth={cWidth}>
         <thead class="bg-tapestry-500">
             <tr class="text-tapestry-50">
                 <th class="w-full rounded-tl-lg"></th>
@@ -141,7 +150,7 @@
             <td>{data.damage.cpm}</td>
             <td>{formatDamage(data.damage.hits)}</td>
             <td>{data.damage.hpm}</td>
-            <div bind:this={bars[0]} class="absolute z-0 left-0"></div>
+            <div bind:this={bars[0]} class="absolute left-0 z-0"></div>
         </tr>
         {#each skills as name, i}
             {@const skill = data.skillDamage[name]}
@@ -158,8 +167,8 @@
                 </td>
                 <td>{skill.damage !== 0 ? formatDamage(skill.damage) : ""}</td>
                 <td>{skill.dps !== 0 ? formatDamage(skill.dps) : ""}</td>
-                <td>{formatPercent(skill.percent / 100)} </td><td
-                    >{formatPercent(skill.crit / 100)}</td>
+                <td>{formatPercent(skill.percent / 100)} </td>
+                <td>{formatPercent(skill.crit / 100)}</td>
                 {#if hasCritDamage}
                     <td>
                         {#if skill.critDamage !== "0.0"}
@@ -192,7 +201,7 @@
                 <td class="mr-1">{skill.hpm !== "0.0" ? skill.hpm : ""}</td>
                 <div
                     bind:this={bars[i + 1]}
-                    class="absolute z-0 left-0"
+                    class="absolute left-0 z-0"
                     class:rounded-bl-lg={i === skills.length - 1}>
                 </div>
             </tr>

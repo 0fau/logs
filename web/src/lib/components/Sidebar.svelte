@@ -105,13 +105,13 @@
             <IconAbout class="inline h-6 w-6" />
             <span class="ml-1 text-sm">FAQ</span>
         </a>
-        <!-- <button
+         <button
             class="h-8 w-20 rounded-md bg-tapestry-400 p-1 text-sm"
             on:click={() => {
                 $settings.darkMode = !$settings.darkMode;
             }}>
             dark mode
-        </button> -->
+        </button>
         {#if browser && !greeting}
             <button
                 transition:blur={{ duration: 10 }}

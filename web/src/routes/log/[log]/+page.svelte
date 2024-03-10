@@ -54,11 +54,11 @@
     {/if}
 </svelte:head>
 
-<div class="w-full py-20">
+<div class="w-full py-5 xs:py-10 sm:py-20">
     {#if encounter}
         <div class="flex flex-col items-center">
             <EncounterSocial {encounter} />
-            <div class="w-[30rem]">
+            <div class="xs:w-[30rem] w-full px-1">
                 <EncounterPreview {encounter} />
             </div>
         </div>
