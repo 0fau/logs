@@ -4,7 +4,6 @@
     import {formatDuration} from "$lib/print";
 
     export let player;
-    export let anonymized;
     export let difficulty;
 
     let hovered;
@@ -14,7 +13,7 @@
      src="{getClassIcon(player.class)}"
      class="h-6 w-6 mr-1.5 z-50 inline"
 />
-<span class="z-50">{["Inferno", "Trial"].includes(difficulty) ? "" : Math.floor(player.gearScore) + " " }{anonymized ? player.class + " " + player.name : player.name}</span>
+<span class="z-50">{["Inferno", "Trial"].includes(difficulty) ? "" : Math.floor(player.gearScore) + " " }{player.name}</span>
 {#if player.dead}
     <div class="ml-0.5 flex items-center justify-center"
          on:mouseover={() => hovered = true}

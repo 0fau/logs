@@ -12,7 +12,7 @@
     };
 
     export let encounter;
-    export let screenshot;
+    export let screenshot = false;
     export let width;
     export let gearScore;
 
@@ -44,8 +44,14 @@
             </div>
         </div>
         <div class="py-1 h-full ml-auto self-end flex flex-col rounded-r-md text-white">
-            <span class="text-xs text-center self-end text-[#F4EDE9] p-0.5 px-1 mt-1.5 rounded-sm bg-[#b4637a] font-medium">{encounter.anonymized ? player.class + " " + encounter.localPlayer : encounter.localPlayer}</span>
-            <span class="text-xs text-[#b4637a] self-end text-right mt-0.5 font-medium">{gearScore ? Math.floor(player.gearScore) + " " : ""}{player.class}</span>
+            <span class="text-xs text-center self-end text-[#F4EDE9] p-0.5 px-1 mt-1.5 rounded-sm bg-[#b4637a] font-medium"
+                  class:bg-[#b4637a]={!encounter.anonymized}
+                  class:bg-[#8F708A]={encounter.anonymized}
+            >{encounter.localPlayer}</span>
+            <span class="text-xs self-end text-right mt-0.5 font-medium"
+                  class:text-[#b4637a]={!encounter.anonymized}
+                  class:text-[#8F708A]={encounter.anonymized}
+            >{gearScore ? Math.floor(player.gearScore) + " " : ""}{player.class}</span>
             <span class="text-[#575279] text-right my-auto text-lg font-medium">{formatDamage(player.dps)}</span>
         </div>
     </div>

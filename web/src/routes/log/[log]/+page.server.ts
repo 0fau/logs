@@ -13,15 +13,21 @@ export const load: PageServerLoad = async ({params, cookies}) => {
         headers.cookie = "sessions=" + cookies.get("sessions")
     }
 
-    const enc = await fetch(
-        url + "/api/log/" + params.log,
-        {headers: headers},
-    );
-    if (!enc.ok) {
-        return {};
+    const fetches = []
+    for (const path of [
+        "/api/log/" + params.log, "/api/users/@me"
+    ]) {
+        fetches.push(fetch(url + path, {
+            headers: headers,
+        }).then(resp => {
+            return resp.ok ? resp.json() : null
+        }))
     }
 
+    const [encounter, me] = await Promise.all(fetches)
+
     return {
-        encounter: await enc.json(),
+        encounter: encounter,
+        me: me,
     };
 };

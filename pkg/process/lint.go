@@ -15,6 +15,10 @@ func (p *Processor) Lint(enc *meter.Encounter) error {
 		return errors.New("Missing data")
 	}
 
+	if enc.LocalPlayer == "You" && enc.Entities[enc.LocalPlayer].GearScore == 0 {
+		return errors.New("Missing data")
+	}
+
 	players := make(map[string]struct{})
 	for _, party := range enc.DamageStats.Misc.PartyInfo {
 		for _, name := range party {
@@ -22,12 +26,20 @@ func (p *Processor) Lint(enc *meter.Encounter) error {
 				return errors.New("Missing data")
 			}
 
+			if _, ok := players[name]; ok {
+				return errors.New("Missing data")
+			}
+
 			players[name] = struct{}{}
 		}
 	}
 
-	for name, player := range enc.Entities {
-		if player.EntityType != "PLAYER" {
+	for name, entity := range enc.Entities {
+		if entity.EntityType == "UNKNOWN" {
+			return errors.New("Missing data")
+		}
+
+		if entity.EntityType != "PLAYER" {
 			continue
 		}
 

@@ -83,7 +83,7 @@ export function shortBossName(boss: string): string {
 }
 
 const guardians = [
-    "Gargadeth", "Sonavel", "Hanumatan", "Caliligos", "Deskaluda",
+    "Gargadeth", "Sonavel", "Hanumatan", "Caliligos", "Deskaluda", "Achates"
 ]
 
 const raidLookup = {}
@@ -141,7 +141,7 @@ export const bossHpMap = {
     "Plague Legion Commander Akkan": 220,
     "Lord of Kartheon Akkan": 300,
     "Tienis": 110,
-    "Celestial Sentinel" : 60,
+    "Celestial Sentinel": 60,
     "Prunya": 90,
     "Lauriel": 200,
     "Kaltaya, the Blooming Chaos": 120,

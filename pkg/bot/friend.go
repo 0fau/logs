@@ -83,6 +83,11 @@ func (b *Bot) unfriendCommand() *Command {
 					return errors.Wrap(err, "Failed to check if user is signed up")
 				}
 
+				if u.ID == u2.ID {
+					respond(session, ic, "You can't remove yourself as a friend.")
+					return nil
+				}
+
 				yes, err := qtx.HasFriendRequest(ctx, sql.HasFriendRequestParams{
 					User1: user1, User2: u2.DiscordID,
 				})
@@ -285,12 +290,15 @@ func (b *Bot) friendsCommand() *Command {
 			var buf strings.Builder
 			buf.WriteString("```\nFriends:\n--------")
 			for _, friend := range friends {
+				if friend.DiscordTag == u.DiscordTag {
+					continue
+				}
+
 				buf.WriteString("\n@")
 				buf.WriteString(friend.DiscordTag)
 
-				username, _ := friend.Username.Value()
-				if username != nil {
-					buf.WriteString(" (" + username.(string) + ")")
+				if friend.Username != nil {
+					buf.WriteString(" (" + *friend.Username + ")")
 				}
 			}
 			if len(friends) == 0 {
@@ -303,9 +311,8 @@ func (b *Bot) friendsCommand() *Command {
 					buf.WriteString("\n@")
 					buf.WriteString(user.DiscordTag)
 
-					username, _ := user.Username.Value()
-					if username != nil {
-						buf.WriteString(" (" + username.(string) + ")")
+					if user.Username != nil {
+						buf.WriteString(" (" + *user.Username + ")")
 					}
 				}
 			}
@@ -316,9 +323,8 @@ func (b *Bot) friendsCommand() *Command {
 					buf.WriteString("\n@")
 					buf.WriteString(user.DiscordTag)
 
-					username, _ := user.Username.Value()
-					if username != nil {
-						buf.WriteString(" (" + username.(string) + ")")
+					if user.Username != nil {
+						buf.WriteString(" (" + *user.Username + ")")
 					}
 				}
 			}

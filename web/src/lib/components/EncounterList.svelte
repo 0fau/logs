@@ -25,13 +25,6 @@
 
     let loading = true;
     onMount(async () => {
-        busy = true;
-        await load()
-        console.log(encounters)
-        busy = false;
-
-        loading = false;
-
         search.subscribe((val) => {
             refresh()
         })
@@ -109,6 +102,7 @@
             return resp.json()
         })
         process(recent.encounters)
+        console.log(recent.encounters)
         encounters = encounters.concat(recent.encounters)
         more = recent.more
     }
@@ -214,20 +208,20 @@
     }
 
     enum GearScoreRange {
-        Range1540To1560 = "1540-1560",
-        Range1560To1580 = "1560-1580",
-        Range1580To1600 = "1580-1600",
-        Range1600To1610 = "1600-1610",
-        Range1610To1620 = "1610-1620",
+        Range1540To1559 = "1540-1559",
+        Range1560To1579 = "1560-1579",
+        Range1580To1599 = "1580-1599",
+        Range1600To1609 = "1600-1609",
+        Range1610To1619 = "1610-1619",
         Range1620Plus = "1620+"
     }
 
     const gearScores = [
-        GearScoreRange.Range1540To1560,
-        GearScoreRange.Range1560To1580,
-        GearScoreRange.Range1580To1600,
-        GearScoreRange.Range1600To1610,
-        GearScoreRange.Range1610To1620,
+        GearScoreRange.Range1540To1559,
+        GearScoreRange.Range1560To1579,
+        GearScoreRange.Range1580To1599,
+        GearScoreRange.Range1600To1609,
+        GearScoreRange.Range1610To1619,
         GearScoreRange.Range1620Plus
     ]
 
@@ -301,7 +295,7 @@
                     <span class="text-[#413d5b] text-sm text-semibold mb-0.5">Not signed in.</span>
                     <img alt="loading"
                          class="w-10 h-10"
-                         src="https://cdn.discordapp.com/attachments/1154431161993535489/1177165751040360448/emoji_a_38.png?ex=65718409&is=655f0f09&hm=cb2e683112d257a9d89dcc7fc90a54b4a91d73ddf67c0b3e1fd6df225fbff4f6&"/>
+                         src="https://cdn.discordapp.com/attachments/1154431161993535489/1177165751040360448/emoji_a_38.png?ex=65e97c89&is=65d70789&hm=3cfbbad278f0152ca56fe4f97e3aa115b92f0e75f700dba2e7d8237f02727b7a&"/>
                 </div>
             {:else}
                 <div class="flex flex-col items-center justify-center -translate-y-[14%]">

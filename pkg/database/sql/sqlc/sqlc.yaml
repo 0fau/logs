@@ -7,6 +7,7 @@ sql:
       go:
         package: "sql"
         sql_package: "pgx/v5"
+        emit_pointers_for_null_types: true
         out: ".."
         overrides:
           - column: "users.settings"
@@ -29,8 +30,17 @@ sql:
               import: "github.com/0fau/logs/pkg/database/sql/structs"
               package: "structs"
               type: "EncounterData"
-          - column: "players.data"
+          - column: "encounters.visibility"
             go_type:
               import: "github.com/0fau/logs/pkg/database/sql/structs"
               package: "structs"
-              type: "IndexedPlayerData"
+              type: "EncounterVisibility"
+              pointer: true
+            nullable: true
+          - column: "users.log_visibility"
+            go_type:
+              import: "github.com/0fau/logs/pkg/database/sql/structs"
+              package: "structs"
+              type: "EncounterVisibility"
+              pointer: true
+            nullable: true

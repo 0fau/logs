@@ -635,17 +635,28 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 			}
 		}
 
+		if err := qtx.InsertCharacter(ctx, sql.InsertCharacterParams{
+			UserID:    user,
+			Character: enc.Raw.LocalPlayer,
+			Class:     enc.Header.Players[raw.LocalPlayer].Class,
+			GearScore: enc.Header.Players[raw.LocalPlayer].GearScore,
+		}); err != nil {
+			return errors.Wrap(err, "inserting character")
+		}
+
 		players := make([]sql.InsertPlayerParams, 0, len(enc.Header.Players))
 		for i, player := range order {
 			header := enc.Header.Players[player]
 			players = append(players, sql.InsertPlayerParams{
-				Encounter: encID,
-				Class:     header.Class,
-				Name:      player,
-				Dead:      header.Dead,
-				Place:     int32(i + 1),
-				GearScore: header.GearScore,
-				Dps:       header.DPS,
+				Encounter:  encID,
+				Boss:       raw.CurrentBossName,
+				Difficulty: raw.Difficulty,
+				Class:      header.Class,
+				Name:       player,
+				Dead:       header.Dead,
+				Place:      int32(i + 1),
+				GearScore:  header.GearScore,
+				Dps:        header.DPS,
 			})
 		}
 		if _, err := qtx.InsertPlayer(ctx, players); err != nil {

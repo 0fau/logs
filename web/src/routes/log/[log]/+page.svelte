@@ -3,7 +3,7 @@
     import {getRaid} from "$lib/raids";
     import Meter from '$lib/components/meter/Meter.svelte'
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
-    import EncounterSocial from "$lib/components/EncounterSocial.svelte";
+    import EncounterToolbar from "$lib/components/EncounterToolbar.svelte";
 
     const difficultyColors = {
         "Inferno": "#9a3148",
@@ -14,7 +14,8 @@
     };
 
     export let data: PageData;
-    $: encounter = data.encounter
+    let encounter = data.encounter
+    let user = data.me
 </script>
 
 <svelte:head>
@@ -25,7 +26,8 @@
         <title>[#{encounter.id}] {encounter.difficulty.toLowerCase()} {raid ? raid.raid.toLowerCase() + ' g' + raid.gate : encounter.boss.toLowerCase()} {encounter.anonymized ? "" : "(" + encounter.localPlayer.toLowerCase() + ")"}</title>
         <meta property="og:title"
               content="{encounter.difficulty} {raid ? raid.raid + ' G' + raid.gate : encounter.boss} - {encounter.players[encounter.localPlayer].class}">
-        <meta name="twitter:title" content="{encounter.difficulty} {raid ? raid.raid + ' G' + raid.gate : encounter.boss} - {encounter.players[encounter.localPlayer].class}">
+        <meta name="twitter:title"
+              content="{encounter.difficulty} {raid ? raid.raid + ' G' + raid.gate : encounter.boss} - {encounter.players[encounter.localPlayer].class}">
         <meta name="theme-color" content="{difficultyColors[encounter.difficulty]}">
         {#if encounter.thumbnail}
             <meta property="og:image" content="https://logs.fau.dev/images/thumbnail/{encounter.id}">
@@ -40,15 +42,18 @@
     {/if}
 </svelte:head>
 
-<div class="my-14 w-full min-w-[1512px] flex flex-col justify-center items-center text-center">
-    {#if encounter}
-        <EncounterSocial {encounter}/>
+{#if encounter}
+    <div class="mt-8 mb-14 w-full min-w-[1512px] flex flex-col justify-center items-center text-center">
+        <EncounterToolbar {encounter} {user}/>
         <EncounterPreview width="w-[462px]" {encounter}/>
         <Meter {encounter}/>
-    {:else}
+    </div>
+{:else}
+    <div class="my-14 w-full min-w-[1512px] flex flex-col justify-center items-center text-center">
         <p>uh oh log not found :p</p>
-    {/if}
-</div>
+        <a href="/logs" class="mt-1 text-sm text-[#9a4a61]">← Logs</a>
+    </div>
+{/if}
 
 <style lang="postcss">
     :global(html) {

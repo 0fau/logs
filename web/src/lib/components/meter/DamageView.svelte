@@ -47,7 +47,7 @@
 </script>
 
 <div on:contextmenu|preventDefault={() => {}}
-     class="bg-[#F4EDE9] overflow-hidden w-full h-full">
+     class="bg-[#F4EDE9] w-full h-full">
     <table class="table-auto w-full">
         <thead class="bg-[#b96d83]">
         <tr>

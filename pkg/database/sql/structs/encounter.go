@@ -118,3 +118,7 @@ type BuffGroup struct {
 type EncounterSettings struct {
 	Visibility []string `json:"visibility"`
 }
+
+type EncounterVisibilitySettings struct {
+	ShowNames *bool `json:"showNames"`
+}

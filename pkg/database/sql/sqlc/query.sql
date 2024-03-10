@@ -114,13 +114,13 @@ ON CONFLICT (group_id)
 
 -- name: InsertPlayer :copyfrom
 INSERT
-INTO players (encounter, class, name, dead, gear_score, dps, place)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+INTO players (encounter, boss, difficulty, class, name, dead, gear_score, dps, place)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: InsertPlayerInternal :exec
 INSERT
-INTO players (encounter, class, name, dead, gear_score, dps, place)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INTO players (encounter, boss, difficulty, class, name, dead, gear_score, dps, place)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 ON CONFLICT (encounter, name)
     DO UPDATE SET data = excluded.data;
 
@@ -136,6 +136,7 @@ RETURNING uploaded_by;
 SELECT e.*,
        u.discord_id,
        u.discord_tag,
+       u.log_visibility,
        u.username,
        u.avatar
 FROM encounters e
@@ -190,7 +191,8 @@ WHERE id = $1;
 -- name: CreateFriend :exec
 INSERT INTO friends (user1, user2)
 VALUES ($1, $2),
-       ($2, $1);
+       ($2, $1)
+ON CONFLICT (user1, user2) DO NOTHING;
 
 -- name: SendFriendRequest :exec
 INSERT INTO friend_requests (user1, user2)
@@ -237,3 +239,60 @@ DELETE
 FROM friends
 WHERE (user1 = $1 AND user2 = $2)
    OR (user1 = $2 AND user2 = $1);
+
+-- name: GetEncounterVisibility :one
+SELECT uploaded_by, visibility
+FROM encounters
+WHERE id = $1;
+
+-- name: UpdateEncounterVisibility :exec
+UPDATE encounters
+SET visibility = $2
+WHERE id = $1;
+
+-- name: GetUserEncounterVisibility :one
+SELECT log_visibility
+FROM users
+WHERE id = $1;
+
+-- name: UpdateUserEncounterVisibility :exec
+UPDATE users
+SET log_visibility = $2
+WHERE id = $1;
+
+-- name: InsertCharacter :exec
+INSERT
+INTO roster (user_id, character, class, gear_score)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id, character)
+    DO UPDATE SET gear_score = GREATEST(excluded.gear_score, roster.gear_score);
+
+-- name: GetRoster :many
+SELECT character, class, gear_score
+FROM roster
+WHERE user_id = $1
+ORDER BY gear_score DESC, class;
+
+-- name: GetRosterByUsername :many
+SELECT character, class, gear_score
+FROM roster
+         JOIN users u ON roster.user_id = u.id
+WHERE LOWER(username) = LOWER($1)
+ORDER BY gear_score DESC, class;
+
+-- name: GetRosterStats :many
+SELECT DISTINCT(local_player) AS name, r.class, r.gear_score, COUNT(*)
+FROM encounters e
+         JOIN users u ON e.uploaded_by = u.id
+         JOIN roster r ON u.id = r.user_id AND e.local_player = r.character
+WHERE LOWER(u.username) = LOWER($1)
+GROUP BY e.local_player, r.class, r.gear_score
+ORDER BY gear_score DESC, local_player;
+
+-- name: GetRosterStatsByID :many
+SELECT DISTINCT(local_player) AS name, r.class, r.gear_score, COUNT(*)
+FROM encounters e
+         JOIN users u ON e.uploaded_by = $1
+         JOIN roster r ON u.id = r.user_id AND e.local_player = r.character
+GROUP BY e.local_player, r.class, r.gear_score
+ORDER BY gear_score DESC, local_player;

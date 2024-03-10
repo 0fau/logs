@@ -28,7 +28,7 @@
 
             settingsModal = await resp.json()
         } else {
-            settingsModal = undefined
+            settingsModal = null
         }
     })
 
@@ -59,7 +59,7 @@
         {/if}
         {#if settingsModal}
             <div transition:blur={{duration: 10}}
-                 class="absolute text-[#413d5b] py-4 px-5 left-1/2 top-1/2 shadow-sm z-50 border-[#b4637a] border-[1px] rounded-xl -translate-x-[50%] -translate-y-[80%] w-[376px] h-[330px] bg-[#faf4ed]">
+                 class="absolute text-[#413d5b] py-4 px-5 left-1/2 top-1/2 shadow-sm z-50 border-[#b4637a] border-[1px] rounded-xl -translate-x-[50%] -translate-y-[80%] w-[430px] h-[330px] bg-[#faf4ed]">
                 <Settings settings={settingsModal}/>
             </div>
         {/if}

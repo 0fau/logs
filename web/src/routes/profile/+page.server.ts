@@ -16,19 +16,19 @@ export const load: PageServerLoad = async ({request, cookies}) => {
 
     const fetches = []
     for (const path of [
-        /*"/api/logs/stats",*/ "/api/users/@me"
+        "/api/profile"
     ]) {
         fetches.push(fetch(url + path, {
             headers: header,
         }).then(resp => {
-            return resp.ok ? resp.json() : {}
+            return resp.ok ? resp.json() : null
         }))
     }
 
-    const [/*stats,*/ me] = await Promise.all(fetches)
+    const [profile] = await Promise.all(fetches)
 
     const data = {
-        me: me
+        profile: profile
     };
 
     if (env.LBF_DEV_FRONTEND_ONLY) {

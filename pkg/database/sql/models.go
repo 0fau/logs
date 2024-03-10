@@ -20,6 +20,7 @@ type Encounter struct {
 	Data        structs.EncounterData
 	UniqueHash  string
 	UniqueGroup int32
+	Visibility  *structs.EncounterVisibility
 	Boss        string
 	Difficulty  string
 	Date        pgtype.Timestamp
@@ -46,28 +47,38 @@ type GroupedEncounter struct {
 }
 
 type Player struct {
-	Encounter int32
+	Encounter  int32
+	Boss       string
+	Difficulty string
+	Class      string
+	Name       string
+	Dead       bool
+	Dps        int64
+	GearScore  float64
+	Place      int32
+}
+
+type Roster struct {
+	UserID    pgtype.UUID
+	Character string
 	Class     string
-	Name      string
-	Dead      bool
-	Dps       int64
 	GearScore float64
-	Place     int32
 }
 
 type User struct {
-	ID          pgtype.UUID
-	Username    pgtype.Text
-	CreatedAt   pgtype.Timestamp
-	UpdatedAt   pgtype.Timestamp
-	AccessToken pgtype.Text
-	DiscordID   string
-	DiscordTag  string
-	Avatar      string
-	Friends     []pgtype.UUID
-	Settings    structs.UserSettings
-	Titles      []string
-	Roles       []string
+	ID            pgtype.UUID
+	Username      *string
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+	AccessToken   *string
+	DiscordID     string
+	DiscordTag    string
+	Avatar        string
+	Friends       []pgtype.UUID
+	Settings      structs.UserSettings
+	LogVisibility *structs.EncounterVisibility
+	Titles        []string
+	Roles         []string
 }
 
 type Whitelist struct {

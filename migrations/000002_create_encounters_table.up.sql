@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS encounters
     version      INT       NOT NULL DEFAULT 0,
     local_player STRING    NOT NULL,
 
+    visibility   JSONB,
+
     unique_hash  STRING    NOT NULL,
     unique_group INT       NOT NULL,
 
@@ -40,6 +42,10 @@ CREATE TABLE IF NOT EXISTS players
     dps        BIGINT NOT NULL,
     place      INT    NOT NULL,
     gear_score FLOAT  NOT NULL,
+
+    boss       STRING NOT NULL,
+    difficulty STRING NOT NULL,
+
     PRIMARY KEY (encounter, name),
     INDEX (name),
     INDEX (class),

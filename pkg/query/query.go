@@ -41,54 +41,59 @@ type Params struct {
 }
 
 type User struct {
-	DiscordTag string
-	Username   pgtype.Text
+	DiscordTag    string
+	Username      pgtype.Text
+	LogVisibility *structs.EncounterVisibility
 }
 
 type Encounter struct {
 	Uploader User
 
-	ID          int32
-	Difficulty  string
-	UploadedBy  pgtype.UUID
-	UploadedAt  pgtype.Timestamp
-	Settings    structs.EncounterSettings
-	Tags        []string
-	Header      structs.EncounterHeader
-	Boss        string
-	Date        pgtype.Timestamp
-	Duration    int32
-	LocalPlayer string
-	Place       int32
+	ID            int32
+	Difficulty    string
+	UploadedBy    pgtype.UUID
+	UploadedAt    pgtype.Timestamp
+	Visibility    *structs.EncounterVisibility
+	Settings      structs.EncounterSettings
+	Tags          []string
+	Header        structs.EncounterHeader
+	Boss          string
+	Date          pgtype.Timestamp
+	Duration      int32
+	FocusedPlayer string
+	LocalPlayer   string
+	Place         int32
 }
 
 func Query(db *database.DB, params *Params) ([]Encounter, error) {
-	player := "e.local_player"
+	if params.Selections.Search != "" && !params.User.Valid {
+		return nil, nil
+	}
+
 	focused := len(params.Selections.Classes) > 0 ||
 		params.Order == "performance" ||
 		params.Selections.Search != "" ||
 		params.GearScore != ""
-	if focused {
-		player = "p.name"
-	}
 
 	selects := []string{
 		"u.discord_tag",
 		"u.username",
+		"u.log_visibility",
 		"e.id",
 		"e.difficulty",
 		"e.uploaded_by",
 		"e.uploaded_at",
+		"e.visibility",
 		"e.settings",
 		"e.tags",
 		"e.header",
 		"e.boss",
 		"e.date",
 		"e.duration",
-		player,
+		"e.local_player",
 	}
 	if focused {
-		selects = append(selects, "p.place")
+		selects = append(selects, "p.name", "p.place")
 	}
 
 	q := sq.Select(selects...)
@@ -105,6 +110,12 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		q = q.Join("friends f ON f.user1 = u.id AND f.user2 = ?", params.User)
 	} else {
 		q = q.LeftJoin("grouped_encounters g ON e.unique_group = g.group_id")
+	}
+
+	bossColumn, difficultyColumn := "e.boss", "e.difficulty"
+	if focused && !slices.Contains([]string{"duration", "recent log"}, params.Order) {
+		bossColumn = "p.boss"
+		difficultyColumn = "p.difficulty"
 	}
 
 	difficulties := map[string]struct{}{}
@@ -157,14 +168,14 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		}
 
 		if difficulty == "" {
-			selection = append(selection, sq.Eq{"e.boss": cmp})
+			selection = append(selection, sq.Eq{bossColumn: cmp})
 		} else {
 			selection = append(selection, sq.And{
 				sq.Eq{
-					"e.boss": cmp,
+					bossColumn: cmp,
 				},
 				sq.Eq{
-					"e.difficulty": difficulty,
+					difficultyColumn: difficulty,
 				},
 			})
 		}
@@ -193,30 +204,24 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 
 			if len(raid.Difficulties) > 0 {
 				selection = append(selection, sq.And{
-					sq.Eq{"e.boss": bosses},
-					sq.Eq{"e.difficulty": raid.Difficulties},
+					sq.Eq{bossColumn: bosses},
+					sq.Eq{difficultyColumn: raid.Difficulties},
 				})
 			} else {
 				selection = append(selection, sq.Eq{
-					"e.boss": bosses,
+					bossColumn: bosses,
 				})
 			}
 		}
 	}
 
-	if len(params.Selections.Guardians) == 1 && params.Selections.Guardians[0] != "Caliligos" {
-		selection = append(selection,
-			sq.Eq{
-				"e.boss": params.Selections.Guardians,
-			},
-		)
-	} else if len(params.Selections.Guardians) > 0 {
+	if len(params.Selections.Guardians) > 0 {
 		selection = append(selection, sq.And{
 			sq.Eq{
-				"e.boss": params.Selections.Guardians,
+				bossColumn: params.Selections.Guardians,
 			},
 			sq.Eq{
-				"e.difficulty": "Normal",
+				difficultyColumn: "Normal",
 			},
 		})
 	}
@@ -224,10 +229,10 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 	if len(params.Selections.Trials) > 0 {
 		selection = append(selection, sq.And{
 			sq.Eq{
-				"e.boss": params.Selections.Trials,
+				bossColumn: params.Selections.Trials,
 			},
 			sq.Eq{
-				"e.difficulty": "Trial",
+				difficultyColumn: "Trial",
 			},
 		})
 	}
@@ -358,12 +363,38 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		}
 	}
 
-	if params.Scope == "roster" || (params.Scope == "arkesia" && params.Selections.Search != "" && !params.Privileged) {
+	if params.Scope == "roster" {
 		q = q.Where(sq.Eq{"u.id": params.User})
+	} else if params.Scope == "arkesia" && params.Selections.Search != "" && !params.Privileged {
+		q = q.Where(sq.Or{
+			sq.Eq{"u.id": params.User},
+			sq.And{
+				sq.NotEq{"e.visibility": nil},
+				sq.Or{
+					sq.Eq{"(e.visibility->'names')::INT": structs.ShowNames},
+					sq.And{
+						sq.Eq{"(e.visibility->'names')::INT": structs.ShowSelf},
+						sq.Eq{"e.local_player": "p.name"},
+						sq.Expr("e.local_player = p.name"),
+					},
+				},
+			},
+			sq.And{
+				sq.Eq{"e.visibility": nil},
+				sq.NotEq{"u.log_visibility": nil},
+				sq.Or{
+					sq.Eq{"(u.log_visibility->'names')::INT": structs.ShowNames},
+					sq.And{
+						sq.Eq{"(u.log_visibility->'names')::INT": structs.ShowSelf},
+						sq.Expr("e.local_player = p.name"),
+					},
+				},
+			},
+		})
 	}
 
 	if params.GearScore != "" && slices.Contains([]string{
-		"1540-1560", "1560-1580", "1580-1600", "1600-1610", "1610-1620", "1620+",
+		"1540-1559", "1560-1579", "1580-1599", "1600-1609", "1610-1619", "1620+",
 	}, params.GearScore) {
 		if params.GearScore == "1620+" {
 			q = q.Where(sq.GtOrEq{"p.gear_score": 1620})
@@ -373,7 +404,7 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 			if err == nil {
 				q = q.Where(sq.And{
 					sq.GtOrEq{"p.gear_score": min},
-					sq.Lt{"p.gear_score": max},
+					sq.Lt{"p.gear_score": max + 1},
 				})
 			}
 		}
@@ -397,10 +428,12 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 		scan := []interface{}{
 			&enc.Uploader.DiscordTag,
 			&enc.Uploader.Username,
+			&enc.Uploader.LogVisibility,
 			&enc.ID,
 			&enc.Difficulty,
 			&enc.UploadedBy,
 			&enc.UploadedAt,
+			&enc.Visibility,
 			&enc.Settings,
 			&enc.Tags,
 			&enc.Header,
@@ -410,7 +443,7 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 			&enc.LocalPlayer,
 		}
 		if focused {
-			scan = append(scan, &enc.Place)
+			scan = append(scan, &enc.FocusedPlayer, &enc.Place)
 		}
 
 		if err := rows.Scan(scan...); err != nil {

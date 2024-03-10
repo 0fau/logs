@@ -1,20 +1,21 @@
 CREATE TABLE users
 (
-    id           UUID PRIMARY KEY,
-    username     STRING,
-    created_at   TIMESTAMP NOT NULL,
-    updated_at   TIMESTAMP NOT NULL,
-    access_token STRING(64),
+    id             UUID PRIMARY KEY,
+    username       STRING,
+    created_at     TIMESTAMP NOT NULL,
+    updated_at     TIMESTAMP NOT NULL,
+    access_token   STRING(64),
 
-    discord_id   STRING    NOT NULL,
-    discord_tag  STRING    NOT NULL,
-    avatar       STRING    NOT NULL,
+    discord_id     STRING    NOT NULL,
+    discord_tag    STRING    NOT NULL,
+    avatar         STRING    NOT NULL,
 
-    friends      UUID ARRAY,
-    settings     JSONB     NOT NULL,
+    friends        UUID ARRAY,
+    settings       JSONB     NOT NULL,
+    log_visibility JSONB,
 
-    titles       STRING[],
-    roles        STRING[]
+    titles         STRING[],
+    roles          STRING[]
 );
 
 CREATE TABLE encounters
@@ -32,6 +33,8 @@ CREATE TABLE encounters
     unique_hash  STRING    NOT NULL,
     unique_group INT       NOT NULL,
 
+    visibility   JSONB,
+
     boss         STRING    NOT NULL,
     difficulty   STRING    NOT NULL,
     date         TIMESTAMP NOT NULL,
@@ -43,6 +46,8 @@ CREATE TABLE encounters
 CREATE TABLE players
 (
     encounter  INT    NOT NULL REFERENCES encounters (id),
+    boss       STRING NOT NULL,
+    difficulty STRING NOT NULL,
     class      STRING NOT NULL,
     name       STRING NOT NULL,
     dead       BOOL   NOT NULL,
@@ -75,4 +80,12 @@ CREATE TABLE IF NOT EXISTS friend_requests
     user1 string    NOT NULL REFERENCES users (discord_id),
     user2 string    NOT NULL REFERENCES users (discord_id),
     date  TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS roster
+(
+    user_id    UUID   NOT NULL REFERENCES users (id),
+    character  STRING NOT NULL,
+    class      STRING NOT NULL,
+    gear_score FLOAT  NOT NULL
 );
