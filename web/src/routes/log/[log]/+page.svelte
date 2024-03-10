@@ -57,7 +57,7 @@
     {/if}
 </svelte:head>
 
-<div class="w-full py-5 xs:py-10 sm:py-20">
+<div class="w-full py-5 xs:py-10 sm:py-20 bg-tapestry-100">
     {#if encounter}
         <div class="flex flex-col items-center">
             <EncounterToolbar {encounter} {user}/>

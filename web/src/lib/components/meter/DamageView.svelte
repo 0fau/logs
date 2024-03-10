@@ -67,8 +67,8 @@
                 <th class="w-8 rounded-tl-lg"></th>
                 <th class="w-14"></th>
                 <th class="w-full"></th>
-                <th class="w-14">DMG</th>
-                <th class="w-14">DPS</th>
+                <th class="w-16">DMG</th>
+                <th class="w-16">DPS</th>
                 <th class="w-14">D%</th>
                 <th class="w-14">CRIT</th>
                 {#if hasCritDamage}
@@ -149,6 +149,6 @@
         z-index: 10;
         position: relative;
         text-align: center;
-        color: theme("colors.zinc.700");
+        color: theme("colors.zinc.600");
     }
 </style>

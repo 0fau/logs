@@ -6,6 +6,8 @@
     import { onMount } from "svelte";
     import SkillName from "$lib/components/meter/SkillName.svelte";
     import PlayerName from "$lib/components/meter/PlayerName.svelte";
+    import IconUpwards from '~icons/lets-icons/up';
+
 
     export let encounter;
     export let focus;
@@ -84,11 +86,15 @@
     <table on:contextmenu|preventDefault={() => focus.set("")} class="table-fixed w-full" bind:clientWidth={cWidth}>
         <thead class="bg-tapestry-500">
             <tr class="text-tapestry-50">
-                <th class="w-8 rounded-tl-lg"></th>
+                <th class="w-8 rounded-tl-lg">
+                    <button class="flex items-center pl-1 sm:hidden" on:click={() => focus.set("")}>
+                        <IconUpwards class="w-5 h-5"/>
+                    </button>
+                </th>
                 <th class="w-44"></th>
                 <th class="w-full"></th>
-                <th class="w-14">DMG</th>
-                <th class="w-14">DPS</th>
+                <th class="w-16">DMG</th>
+                <th class="w-16">DPS</th>
                 <th class="w-14">D%</th>
                 <th class="w-14">CRIT</th>
                 {#if hasCritDamage}
@@ -102,9 +108,9 @@
                 {/if}
                 <th class="w-14">Buff%</th>
                 <th class="w-14">B%</th>
-                <th class="w-14">APH</th>
-                <th class="w-14">APC</th>
-                <th class="w-14">Max</th>
+                <th class="w-16">APH</th>
+                <th class="w-16">APC</th>
+                <th class="w-16">Max</th>
                 <th class="w-14">Casts</th>
                 <th class="w-14">CPM</th>
                 <th class="w-14">Hits</th>
@@ -213,6 +219,6 @@
         z-index: 10;
         position: relative;
         text-align: center;
-        color: theme("colors.zinc.700");
+        color: theme("colors.zinc.600");
     }
 </style>

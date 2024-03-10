@@ -2,18 +2,19 @@
     import { getClassIcon } from "$lib/game";
     import { formatDuration } from "$lib/print";
     import IconSkull from "~icons/lucide/ghost";
+    import type { Writable } from "svelte/store";
 
     export let player;
     export let difficulty;
-    export let focus;
+    export let focus: Writable<string> | undefined = undefined;
 
     let hovered;
 </script>
 
-<td on:click={() => focus.set(player.name)} class="relative z-10 py-0.5 pl-1">
+<td on:click={() => {if (focus) focus.set(player.name)}} class="relative z-10 py-0.5 pl-1">
     <img alt={player.class} src={getClassIcon(player.class)} class="z-50 inline h-6 w-6" />
 </td>
-<td colspan="2" on:click={() => focus.set(player.name)} class="z-10">
+<td colspan="2" on:click={() => {if (focus) focus.set(player.name)}} class="z-10">
     <div class="flex justify-start">
         <span class="z-10 truncate"
             >{["Inferno", "Trial"].includes(difficulty)
@@ -36,3 +37,9 @@
         {/if}
     </div>
 </td>
+
+<style>
+    td {
+        color: theme("colors.zinc.600");
+    }
+</style>

@@ -16,3 +16,9 @@
         {info.name}
     </div>
 </td>
+
+<style>
+    td {
+        color: theme("colors.zinc.600");
+    }
+</style>

@@ -31,7 +31,7 @@
     }
 </script>
 
-<div class="w-full">
+<div class="w-full bg-tapestry-100">
 <div class="my-2.5 flex justify-center items-center">
     {#each tabs as tab}
         <button class="p-1 m-0.5 font-medium w-20 border text-sm border-tapestry-500 rounded-lg"
@@ -63,21 +63,21 @@
         {/if}
     {:else if current === MeterTab.Buff}
         {#if $focus === ""}
-            <div class="rounded-xl min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
                 <BuffView {encounter} {focus}/>
             </div>
         {:else}
-            <div class="rounded-xl min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
                 <PlayerBuffView {encounter} {focus}/>
             </div>
         {/if}
     {:else if current === MeterTab.Self}
         {#if $focus === ""}
-            <div class="rounded-xl min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
                 <SelfBuffView {encounter} {focus}/>
             </div>
         {:else}
-            <div class="rounded-xl min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
                 <PlayerSelfBuffView {encounter} {focus}/>
             </div>
         {/if}

@@ -116,7 +116,7 @@
             <button
                 transition:blur={{ duration: 10 }}
                 on:click={() => ($settings.logs.announcement = !$settings.logs.announcement)}
-                class="mt-4 shadow-sm rounded-xl py-1.5 px-4 w-36 flex justify-center items-center dark:bg-tapestry-400 hover:dark:bg-tapestry-500 border-[1px] border-white text-gray-200"
+                class="mt-4 shadow-sm rounded-xl py-1.5 px-4 w-36 flex justify-center items-center dark:bg-tapestry-400 hover:dark:bg-tapestry-500 border border-white text-gray-200"
             >
                 <span class="font-medium mr-1 text-sm">hewwo ^.^ </span>
                 <img
