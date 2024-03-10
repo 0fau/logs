@@ -4,6 +4,7 @@
     import Meter from "$lib/components/meter/Meter.svelte";
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
     import EncounterToolbar from "$lib/components/EncounterToolbar.svelte";
+    import EncounterSocial from "$lib/components/EncounterSocial.svelte";
 
     const difficultyColors = {
         Inferno: "#9a3148",

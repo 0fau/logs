@@ -3,6 +3,7 @@
     import Player from "$lib/components/meter/Player.svelte";
     import { onMount } from "svelte";
     import { horizontalWheel } from "$lib/scroll";
+    import PlayerName from "$lib/components/meter/PlayerName.svelte";
 
     export let encounter;
     export let focus;
@@ -63,7 +64,9 @@
     <table class="relative w-full table-fixed min-w-[40rem]" bind:clientWidth={cWidth}>
         <thead class="bg-tapestry-500">
             <tr>
-                <th class="w-full rounded-tl-lg"></th>
+                <th class="w-8 rounded-tl-lg"></th>
+                <th class="w-14"></th>
+                <th class="w-full"></th>
                 <th class="w-14">DMG</th>
                 <th class="w-14">DPS</th>
                 <th class="w-14">D%</th>
@@ -84,44 +87,45 @@
         {#each players as name, i}
             {@const player = encounter.players[name]}
             {@const data = encounter.data.players[name]}
-            <tr bind:this={rows[i]}>
-                <td class="float-left w-full truncate">
-                    <button
-                        class="z-50 flex items-center justify-start py-1"
-                        on:click={() => focus.set(name)}>
-                        <Player
-                            {player}
-                            anonymized={encounter.anonymized}
-                            difficulty={encounter.difficulty} />
-                    </button>
-                </td>
-                <td class="w-14">{formatDamage(player.damage)}</td>
-                <td class="w-14">{formatDamage(player.dps)}</td>
-                <td class="w-14">{formatPercent(player.damage / encounter.damage)}</td>
-                <td class="w-14">{formatPercent(data.damage.crit / 100)}</td>
+            <tr bind:this={rows[i]} class="">
+                <PlayerName {player} difficulty={encounter.difficulty} {focus} />
+<!--                <td class="float-left w-full truncate">-->
+<!--                    <button-->
+<!--                        class="z-50 flex items-center justify-start py-1"-->
+<!--                        on:click={() => focus.set(name)}>-->
+<!--                        <Player-->
+<!--                            {player}-->
+<!--                            anonymized={encounter.anonymized}-->
+<!--                            difficulty={encounter.difficulty} />-->
+<!--                    </button>-->
+<!--                </td>-->
+                <td>{formatDamage(player.damage)}</td>
+                <td>{formatDamage(player.dps)}</td>
+                <td>{formatPercent(player.damage / encounter.damage)}</td>
+                <td>{formatPercent(data.damage.crit / 100)}</td>
                 {#if hasCritDamage}
-                    <td class="w-14">
+                    <td>
                         {#if data.damage.critDamage !== "0.0"}
                             {formatPercent(data.damage.critDamage / 100)}
                         {/if}
                     </td>
                 {/if}
                 {#if hasFA}
-                    <td class="w-14">
+                    <td>
                         {#if data.damage.fa !== "0.0"}
                             {formatPercent(data.damage.fa / 100)}
                         {/if}
                     </td>
                 {/if}
                 {#if hasBA}
-                    <td class="w-14">
+                    <td>
                         {#if data.damage.ba !== "0.0"}
                             {formatPercent(data.damage.ba / 100)}
                         {/if}
                     </td>
                 {/if}
-                <td class="w-14">{formatPercent(data.damage.buff / 100)}</td>
-                <td class="w-14 rounded-b-xl">{formatPercent(data.damage.brand / 100)}</td>
+                <td>{formatPercent(data.damage.buff / 100)}</td>
+                <td class="rounded-b-xl">{formatPercent(data.damage.brand / 100)}</td>
                 <div
                     bind:this={bars[i]}
                     class="absolute left-0 z-0"

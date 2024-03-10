@@ -4,6 +4,8 @@
     import Player from "$lib/components/meter/Player.svelte";
     import { horizontalWheel } from "$lib/scroll";
     import { onMount } from "svelte";
+    import SkillName from "$lib/components/meter/SkillName.svelte";
+    import PlayerName from "$lib/components/meter/PlayerName.svelte";
 
     export let encounter;
     export let focus;
@@ -79,10 +81,12 @@
 </script>
 
 <div class="custom-scroll h-full w-full overflow-scroll rounded-lg" bind:this={div}>
-    <table on:contextmenu|preventDefault={() => focus.set("")} class="relative table-fixed" bind:clientWidth={cWidth}>
+    <table on:contextmenu|preventDefault={() => focus.set("")} class="table-fixed w-full" bind:clientWidth={cWidth}>
         <thead class="bg-tapestry-500">
             <tr class="text-tapestry-50">
-                <th class="w-full rounded-tl-lg"></th>
+                <th class="w-8 rounded-tl-lg"></th>
+                <th class="w-44"></th>
+                <th class="w-full"></th>
                 <th class="w-14">DMG</th>
                 <th class="w-14">DPS</th>
                 <th class="w-14">D%</th>
@@ -107,15 +111,10 @@
                 <th class="w-14 rounded-tr-lg">HPM</th>
             </tr>
         </thead>
-        <tr bind:this={rows[0]} class="relative">
-            <td class="float-left w-full truncate">
-                <div class="flex items-center justify-start py-1">
-                    <Player
-                        {player}
-                        anonymized={encounter.anonymized}
-                        difficulty={encounter.difficulty} />
-                </div>
-            </td>
+        <tr bind:this={rows[0]}>
+            <PlayerName
+                {player}
+                difficulty={encounter.difficulty} />
             <td>{formatDamage(player.damage)}</td>
             <td>{formatDamage(player.dps)}</td>
             <td>{formatPercent(player.damage / encounter.damage)}</td>
@@ -156,15 +155,7 @@
             {@const skill = data.skillDamage[name]}
             {@const info = encounter.data.skillCatalog[name]}
             <tr bind:this={rows[i + 1]}>
-                <td class="float-left truncate">
-                    <div class="my-1 flex items-center justify-center">
-                        <img
-                            alt={info.name}
-                            src={getSkillIcon(info.icon)}
-                            class="mr-1.5 inline h-6 w-6 opacity-95" />
-                        {info.name}
-                    </div>
-                </td>
+                <SkillName {info} />
                 <td>{skill.damage !== 0 ? formatDamage(skill.damage) : ""}</td>
                 <td>{skill.dps !== 0 ? formatDamage(skill.dps) : ""}</td>
                 <td>{formatPercent(skill.percent / 100)} </td>

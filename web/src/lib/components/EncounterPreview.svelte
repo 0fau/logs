@@ -47,13 +47,13 @@
         </div>
         <div class="ml-auto flex h-full flex-col self-end rounded-r-md py-1 text-white">
             <span
-                class="mr-0.5 mt-1.5 self-end rounded-sm bg-tapestry-500 px-1 py-0.5 text-center text-xs font-medium"
-                class:bg-[#b4637a]={!encounter.anonymized}
-                class:bg-[#8F708A]={encounter.anonymized}
+                class="mr-0.5 mt-1.5 self-end rounded-sm px-1 py-0.5 text-center text-xs font-medium"
+                class:bg-tapestry-500={!encounter.anonymized}
+                class:bg-pastel-purple-500={encounter.anonymized}
                 >{encounter.localPlayer}</span>
-            <span class="mr-1 mt-0.5 self-end text-right text-xs font-medium text-tapestry-500"
-                  class:text-[#b4637a]={!encounter.anonymized}
-                  class:text-[#8F708A]={encounter.anonymized}
+            <span class="mr-1 mt-0.5 self-end text-right text-xs font-medium"
+                  class:text-tapestry-500={!encounter.anonymized}
+                  class:text-pastel-purple-500={encounter.anonymized}
                 >{gearScore ? Math.floor(player.gearScore) + " " : ""}{player.class}</span>
             <span class="my-auto mr-1 text-right text-lg font-medium text-gray-600"
                 >{formatDamage(player.dps)}</span>
