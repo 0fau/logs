@@ -31,50 +31,56 @@
     }
 </script>
 
-<div class="mt-2.5">
+<div class="w-full bg-tapestry-100">
+<div class="my-2.5 flex justify-center items-center">
     {#each tabs as tab}
-        <button class="p-1 px-1.5 m-0.5 mb-1 font-medium w-[80px] border-[1px] text-sm border-[#c58597] rounded-lg bg-[#F4EDE9]"
-                class:bg-[#c58597]={current === tab}
-                class:text-[#c58597]={current !== tab}
-                class:text-[#F4EDE9]={current === tab}
+        <button class="p-1 m-0.5 font-medium w-20 border text-sm border-tapestry-500 rounded-lg"
+                class:bg-tapestry-500={current === tab}
+                class:bg-bouquet-50={current !== tab}
+                class:text-tapestry-500={current !== tab}
+                class:text-tapestry-50={current === tab}
                 on:click={() => setTab(tab)}>
             {tab}
         </button>
     {/each}
 </div>
-{#if current === MeterTab.Damage}
-    {#if $focus === ""}
-        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-            <DamageView {encounter} {focus}/>
-        </div>
-        {#if encounter.data.bossHPLog}
-            <div class="rounded-xl mt-5 min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-                <DamageGraph {encounter}/>
+<!-- TODO adject max-w based off of screen -->
+<div class="max-w-4xl mx-auto overflow-hidden px-1">
+    {#if current === MeterTab.Damage}
+        {#if $focus === ""}
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                <DamageView {encounter} {focus}/>
+            </div>
+            {#if encounter.data.bossHPLog}
+                <div class="rounded-xl mt-5 min-w-[40rem] border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                    <DamageGraph {encounter}/>
+                </div>
+            {/if}
+        {:else}
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                <PlayerDamageView {encounter} {focus}/>
             </div>
         {/if}
-    {:else}
-        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-            <PlayerDamageView {encounter} {focus}/>
-        </div>
+    {:else if current === MeterTab.Buff}
+        {#if $focus === ""}
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                <BuffView {encounter} {focus}/>
+            </div>
+        {:else}
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                <PlayerBuffView {encounter} {focus}/>
+            </div>
+        {/if}
+    {:else if current === MeterTab.Self}
+        {#if $focus === ""}
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                <SelfBuffView {encounter} {focus}/>
+            </div>
+        {:else}
+            <div class="rounded-xl border border-tapestry-50 shadow-sm bg-bouquet-50 p-2">
+                <PlayerSelfBuffView {encounter} {focus}/>
+            </div>
+        {/if}
     {/if}
-{:else if current === MeterTab.Buff}
-    {#if $focus === ""}
-        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-            <BuffView {encounter} {focus}/>
-        </div>
-    {:else}
-        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-            <PlayerBuffView {encounter} {focus}/>
-        </div>
-    {/if}
-{:else if current === MeterTab.Self}
-    {#if $focus === ""}
-        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-            <SelfBuffView {encounter} {focus}/>
-        </div>
-    {:else}
-        <div class="rounded-xl min-w-[600px] border-[1px] border-[#f7efe5] shadow-sm bg-[#f5ece8] p-2">
-            <PlayerSelfBuffView {encounter} {focus}/>
-        </div>
-    {/if}
-{/if}
+</div>
+</div>

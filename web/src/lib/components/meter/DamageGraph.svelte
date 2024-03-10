@@ -146,18 +146,18 @@
              class:block={showTooltip}
              class:hidden={!showTooltip}
              style="transform: translate({tooltipX}px, {tooltipY}px)">
-            <div class="flex flex-col items-center justify-center p-2 rounded-md whitespace-nowrap bg-[#F4EDE9] border-[1px] text-sm font-semibold border-[#c58597] text-[#575279]">
+            <div class="flex flex-col items-center justify-center p-2 rounded-md whitespace-nowrap bg-bouquet-50 border text-sm font-semibold border-[#c58597] text-[#575279]">
                 {#each tooltipBosses as boss}
                     <p>{shortBossName(boss.boss)}
                         [{ bossHpMap[boss.boss] ? Math.floor(boss.percent * bossHpMap[boss.boss]) + "x" : formatDamage(boss.hp)}
                         - {boss.percent < 0.01 ? "0" : formatPercent(boss.percent)}%]</p>
                 {/each}
-                <div class="w-full my-1 h-[1px] bg-[#b96d83] opacity-90 rounded"></div>
+                <div class="w-full my-1 h-[1px] bg-tapestry-500 opacity-90 rounded"></div>
                 {#each tooltipPlayers as player}
                     <p>{player.name} - {formatDamage(player.dps)}</p>
                 {/each}
             </div>
-            <div class="flex flex-col mt-0.5 w-fit items-center justify-center p-1 rounded-md whitespace-nowrap bg-[#F4EDE9] border-[1px] text-xs font-semibold border-[#c58597] text-[#575279]">
+            <div class="flex flex-col mt-0.5 w-fit items-center justify-center p-1 rounded-md whitespace-nowrap bg-bouquet-50 border text-xs font-semibold border-[#c58597] text-[#575279]">
                 <p>{tooltipBosses.length > 0 && formatDuration(currentX)}</p>
             </div>
         </div>

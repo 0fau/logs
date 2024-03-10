@@ -2,7 +2,11 @@
 
     import {cards, getSkillIcon} from "$lib/game";
     import {formatPercent, sanitizeBuffDescription} from "$lib/print";
-    import Player from "$lib/components/meter/Player.svelte";
+    import PlayerName from "$lib/components/meter/PlayerName.svelte";
+    import SkillName from "$lib/components/meter/SkillName.svelte";
+    import { onMount } from "svelte";
+    import { horizontalWheel } from "$lib/scroll";
+    import IconUpwards from '~icons/lets-icons/up';
 
     export let encounter;
     export let focus;
@@ -29,6 +33,8 @@
     let rows = [];
     let bars = [];
 
+    let cWidth = 0;
+
     let most = data.skillDamage[skills[0]].damage
     $: {
         for (let i = 0; i < rows.length; i++) {
@@ -39,22 +45,38 @@
                 percent = data.skillDamage[skills[i - 1]].damage / most;
             }
             bars[i].style.height = rows[i].clientHeight + "px";
-            bars[i].style.width = percent * rows[i].clientWidth + "px";
+            bars[i].style.width = percent * cWidth + "px";
             bars[i].style.backgroundColor = barColors[i % 2]
         }
     }
 
     let hovered;
+    let div: HTMLElement;
+    onMount(() => {
+        horizontalWheel(div);
+    });
 </script>
-
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div on:contextmenu|preventDefault={() => focus.set("")}
-     class="bg-[#F4EDE9] w-full h-full rounded-lg">
-    <table class="table-auto w-full">
-        <thead class="bg-[#b96d83]">
+     bind:this={div}
+     class="custom-scroll h-full w-full overflow-scroll bg-bouquet-50">
+    <table class="table-fixed w-full min-w-[40rem]"
+           bind:clientWidth={cWidth}>
+        <thead class="bg-tapestry-500">
         <tr>
-            <th class="rounded-tl-lg"></th>
+            <th class="w-8 rounded-tl-lg">
+                <button class="flex items-center pl-1 sm:hidden" on:click={() => focus.set("")}>
+                    <IconUpwards class="w-5 h-5"/>
+                </button>
+            </th>
+            <th class="w-44"></th>
+            <th class="w-full"></th>
             {#each buffGroups as buffGroup, i}
-                <th class:rounded-tr-lg={i === buffGroups.length - 1}>
+                {@const width =
+                    buffGroup.buffs.length > 1
+                        ? `${buffGroup.buffs.length * 1.5 + 1.5}rem`
+                        : "3.5rem"}
+                <th class:rounded-tr-lg={i === buffGroups.length - 1} style="width: {width}">
                     <div class="flex flex-row mx-2 items-center justify-center">
                         {#each buffGroup.buffs as buff}
                             {@const info = encounter.data.buffCatalog[buff]}
@@ -64,7 +86,7 @@
                                  on:mouseleave={() => hovered = ""}
                             />
                             {#if hovered === hoverkey}
-                                <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] -translate-y-[calc(100%-1.5rem)] text-[#575279]">
+                                <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-lg whitespace-nowrap bg-bouquet-50 border border-[#c58597] -translate-y-[calc(100%-1.5rem)] text-[#575279]">
                                     <img alt={info.name}
                                          class="inline rounded-sm h-6 w-6"
                                          src="{getSkillIcon(info.skill?.icon ?? info.icon)}"/>
@@ -79,14 +101,7 @@
         </tr>
         </thead>
         <tr bind:this={rows[0]} class="relative">
-            <div bind:this={bars[0]}
-                 class="absolute z-0">
-            </div>
-            <td class="float-left">
-                <div class="my-1 flex justify-center items-center">
-                    <Player player={encounter.players[$focus]} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
-                </div>
-            </td>
+            <PlayerName player={encounter.players[$focus]} difficulty={encounter.difficulty} />
             {#each data.skillSelfBuffs as buffGroup}
                 {@const percent = data.skillSelfBuff["_player"] ? data.skillSelfBuff["_player"][buffGroup.name]?.percent : ""}
                 {@const hoverkey = "_player_" + buffGroup.name}
@@ -96,7 +111,7 @@
                               on:mouseover={() => hovered = hoverkey}
                               on:mouseleave={() => hovered = ""}>{percent ? percent : ""}</span>
                         {#if hovered === hoverkey}
-                            <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-md whitespace-nowrap bg-[#F4EDE9] translate-y-[26px] border-[1px] border-[#c58597] text-[#575279]">
+                            <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-md whitespace-nowrap bg-bouquet-50 translate-y-[26px] border border-[#c58597] text-[#575279]">
                                 {#each buffGroup.buffs as buff}
                                     {@const info = encounter.data.buffCatalog[buff]}
                                     <div class="w-[64px] flex items-center justify-start my-0.5">
@@ -111,23 +126,14 @@
                     </div>
                 </td>
             {/each}
+            <div bind:this={bars[0]}
+                 class="absolute z-0 left-0">
+            </div>
         </tr>
         {#each skills as name, i}
             {@const info = encounter.data.skillCatalog[name]}
             <tr bind:this={rows[i + 1]}>
-                <div bind:this={bars[i + 1]}
-                     class="absolute z-0"
-                     class:rounded-bl-lg={i === skills.length - 1}>
-                </div>
-                <td class="float-left">
-                    <div class="my-1 flex justify-center items-center">
-                        <img alt={info.name}
-                             src="{getSkillIcon(info.icon)}"
-                             class="h-6 w-6 mr-1.5 inline opacity-95"
-                        />
-                        <span>{info.name}</span>
-                    </div>
-                </td>
+                <SkillName info={info} />
                 {#each data.skillSelfBuffs as buffGroup}
                     {@const percent = data.skillSelfBuff[name] ? data.skillSelfBuff[name][buffGroup.name]?.percent : ""}
                     {@const hoverkey = name + "_" + buffGroup.name}
@@ -137,7 +143,7 @@
                               on:mouseover={() => hovered = hoverkey}
                               on:mouseleave={() => hovered = ""}>{percent ? percent : ""}</span>
                             {#if hovered === hoverkey}
-                                <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-md whitespace-nowrap bg-[#F4EDE9] translate-y-[26px] border-[1px] border-[#c58597] text-[#575279]">
+                                <div class="absolute flex flex-col items-center justify-center p-2 z-50 rounded-md whitespace-nowrap bg-bouquet-50 translate-y-[26px] border border-[#c58597] text-[#575279]">
                                     {#each buffGroup.buffs as buff}
                                         {@const info = encounter.data.buffCatalog[buff]}
                                         <div class="w-[64px] flex items-center justify-start my-0.5">
@@ -152,6 +158,10 @@
                         </div>
                     </td>
                 {/each}
+                <div bind:this={bars[i + 1]}
+                     class="absolute z-0 left-0"
+                     class:rounded-bl-lg={i === skills.length - 1}>
+                </div>
             </tr>
         {/each}
     </table>
@@ -160,14 +170,16 @@
 <style>
     th {
         font-weight: normal;
-        color: #F4EDE9;
+        color: theme("colors.tapestry.50");
         padding-top: 3px;
         padding-bottom: 3px;
     }
 
     td {
         padding: 0 6px;
+        z-index: 10;
         position: relative;
-        color: #524d72;
+        text-align: center;
+        color: theme("colors.zinc.600");
     }
 </style>

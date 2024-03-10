@@ -20,9 +20,3 @@
                          alt="<3" class="inline w-6 -translate-y-0.5"/></div>
     </div>
 </div>
-
-<style lang="postcss">
-    :global(html) {
-        background-color: #faf4ed;
-    }
-</style>

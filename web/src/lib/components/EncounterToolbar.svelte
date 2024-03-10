@@ -34,15 +34,15 @@
     }
 </script>
 
-<div class="h-[23px] w-[490px] mb-3.5 flex flex-row items-center">
-    <a href="/logs" class="mt-1 text-sm text-[#9a4a61]">← Logs</a>
+<div class="h-4 mb-2 flex flex-row items-center max-w-xl w-full">
+    <a href="/logs" class="mt-1 text-sm text-tapestry-800 hover:underline">← Logs</a>
 </div>
-<div class="h-[23px] w-[458px] mb-2 flex flex-row items-center">
-    <div class="flex p-[1.5px] items-center shadow-sm rounded-lg bg-[#f4e8e6] border-[1px] border-[#c58597]">
+<div class="h-8 w-full mb-2 flex items-center max-w-md px-1">
+    <div class="flex p-0.5 items-center shadow-sm rounded-lg bg-tapestry-50 border border-tapestry-500">
         {#if !uploader}
             <img alt="avatar" class="rounded-md mr-1 w-6 h-6"
                  src="/icons/misc/sus.png"/>
-            <span class="text-xs font-medium text-[#413d5b] mr-1.5">Hidden</span>
+            <span class="text-xs font-medium text-zinc-900 mr-1.5">Hidden</span>
         {:else}
             {#if uploader.avatar}
                 <img alt="avatar" class="rounded-md mr-1.5 w-6 h-6"
@@ -56,12 +56,12 @@
     </div>
     <div class="ml-auto mr-0 flex items-center">
         {#if uploader && user && uploader.id === user.id}
-            <button class="bg-[#b4637a] text-[#F4EDE9] rounded-md p-0.5"
+            <button class="bg-tapestry-500 text-tapestry-50 rounded-md p-0.5"
                     on:click={() => settingsDropdown =!settingsDropdown}>
                 <IconSettings/>
             </button>
             {#if settingsDropdown}
-                <div class="absolute flex flex-col items-start justify-center p-2 z-50 rounded-lg whitespace-nowrap bg-[#F4EDE9] border-[1px] border-[#c58597] translate-y-[calc(100%-1.9em)] -translate-x-[calc(100%-1.7rem)] text-[#575279]">
+                <div class="absolute flex flex-col items-start justify-center p-2 z-50 rounded-lg whitespace-nowrap bg-bouquet-50 border border-tapestry-600 translate-y-[calc(100%-1.9em)] -translate-x-[calc(100%-1.7rem)] text-gray-700">
                     <div class="flex items-center justify-center">
                         <div class="h-fit ml-1">
                             <p class="text-sm font-semibold">Log Visibility</p>

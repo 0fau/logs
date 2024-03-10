@@ -12,55 +12,51 @@
     };
 
     export let encounter;
-    export let screenshot = false;
-    export let width;
     export let gearScore;
+    export let screenshot = false;
 
     $: player = encounter.players[encounter.localPlayer];
 </script>
 
-{#if screenshot}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-{/if}
-
-<div class="h-[80px] {width} flex border-[0.5px] border-[#c58597] shadow-sm rounded-md bg-[#F4EDE9]"
-     class:screenshot={screenshot}>
-    <div class="w-full h-full flex flex-row px-[18px] items-center">
+<div
+    class="flex h-[80px] rounded-md border border-tapestry-400 bg-tapestry-50 shadow-sm"
+    class:screenshot>
+    <div class="flex h-full w-full flex-row items-center pl-3 pr-2">
         <div>
-            <div class="self-start text-left text-[#575279]">
-                <div>
-                    <img alt={encounter.boss} src={getBossIcon(encounter.boss)}
-                         class="inline w-6 h-6 -translate-y-0.5"/>
-                    <span class="font-medium">{shortBossName(encounter.boss)}</span>
+            <div class="self-start text-left text-zinc-800">
+                <div class="flex items-center space-x-1">
+                    <img alt={encounter.boss} src={getBossIcon(encounter.boss)} class="size-6" />
+                    <span class="truncate font-medium tracking-tight">{shortBossName(encounter.boss)}</span>
                 </div>
-                <p class="text-sm">{formatDamage(encounter.damage)} damage dealt
-                    in {formatDuration(encounter.duration)}</p>
-                <p class="text-xs text-[#5d5978]"><span class="font-medium">#{encounter.id} |</span> <span
+                <p class="text-sm">
+                    <span class="font-medium">{formatDamage(encounter.damage)}</span> damage dealt in {formatDuration(
+                        encounter.duration
+                    )}
+                </p>
+                <p class="text-xs tracking-tight text-gray-500">
+                    <span class="font-medium">#{encounter.id} |</span>
+                    <span
                         class="font-semibold"
-                        style="color: {difficultyColors[encounter.difficulty]}">{encounter.difficulty}</span> {screenshot ? formatDateSolid(encounter.date) : formatDate(encounter.date)}
+                        style="color: {difficultyColors[encounter.difficulty]}"
+                        >{encounter.difficulty}</span>
+                    {screenshot
+                        ? formatDateSolid(encounter.date)
+                        : "cleared " + formatDate(encounter.date + encounter.duration)}
                 </p>
             </div>
         </div>
-        <div class="py-1 h-full ml-auto self-end flex flex-col rounded-r-md text-white">
-            <span class="text-xs text-center self-end text-[#F4EDE9] p-0.5 px-1 mt-1.5 rounded-sm bg-[#b4637a] font-medium"
-                  class:bg-[#b4637a]={!encounter.anonymized}
-                  class:bg-[#8F708A]={encounter.anonymized}
-            >{encounter.localPlayer}</span>
-            <span class="text-xs self-end text-right mt-0.5 font-medium"
-                  class:text-[#b4637a]={!encounter.anonymized}
-                  class:text-[#8F708A]={encounter.anonymized}
-            >{gearScore ? Math.floor(player.gearScore) + " " : ""}{player.class}</span>
-            <span class="text-[#575279] text-right my-auto text-lg font-medium">{formatDamage(player.dps)}</span>
+        <div class="ml-auto flex h-full flex-col self-end rounded-r-md py-1 text-white">
+            <span
+                class="mr-0.5 mt-1.5 self-end rounded-sm px-1 py-0.5 text-center text-xs font-medium"
+                class:bg-tapestry-500={!encounter.anonymized}
+                class:bg-pastel-purple-500={encounter.anonymized}
+                >{encounter.localPlayer}</span>
+            <span class="mr-1 mt-0.5 self-end text-right text-xs font-medium"
+                  class:text-tapestry-500={!encounter.anonymized}
+                  class:text-pastel-purple-500={encounter.anonymized}
+                >{gearScore ? Math.floor(player.gearScore) + " " : ""}{player.class}</span>
+            <span class="my-auto mr-1 text-right text-lg font-medium text-gray-600"
+                >{formatDamage(player.dps)}</span>
         </div>
     </div>
 </div>
-
-{#if screenshot}
-    <style>
-        p, span {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-{/if}
