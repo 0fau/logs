@@ -35,8 +35,8 @@ func (s *Server) userHandler(c *gin.Context) {
 }
 
 type ReturnedSettings struct {
-	HasToken bool `json:"hasToken"`
-	structs.UserSettings
+	HasToken            bool                         `json:"hasToken"`
+	EncounterVisibility *structs.EncounterVisibility `json:"logVisibility"`
 }
 
 func (s *Server) settingsHandler(c *gin.Context) {
@@ -68,12 +68,56 @@ func (s *Server) settingsHandler(c *gin.Context) {
 		return
 	}
 
-	log.Println(user.AccessToken.Valid)
-
 	c.JSON(http.StatusOK, &ReturnedSettings{
-		HasToken:     user.AccessToken.Valid,
-		UserSettings: user.Settings,
+		HasToken:            user.AccessToken != nil,
+		EncounterVisibility: user.LogVisibility,
 	})
+}
+
+func (s *Server) updateSettings(c *gin.Context) {
+	var visibility structs.EncounterVisibility
+	if err := c.ShouldBind(&visibility); err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	sesh := sessions.Default(c)
+	var u *SessionUser
+	if val := sesh.Get("user"); val != nil {
+		u = val.(*SessionUser)
+	} else {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	id := pgtype.UUID{}
+	if err := id.Scan(u.ID); err != nil {
+		log.Println(errors.Wrap(err, "scanning pgtype.UUID id"))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	ctx := context.Background()
+	stored, err := s.conn.Queries.GetUserEncounterVisibility(ctx, id)
+	if err != nil {
+		log.Println(errors.Wrap(err, "get user encounter visibility"))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	if stored == nil {
+		stored = &structs.EncounterVisibility{}
+	}
+
+	stored.Names = visibility.Names
+
+	if err := s.conn.Queries.UpdateUserEncounterVisibility(ctx, sql.UpdateUserEncounterVisibilityParams{
+		ID:            id,
+		LogVisibility: stored,
+	}); err != nil {
+		log.Println(errors.Wrap(err, "update encounter visibility"))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (s *Server) setUsername(c *gin.Context) {
@@ -86,11 +130,12 @@ func (s *Server) setUsername(c *gin.Context) {
 		return
 	}
 
-	if u.Username == c.Query("username") {
+	username := c.Query("username")
+	if u.Username == username {
 		return
 	}
 
-	if c.Query("username") == "" || len(c.Query("username")) > 16 {
+	if username == "" || len(username) > 16 {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -109,17 +154,10 @@ func (s *Server) setUsername(c *gin.Context) {
 		return
 	}
 
-	username := pgtype.Text{}
-	if err := username.Scan(c.Query("username")); err != nil {
-		log.Println(errors.Wrap(err, "scanning pgtype.Text username"))
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
 	ctx := context.Background()
 	if err := s.conn.Queries.SetUsername(ctx, sql.SetUsernameParams{
 		ID:       id,
-		Username: username,
+		Username: &username,
 	}); err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return

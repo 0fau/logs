@@ -21,15 +21,17 @@ import (
 )
 
 type ReturnedEncounterShort struct {
-	Uploader    ReturnedUser `json:"uploader"`
-	ID          int32        `json:"id"`
-	Difficulty  string       `json:"difficulty"`
-	Boss        string       `json:"boss"`
-	Date        int64        `json:"date"`
-	Duration    int32        `json:"duration"`
-	LocalPlayer string       `json:"localPlayer"`
-	Place       int32        `json:"place"`
-	Anonymized  bool         `json:"anonymized"`
+	Uploader    *ReturnedUser                `json:"uploader"`
+	ID          int32                        `json:"id"`
+	Difficulty  string                       `json:"difficulty"`
+	Boss        string                       `json:"boss"`
+	Date        int64                        `json:"date"`
+	Duration    int32                        `json:"duration"`
+	LocalPlayer string                       `json:"localPlayer"`
+	Anonymized  bool                         `json:"anonymized"`
+	Actual      bool                         `json:"actual"`
+	Place       int32                        `json:"place"`
+	Visibility  *structs.EncounterVisibility `json:"visibility"`
 	structs.EncounterHeader
 }
 
@@ -44,13 +46,17 @@ type ReturnedEncounterShorts struct {
 	More       bool                     `json:"more"`
 }
 
-func (enc *ReturnedEncounter) Anonymize(order map[string]string) {
+func (enc *ReturnedEncounter) Anonymize(order map[string]string, character string, visibility int) {
 	m := make(map[string]structs.PlayerData, len(enc.Data.Players))
 	for name, player := range enc.Data.Players {
-		m[order[name]] = player
+		if visibility == structs.ShowSelf && name == character {
+			m[name] = player
+		} else {
+			m[order[name]] = player
+		}
 	}
 	enc.Data.Players = m
-	enc.ReturnedEncounterShort.Anonymize(order)
+	enc.ReturnedEncounterShort.Anonymize(order, character, visibility)
 }
 
 func (enc *ReturnedEncounterShort) Order() map[string]string {
@@ -63,17 +69,21 @@ func (enc *ReturnedEncounterShort) Order() map[string]string {
 	})
 	m := map[string]string{}
 	for i, player := range players {
-		m[player] = fmt.Sprintf("#%d", i+1)
+		m[player] = fmt.Sprintf("%s #%d", enc.Players[player].Class, i+1)
 	}
 	return m
 }
 
-func (enc *ReturnedEncounterShort) Anonymize(order map[string]string) {
+func (enc *ReturnedEncounterShort) Anonymize(order map[string]string, character string, visibility int) {
 	parties := make([][]string, 0, len(enc.Parties))
 	for _, party := range enc.Parties {
 		anon := make([]string, 0, len(party))
 		for _, player := range party {
-			anon = append(anon, order[player])
+			if visibility == structs.ShowSelf && player == character {
+				anon = append(anon, player)
+			} else {
+				anon = append(anon, order[player])
+			}
 		}
 		parties = append(parties, anon)
 	}
@@ -81,14 +91,22 @@ func (enc *ReturnedEncounterShort) Anonymize(order map[string]string) {
 
 	m := make(map[string]structs.PlayerHeader, len(enc.Players))
 	for name, player := range enc.Players {
-		player.Name = order[name]
-		m[order[name]] = player
+		if visibility == structs.ShowSelf && name == character {
+			m[name] = player
+		} else {
+			player.Name = order[name]
+			m[order[name]] = player
+		}
 	}
 	enc.Players = m
+	if (visibility == structs.ShowSelf && enc.LocalPlayer != character) || visibility == structs.HideNames || visibility == structs.UnsetNames {
+		enc.LocalPlayer = order[enc.LocalPlayer]
+		enc.Anonymized = true
+	}
 
-	enc.LocalPlayer = order[enc.LocalPlayer]
-	enc.Uploader = ReturnedUser{}
-	enc.Anonymized = true
+	if visibility != structs.ShowSelf {
+		enc.Uploader = nil
+	}
 }
 
 func (s *Server) logs(c *gin.Context) {
@@ -172,8 +190,11 @@ func (s *Server) logs(c *gin.Context) {
 		return
 	}
 
+	trusted := hasRoles(roles, "trusted")
+	admin := hasRoles(roles, "admin")
+
 	params.User = uuid
-	params.Privileged = hasRoles(roles, "admin", "trusted")
+	params.Privileged = trusted || admin
 
 	encs, err := query.Query(s.conn, params)
 	if err != nil {
@@ -197,15 +218,32 @@ func (s *Server) logs(c *gin.Context) {
 			Date:            enc.Date.Time.UnixMilli(),
 			Duration:        enc.Duration,
 			LocalPlayer:     enc.LocalPlayer,
+			Actual:          enc.LocalPlayer == enc.FocusedPlayer || enc.FocusedPlayer == "",
 			EncounterHeader: enc.Header,
 			Place:           enc.Place,
 		}
+		if enc.FocusedPlayer != "" {
+			short.LocalPlayer = enc.FocusedPlayer
+		}
 
 		uploaderID, _ := enc.UploadedBy.Value()
-		if u == nil || (params.Scope != "friends" && uploaderID != u.ID && !hasRoles(roles, "admin", "trusted")) {
-			order := short.Order()
-			short.Anonymize(order)
+
+		visibility := structs.UnsetNames
+		if enc.Visibility != nil && enc.Visibility.Names != structs.UnsetNames {
+			visibility = enc.Visibility.Names
+		} else if enc.Uploader.LogVisibility != nil {
+			visibility = enc.Uploader.LogVisibility.Names
 		}
+
+		showNames := visibility == structs.ShowNames
+		if !(showNames || (u != nil &&
+			(u.ID == uploaderID || params.Scope == "friends" ||
+				(!(enc.Visibility != nil && (enc.Visibility.Names == structs.HideNames || enc.Visibility.Names == structs.ShowSelf)) &&
+					hasRoles(roles, "trusted")) || hasRoles(roles, "admin")))) {
+			order := short.Order()
+			short.Anonymize(order, enc.LocalPlayer, visibility)
+		}
+		short.Visibility = &structs.EncounterVisibility{Names: visibility}
 
 		ret[i] = short
 	}
@@ -265,8 +303,8 @@ func (s *Server) logHandler(c *gin.Context) {
 
 	uploadedBy, _ := enc.UploadedBy.Value()
 	username := ""
-	if u, _ := enc.Username.Value(); u != nil {
-		username = u.(string)
+	if enc.Username != nil {
+		username = *enc.Username
 	}
 
 	friends, err := s.conn.Queries.AreFriends(ctx, sql.AreFriendsParams{
@@ -279,7 +317,7 @@ func (s *Server) logHandler(c *gin.Context) {
 
 	full := ReturnedEncounter{
 		ReturnedEncounterShort: ReturnedEncounterShort{
-			Uploader: ReturnedUser{
+			Uploader: &ReturnedUser{
 				ID:         uploadedBy.(string),
 				DiscordTag: enc.DiscordTag,
 				Username:   username,
@@ -291,16 +329,28 @@ func (s *Server) logHandler(c *gin.Context) {
 			Date:            enc.Date.Time.UnixMilli(),
 			Duration:        enc.Duration,
 			LocalPlayer:     enc.LocalPlayer,
+			Actual:          true,
 			EncounterHeader: enc.Header,
 		},
 		Thumbnail: enc.Thumbnail,
 		Data:      enc.Data,
 	}
 
-	if u == nil || u.ID != uploadedBy && !hasRoles(roles, "admin", "trusted") && !friends {
-		order := full.Order()
-		full.Anonymize(order)
+	visibility := structs.UnsetNames
+	if enc.Visibility != nil && enc.Visibility.Names != structs.UnsetNames {
+		visibility = enc.Visibility.Names
+	} else if enc.LogVisibility != nil {
+		visibility = enc.LogVisibility.Names
 	}
+
+	showNames := visibility == structs.ShowNames
+	if !(showNames || (u != nil &&
+		(u.ID == uploadedBy || friends || (!(enc.Visibility != nil && (enc.Visibility.Names == structs.HideNames ||
+			enc.Visibility.Names == structs.ShowSelf)) && hasRoles(roles, "trusted")) || hasRoles(roles, "admin")))) {
+		order := full.Order()
+		full.Anonymize(order, enc.LocalPlayer, visibility)
+	}
+	full.ReturnedEncounterShort.Visibility = &structs.EncounterVisibility{Names: visibility}
 
 	c.JSON(http.StatusOK, full)
 }
@@ -340,7 +390,85 @@ func (s *Server) shortLogHandler(c *gin.Context) {
 	}
 
 	order := short.Order()
-	short.Anonymize(order)
+	short.Anonymize(order, "", structs.HideNames)
 
 	c.JSON(http.StatusOK, short)
+}
+
+type UpdateLogSettingsParams struct {
+	Log int32 `uri:"log" binding:"required"`
+}
+
+type UpdateLogSettingsBody struct {
+	Names int `json:"names"`
+}
+
+func (s *Server) updateLogSettings(c *gin.Context) {
+	sesh := sessions.Default(c)
+
+	var u *SessionUser
+	if val := sesh.Get("user"); val != nil {
+		u = val.(*SessionUser)
+	} else {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	params := UpdateLogSettingsParams{}
+	if err := c.ShouldBindUri(&params); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	ctx := context.Background()
+	row, err := s.conn.Queries.GetEncounterVisibility(ctx, params.Log)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			c.AbortWithStatus(http.StatusNotFound)
+		} else {
+			log.Println(errors.Wrap(err, "fetching encounter visibility"))
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		return
+	}
+
+	var uuid string
+	if uploader, err := row.UploadedBy.Value(); err == nil && uploader != nil {
+		uuid = uploader.(string)
+	}
+
+	if uuid != u.ID {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if row.Visibility == nil {
+		row.Visibility = &structs.EncounterVisibility{}
+	}
+
+	body := UpdateLogSettingsBody{}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	log.Println(body)
+
+	if body.Names != row.Visibility.Names {
+		row.Visibility.Names = body.Names
+	} else {
+		return
+	}
+
+	if err := s.conn.Queries.UpdateEncounterVisibility(ctx, sql.UpdateEncounterVisibilityParams{
+		ID: params.Log, Visibility: row.Visibility,
+	}); err != nil {
+		log.Println(errors.Wrap(err, "updating encounter visibility"))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 }

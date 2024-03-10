@@ -3,7 +3,7 @@
     import { getRaid } from "$lib/raids";
     import Meter from "$lib/components/meter/Meter.svelte";
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
-    import EncounterSocial from "$lib/components/EncounterSocial.svelte";
+    import EncounterToolbar from "$lib/components/EncounterToolbar.svelte";
 
     const difficultyColors = {
         Inferno: "#9a3148",
@@ -15,6 +15,8 @@
 
     export let data: PageData;
     $: encounter = data.encounter;
+    let encounter = data.encounter
+    let user = data.me
 </script>
 
 <svelte:head>
@@ -57,7 +59,7 @@
 <div class="w-full py-5 xs:py-10 sm:py-20">
     {#if encounter}
         <div class="flex flex-col items-center">
-            <EncounterSocial {encounter} />
+            <EncounterToolbar {encounter} {user}/>
             <div class="xs:w-[30rem] w-full px-1">
                 <EncounterPreview {encounter} />
             </div>

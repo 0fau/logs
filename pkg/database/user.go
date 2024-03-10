@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -16,11 +15,9 @@ func (db *DB) SetUserAccessToken(
 		return err
 	}
 
-	at := pgtype.Text{}
+	var at *string
 	if token != "" {
-		if err := at.Scan(token); err != nil {
-			return errors.Wrap(err, "scanning pgtype.Text access token")
-		}
+		at = &token
 	}
 
 	return db.Queries.SetAccessToken(ctx, sql.SetAccessTokenParams{
@@ -33,7 +30,7 @@ func (db *DB) UserByAccessToken(
 	ctx context.Context,
 	token string,
 ) (*sql.User, error) {
-	user, err := db.Queries.GetUserByToken(ctx, pgtext(token))
+	user, err := db.Queries.GetUserByToken(ctx, &token)
 	if err != nil {
 		return nil, err
 	}

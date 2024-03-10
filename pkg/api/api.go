@@ -37,7 +37,11 @@ type Server struct {
 
 func cors() gin.HandlerFunc {
 	config := gincors.DefaultConfig()
-	config.AllowOrigins = []string{"https://tauri.localhost", "http://localhost:5173", "http://localhost:5174"}
+	config.AllowOrigins = []string{
+		"https://tauri.localhost",
+		"http://localhost:5173",
+		"http://localhost:5174",
+	}
 	config.AllowHeaders = []string{"access_token"}
 	return gincors.New(config)
 }
@@ -83,16 +87,22 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.GET("api/users/@me", s.meHandler)
 	s.router.POST("logout", s.logout)
 
-	s.router.GET("images/avatar/:user", s.avatarHandler)
-	s.router.GET("images/thumbnail/:log", s.thumbnailHandler)
+	images := s.router.Group("images")
+	images.GET("avatar/:user", s.avatarHandler)
+	images.GET("thumbnail/:log", s.thumbnailHandler)
 
 	s.router.GET("api/settings", s.settingsHandler)
+	s.router.PATCH("api/settings", s.updateSettings)
 	s.router.PUT("api/settings/username", s.setUsername)
 
 	s.router.POST("api/logs", s.logs)
 	s.router.POST("api/logs/upload", s.uploadHandler)
 	s.router.GET("api/log/:log", s.logHandler)
 	s.router.GET("api/log/:log/short", s.shortLogHandler)
+	s.router.PATCH("api/log/:log/settings", s.updateLogSettings)
+
+	s.router.GET("api/profile", s.profileHandler)
+	s.router.GET("api/profile/:username", s.userProfileHandler)
 
 	s.router.POST("api/users/@me/token", s.generateToken)
 

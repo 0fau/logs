@@ -98,15 +98,28 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
+	}
+
 	uuid, _ := user.ID.Value()
 	seshUser := SessionUser{
 		ID:         uuid.(string),
 		DiscordTag: user.DiscordTag,
 		Avatar:     user.Avatar != "",
-		Username:   user.Username.String,
+		Username:   username,
 	}
-
 	sesh.Set("user", seshUser)
+
+	roles, err := s.conn.Queries.GetRoles(ctx, user.ID)
+	if err != nil {
+		log.Println(errors.WithStack(err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	sesh.Set("roles", roles)
+
 	if err := sesh.Save(); err != nil {
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -161,6 +174,13 @@ func (s *Server) saveUser(ctx context.Context, client *http.Client) (*sql.User, 
 			return errors.Wrap(err, "upserting user")
 		}
 
+		if err := qtx.CreateFriend(ctx, sql.CreateFriendParams{
+			User1: user.ID,
+			User2: user.ID,
+		}); err != nil {
+			return errors.Wrap(err, "creating friend")
+		}
+
 		if user.Avatar != dgUser.Avatar {
 			val, _ := user.ID.Value()
 			uuid := val.(string)
@@ -206,14 +226,22 @@ func (s *Server) meHandler(c *gin.Context) {
 	if token != "" {
 		user, err := s.conn.UserByAccessToken(context.Background(), token)
 		if err != nil {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			if errors.Is(err, pgx.ErrNoRows) {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"error": "Invalid access token.",
+				})
+			} else {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"error": "Something went wrong.",
+				})
+			}
 			return
 		}
 
 		id, _ := user.ID.Value()
 		username := ""
-		if name, err := user.Username.Value(); err == nil && name != nil {
-			username = name.(string)
+		if user.Username != nil {
+			username = *user.Username
 		}
 
 		c.JSON(http.StatusOK, ReturnedTokenUser{
@@ -221,7 +249,7 @@ func (s *Server) meHandler(c *gin.Context) {
 			Username:   username,
 			DiscordTag: user.DiscordTag,
 			Avatar:     user.Avatar != "",
-			CanUpload:  hasRoles(user.Roles, "alpha", "trusted"),
+			CanUpload:  hasRoles(user.Roles, "alpha", "trusted", "admin"),
 		})
 		return
 	}

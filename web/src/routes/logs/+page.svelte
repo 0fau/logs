@@ -28,7 +28,7 @@
 
             settingsModal = await resp.json();
         } else {
-            settingsModal = undefined;
+            settingsModal = null;
         }
     });
 

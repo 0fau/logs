@@ -63,7 +63,7 @@ type UploadResponse struct {
 func (s *Server) uploadHandler(c *gin.Context) {
 	token := c.GetHeader("access_token")
 	if token == "" {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid access token.")
 		return
 	}
 
@@ -71,7 +71,7 @@ func (s *Server) uploadHandler(c *gin.Context) {
 	user, err := s.conn.UserByAccessToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, "Invalid access token.")
 		} else {
 			log.Println(errors.WithStack(err))
 			c.AbortWithStatus(http.StatusInternalServerError)
@@ -80,7 +80,8 @@ func (s *Server) uploadHandler(c *gin.Context) {
 	}
 
 	if !hasRoles(user.Roles, "alpha", "trusted", "admin") {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		log.Println(user.DiscordTag + " failed to upload due to insufficient role.")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, Error{"Insufficient role."})
 		return
 	}
 

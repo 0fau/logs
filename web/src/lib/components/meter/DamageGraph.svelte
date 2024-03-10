@@ -154,8 +154,7 @@
                 {/each}
                 <div class="w-full my-1 h-[1px] bg-tapestry-500 opacity-90 rounded"></div>
                 {#each tooltipPlayers as player}
-                    <p>{encounter.anonymized ? encounter.players[player.name].class + " " + player.name : player.name}
-                        - {formatDamage(player.dps)}</p>
+                    <p>{player.name} - {formatDamage(player.dps)}</p>
                 {/each}
             </div>
             <div class="flex flex-col mt-0.5 w-fit items-center justify-center p-1 rounded-md whitespace-nowrap bg-bouquet-50 border-[1px] text-xs font-semibold border-[#c58597] text-[#575279]">
