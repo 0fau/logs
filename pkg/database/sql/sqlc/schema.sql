@@ -30,6 +30,8 @@ CREATE TABLE encounters
     header       JSONB     NOT NULL,
     data         JSON      NOT NULL,
 
+    private      BOOLEAN   NOT NULL,
+
     unique_hash  STRING    NOT NULL,
     unique_group INT       NOT NULL,
 
@@ -88,4 +90,15 @@ CREATE TABLE IF NOT EXISTS roster
     character  STRING NOT NULL,
     class      STRING NOT NULL,
     gear_score FLOAT  NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS raids
+(
+    id         INT       NOT NULL PRIMARY KEY,
+    boss       STRING    NOT NULL,
+    difficulty STRING    NOT NULL,
+    date       TIMESTAMP NOT NULL,
+    duration   BIGINT    NOT NULL,
+    uploaders  UUID[]    NOT NULL,
+    players    STRING[]  NOT NULL
 );

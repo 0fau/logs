@@ -18,6 +18,7 @@ type Encounter struct {
 	Tags        []string
 	Header      structs.EncounterHeader
 	Data        structs.EncounterData
+	Private     bool
 	UniqueHash  string
 	UniqueGroup int32
 	Visibility  *structs.EncounterVisibility
@@ -56,6 +57,16 @@ type Player struct {
 	Dps        int64
 	GearScore  float64
 	Place      int32
+}
+
+type Raid struct {
+	ID         int32
+	Boss       string
+	Difficulty string
+	Date       pgtype.Timestamp
+	Duration   int64
+	Uploaders  []pgtype.UUID
+	Players    []string
 }
 
 type Roster struct {

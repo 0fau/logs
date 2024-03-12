@@ -38,6 +38,7 @@ type Params struct {
 
 	Selections Selections
 	Privileged bool
+	Admin      bool
 }
 
 type User struct {
@@ -409,6 +410,13 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 			}
 		}
 	}
+
+	//if !params.Admin {
+	//	q = q.Where(sq.Or{
+	//		sq.Eq{"e.private": false},
+	//		sq.Eq{"e.uploaded_by": params.User},
+	//	})
+	//}
 
 	q = q.Limit(6).PlaceholderFormat(sq.Dollar)
 

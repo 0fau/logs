@@ -195,6 +195,7 @@ func (s *Server) logs(c *gin.Context) {
 
 	params.User = uuid
 	params.Privileged = trusted || admin
+	params.Admin = admin
 
 	encs, err := query.Query(s.conn, params)
 	if err != nil {
@@ -305,6 +306,11 @@ func (s *Server) logHandler(c *gin.Context) {
 	username := ""
 	if enc.Username != nil {
 		username = *enc.Username
+	}
+
+	if enc.Private && u.ID != uploadedBy && !hasRoles(roles, "admin") {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
 	friends, err := s.conn.Queries.AreFriends(ctx, sql.AreFriendsParams{

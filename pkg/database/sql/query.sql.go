@@ -119,7 +119,7 @@ func (q *Queries) FetchWhitelist(ctx context.Context, discord string) (string, e
 }
 
 const getEncounter = `-- name: GetEncounter :one
-SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.thumbnail, e.tags, e.header, e.data, e.unique_hash, e.unique_group, e.visibility, e.boss, e.difficulty, e.date, e.duration, e.version, e.local_player,
+SELECT e.id, e.uploaded_by, e.uploaded_at, e.settings, e.thumbnail, e.tags, e.header, e.data, e.private, e.unique_hash, e.unique_group, e.visibility, e.boss, e.difficulty, e.date, e.duration, e.version, e.local_player,
        u.discord_id,
        u.discord_tag,
        u.log_visibility,
@@ -140,6 +140,7 @@ type GetEncounterRow struct {
 	Tags          []string
 	Header        structs.EncounterHeader
 	Data          structs.EncounterData
+	Private       bool
 	UniqueHash    string
 	UniqueGroup   int32
 	Visibility    *structs.EncounterVisibility
@@ -168,6 +169,7 @@ func (q *Queries) GetEncounter(ctx context.Context, id int32) (GetEncounterRow, 
 		&i.Tags,
 		&i.Header,
 		&i.Data,
+		&i.Private,
 		&i.UniqueHash,
 		&i.UniqueGroup,
 		&i.Visibility,

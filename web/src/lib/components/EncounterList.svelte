@@ -295,7 +295,7 @@
                     <span class="text-[#413d5b] text-sm text-semibold mb-0.5">Not signed in.</span>
                     <img alt="loading"
                          class="w-10 h-10"
-                         src="https://cdn.discordapp.com/attachments/1154431161993535489/1177165751040360448/emoji_a_38.png?ex=65e97c89&is=65d70789&hm=3cfbbad278f0152ca56fe4f97e3aa115b92f0e75f700dba2e7d8237f02727b7a&"/>
+                         src="/icons/misc/mad.png"/>
                 </div>
             {:else}
                 <div class="flex flex-col items-center justify-center -translate-y-[14%]">
