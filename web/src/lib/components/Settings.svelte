@@ -1,8 +1,10 @@
 <script lang="ts">
     import {settingsUI} from "$lib/menu";
-    import {user} from "$lib/store";
+    import {getUser} from "$lib/store";
 
     export let settings;
+
+    let user = getUser()
 
     let username = "";
     let token = "";

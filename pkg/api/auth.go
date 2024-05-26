@@ -3,8 +3,10 @@ package api
 import (
 	"bytes"
 	"context"
-	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/database/sql/structs"
+	"image/png"
+	"log"
+	"net/http"
+
 	"github.com/bwmarrin/discordgo"
 	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
@@ -12,9 +14,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/thanhpk/randstr"
-	"image/png"
-	"log"
-	"net/http"
+
+	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/0fau/logs/pkg/process/structs"
 )
 
 type SessionUser struct {
@@ -39,21 +41,25 @@ type ReturnedTokenUser struct {
 	CanUpload  bool   `json:"canUpload"`
 }
 
-func redirectLoggedIn(c *gin.Context) {
+func redirectHome(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/logs")
 }
 
 func (s *Server) oauth2(c *gin.Context) {
 	sesh := sessions.Default(c)
 	if user := sesh.Get("user"); user != nil {
-		redirectLoggedIn(c)
+		redirectHome(c)
 		return
 	}
 
 	state := randstr.String(32)
 	url := s.config.OAuth2.AuthCodeURL(state)
 	sesh.Set("oauth_state", state)
-	sesh.Save()
+	if err := sesh.Save(); err != nil {
+		log.Println(errors.WithStack(err))
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 
 	c.Redirect(http.StatusFound, url)
 }
@@ -61,13 +67,26 @@ func (s *Server) oauth2(c *gin.Context) {
 func (s *Server) oauth2Redirect(c *gin.Context) {
 	sesh := sessions.Default(c)
 	if user := sesh.Get("user"); user != nil {
-		redirectLoggedIn(c)
+		redirectHome(c)
+		return
+	}
+
+	if c.Query("code") == "" || c.Query("state") == "" {
+		redirectHome(c)
 		return
 	}
 
 	state := sesh.Get("oauth_state")
 	if state == nil {
-		c.Status(http.StatusUnauthorized)
+		sesh.Clear()
+		sesh.Options(sessions.Options{MaxAge: -1})
+		if err := sesh.Save(); err != nil {
+			log.Println(errors.WithStack(err))
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		redirectHome(c)
 		return
 	}
 	sesh.Delete("oauth_state")
@@ -78,21 +97,33 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 	}
 
 	if state.(string) != c.Query("state") {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		sesh.Clear()
+		sesh.Options(sessions.Options{MaxAge: -1})
+		sesh.Save()
+
+		redirectHome(c)
 		return
 	}
 
 	ctx := context.Background()
 	token, err := s.config.OAuth2.Exchange(ctx, c.Query("code"))
 	if err != nil {
+		sesh.Clear()
+		sesh.Options(sessions.Options{MaxAge: -1})
+		sesh.Save()
+
 		log.Println(errors.WithStack(err))
-		c.AbortWithStatus(http.StatusInternalServerError)
+		redirectHome(c)
 		return
 	}
 
 	client := s.config.OAuth2.Client(ctx, token)
 	user, err := s.saveUser(ctx, client)
 	if err != nil {
+		sesh.Clear()
+		sesh.Options(sessions.Options{MaxAge: -1})
+		sesh.Save()
+
 		log.Println(errors.WithStack(err))
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
@@ -126,7 +157,7 @@ func (s *Server) oauth2Redirect(c *gin.Context) {
 		return
 	}
 
-	redirectLoggedIn(c)
+	redirectHome(c)
 }
 
 func (s *Server) saveUser(ctx context.Context, client *http.Client) (*sql.User, error) {
@@ -254,6 +285,13 @@ func (s *Server) meHandler(c *gin.Context) {
 		return
 	}
 
+	if _, err := c.Request.Cookie("session"); err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"error": "You are not logged in.",
+		})
+		return
+	}
+
 	sesh := sessions.Default(c)
 	if val := sesh.Get("user"); val != nil {
 		user := val.(*SessionUser)
@@ -264,15 +302,16 @@ func (s *Server) meHandler(c *gin.Context) {
 			Avatar:     user.Avatar,
 		})
 	} else {
-		c.JSON(http.StatusUnauthorized, struct{}{})
+		c.AbortWithStatus(http.StatusUnauthorized)
 	}
 }
 
 func (s *Server) logout(c *gin.Context) {
 	sesh := sessions.Default(c)
 	sesh.Clear()
+	sesh.Options(sessions.Options{Path: "/", MaxAge: -1})
 	if err := sesh.Save(); err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
-	redirectLoggedIn(c)
+	redirectHome(c)
 }

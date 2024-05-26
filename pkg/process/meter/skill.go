@@ -36,10 +36,11 @@ type TripodRows struct {
 }
 
 type Skill struct {
-	BuffedBy   BuffDamage `json:"buffedBy"`
-	DebuffedBy BuffDamage `json:"debuffedBy"`
-	Buffed     int64      `json:"buffedBySupport"`
-	Debuffed   int64      `json:"debuffedBySupport"`
+	BuffedBy       BuffDamage `json:"buffedBy"`
+	DebuffedBy     BuffDamage `json:"debuffedBy"`
+	Buffed         int64      `json:"buffedBySupport"`
+	BuffedIdentity int64      `json:"buffedByIdentity"`
+	Debuffed       int64      `json:"debuffedBySupport"`
 
 	CastLog []int32 `json:"castLog"`
 	Casts   int32   `json:"casts"`
@@ -55,8 +56,15 @@ type Skill struct {
 	BADamage   int64 `json:"backAttackDamage"`
 	FADamage   int64 `json:"frontAttackDamage"`
 
-	TripodIndex TripodRows `json:"tripodIndex"`
-	TripodLevel TripodRows `json:"tripodLevel"`
+	TripodIndex *TripodRows `json:"tripodIndex"`
+	TripodLevel *TripodRows `json:"tripodLevel"`
+
+	GemCooldown int32 `json:"gemCooldown"`
+	GemDamage   int32 `json:"gemDamage"`
+
+	RDPSDamageReceived        int64 `json:"rdpsDamageReceived"`
+	RDPSDamageReceivedSupport int64 `json:"rdpsDamageReceivedSupport"`
+	RDPSDamageGiven           int64 `json:"rdpsDamageGiven"`
 
 	Name string `json:"name"`
 	Icon string `json:"icon"`

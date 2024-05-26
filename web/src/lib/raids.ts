@@ -6,6 +6,7 @@ const icons = {
     "Kayangel": "/icons/raids/kayangel.png",
     "Akkan": "/icons/raids/akkan.png",
     "Ivory": "/icons/raids/tower.png",
+    "Thaemine": "/icons/raids/thaemine.png",
     "": "/icons/raids/surprised.png"
 }
 
@@ -48,6 +49,12 @@ const raids = {
         ["Firehorn, Trampler of Earth"],
         ["Lazaram, the Trailblazer", "Subordinated Vertus", "Subordinated Calventus", "Subordinated Legoros", "Brand of Subordination"],
     ],
+    "Thaemine": [
+        ["Killineza the Dark Worshipper"],
+        ["Valinak, Knight of Darkness", "Valinak, Taboo Usurper", "Valinak, Herald of the End"],
+        ["Thaemine the Lightqueller", "Darkness Sword", "Giant Darkness Sword"],
+        ["Darkness Legion Commander Thaemine", "Thaemine, Conqueror of Stars"]
+    ]
 }
 
 export function shortBossName(boss: string): string {
@@ -83,7 +90,7 @@ export function shortBossName(boss: string): string {
 }
 
 const guardians = [
-    "Gargadeth", "Sonavel", "Hanumatan", "Caliligos", "Deskaluda", "Achates"
+    "Veskal", "Gargadeth", "Sonavel", "Hanumatan", "Caliligos", "Deskaluda", "Kungelanium", "Achates"
 ]
 
 const raidLookup = {}
@@ -147,5 +154,14 @@ export const bossHpMap = {
     "Kaltaya, the Blooming Chaos": 120,
     "Rakathus, the Lurking Arrogance": 160,
     "Firehorn, Trampler of Earth": 160,
-    "Lazaram, the Trailblazer": 200
+    "Lazaram, the Trailblazer": 200,
+    "Killineza the Dark Worshipper": 180,
+    "Valinak, Knight of Darkness": 180,
+    "Valinak, Taboo Usurper": 180,
+    "Valinak, Herald of the End": 180,
+    "Thaemine the Lightqueller": 300,
+    "Darkness Sword": 40,
+    "Giant Darkness Sword": 40,
+    "Darkness Legion Commander Thaemine": 350,
+    "Thaemine, Conqueror of Stars": 350
 };

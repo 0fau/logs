@@ -5,10 +5,13 @@
     import Search from '$lib/components/Search.svelte';
     import EncounterList from "$lib/components/EncounterList.svelte";
     import Settings from '$lib/components/Settings.svelte'
-    import {settings, user} from '$lib/store'
+    import {getSettings, getUser} from '$lib/store'
     import {settingsUI} from '$lib/menu'
     import {browser} from "$app/environment"
     import {writable} from "svelte/store";
+
+    let user = getUser();
+    let settings = getSettings();
 
     export let data: PageData;
     console.log(data)
@@ -54,7 +57,8 @@
                 </div>
                 <p>you've stumbled upon... my website! this is a secret underground black market that deals in the
                     forbidden teachings. FRICC THE POPO.</p>
-                <p class="text-[#57517a] text-sm">(sign up for the <a href="https://docs.fau.dev/logs/alpha/" class="underline">alpha</a>)</p>
+                <p class="text-[#57517a] text-sm">(sign up for the <a href="https://docs.fau.dev/logs/alpha/"
+                                                                      class="underline">alpha</a>)</p>
             </div>
         {/if}
         {#if settingsModal}

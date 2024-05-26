@@ -8,7 +8,7 @@ export const load: LayoutServerLoad = async ({request, cookies}) => {
     }
     url += "://" + env.LBF_API_SERVER_ADDRESS
 
-    const sessions = cookies.get("sessions")
+    const sessions = cookies.get("session")
     if (!sessions) {
         return {
             me: {},
@@ -17,7 +17,7 @@ export const load: LayoutServerLoad = async ({request, cookies}) => {
 
     const me = await fetch(
         url + "/api/users/@me",
-        {headers: {cookie: "sessions=" + cookies.get("sessions")}},
+        {headers: {cookie: "session=" + cookies.get("session")}},
     )
 
     return {

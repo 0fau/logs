@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {settings, user} from "$lib/store";
+    import {getSettings, getUser} from "$lib/store";
     import {browser} from "$app/environment";
 
     import IconArrow from '~icons/carbon/next-filled'
@@ -11,6 +11,9 @@
     import EncounterPreview from "$lib/components/EncounterPreview.svelte";
 
     export let search;
+
+    let user = getUser();
+    let settings = getSettings();
 
     let encounters = [];
     let focused;

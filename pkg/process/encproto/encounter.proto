@@ -1,0 +1,169 @@
+syntax = "proto3";
+package process;
+option go_package = "github.com/0fau/logs/pkg/process/encproto";
+
+enum EncounterBoss {
+  DARK_MOUNTAIN_PREDATOR = 0;
+  RAVAGED_TYRANT_OF_BEASTS = 1;
+
+  INCUBUS_MORPHE = 2;
+  NIGHTMARISH_MORPHE = 3;
+  COVETOUS_DEVOURER_VYKAS = 4;
+  COVETOUS_LEGION_COMMANDER_VYKAS = 5;
+
+  SAYDON = 6;
+  KAKUL = 7;
+  ENCORE_DESIRING_KAKUL_SAYDON = 8;
+
+  GEHENNA_HELKASIRS = 9;
+  PROKEL_SPIRITUAL_ECHO = 10;
+  ASHTAROT = 11;
+  PRIMORDIAL_NIGHTMARE = 12;
+  BRELSHAZA_MONARCH_OF_NIGHTMARES = 13;
+  PHANTOM_LEGION_COMMANDER_BRELSHAZA = 14;
+
+  TIENIS = 15;
+  PRUNYA = 16;
+  LAURIEL = 17;
+
+  EVOLVED_MAURUGA = 18;
+  LORD_OF_DEGRADATION_AKKAN = 19;
+  PLAGUE_LEGION_COMMANDER_AKKAN = 20;
+  LORD_OF_KARTHEON_AKKAN = 21;
+
+  KALTAYA_THE_BLOOMING_CHAOS = 22;
+  RAKATHUS_THE_LURKING_ARROGANCE = 23;
+  FIREHORN_TRAMPLER_OF_EARTH = 24;
+  LAZARAM_THE_TRAILBLAZER = 25;
+
+  VESKAL = 26;
+  GARGADETH = 27;
+  SONAVEL = 28;
+  HANUMATAN = 29;
+  CALILIGOS = 30;
+  DESKALUDA = 31;
+  KUNGELANIUM = 32;
+  ACHATES = 33;
+}
+
+message HPBossLogEntry {
+  int64 hp = 1;
+  double percent = 2;
+  int32 time = 3;
+}
+
+message HPBossLog {
+  repeated HPBossLogEntry entries = 1;
+}
+
+message HPLog {
+  map<string, HPBossLog> encounters = 1;
+}
+
+message BuffSkill {
+  int32 class = 1;
+  string description = 2;
+  string name = 3;
+  string icon = 4;
+  string id = 5;
+}
+
+message BuffInfo {
+  string name = 1;
+  string icon = 2;
+  string description = 3;
+  string category = 4;
+  string set = 5;
+  optional BuffSkill skill = 6;
+}
+
+message SkillInfo {
+  string name = 1;
+  string icon = 2;
+}
+
+message BuffGroupInfo {
+  string name = 1;
+  repeated string buffs = 2;
+}
+
+message BuffGroupsInfo {
+  repeated BuffGroupInfo groups = 1;
+}
+
+message PlayerDamage {
+  float crit = 1;
+  float crit_damage = 2;
+  float front_attack = 3;
+  float back_attack = 4;
+  float buff = 5;
+  float brand = 6;
+  int32 casts = 7;
+  float casts_per_minute = 8;
+  int32 hits = 9;
+  float hits_per_minute = 10;
+}
+
+message Tripods {
+  int32 first = 1;
+  int32 second = 2;
+  int32 third = 3;
+}
+
+message SkillDamage {
+  int64 damage = 1;
+  int64 dps = 2;
+  float percent = 3;
+  float crit = 4;
+  float crit_damage = 5;
+  float front_attack = 6;
+  float back_attack = 7;
+  float buff = 8;
+  float brand = 9;
+  float average_per_casts = 10;
+  float average_per_hits = 11;
+  int64 max = 12;
+  int32 casts = 13;
+  float casts_per_minute = 14;
+  int32 hits = 15;
+  float hits_per_minute = 16;
+
+  repeated int32 cast_log = 17;
+  Tripods tripod_index = 18;
+  Tripods tripod_level = 19;
+}
+
+message BuffGroup {
+  int64 damage = 1;
+  float percent = 2;
+  map<string, int64> buffs = 3;
+}
+
+message Buffs {
+  map<string, BuffGroup> groups = 1;
+}
+
+message PlayerData {
+  PlayerDamage damage = 1;
+  map<string, SkillDamage> skill_damage = 2;
+
+  Buffs synergy = 3;
+  map<string, Buffs> skill_synergy = 4;
+
+  Buffs self_buff = 5;
+  BuffGroupsInfo skill_self_buffs = 6;
+  map<string, Buffs> skill_self_buff = 7;
+
+  repeated int64 dps_log = 8;
+}
+
+message EncounterData {
+  map<string, BuffInfo> buff_catalog = 1;
+  map<string, SkillInfo> skill_catalog = 2;
+
+  repeated BuffGroupsInfo synergies = 3;
+  BuffGroupsInfo self_buffs = 4;
+  map<string, PlayerData> players = 5;
+
+  HPLog boss_hp_log = 6;
+}

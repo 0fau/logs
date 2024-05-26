@@ -9,8 +9,8 @@ export const load: PageServerLoad = async ({params, cookies}) => {
     url += "://" + env.LBF_API_SERVER_ADDRESS
 
     const headers: HeadersInit = {}
-    if (cookies.get("sessions")) {
-        headers.cookie = "sessions=" + cookies.get("sessions")
+    if (cookies.get("session")) {
+        headers.cookie = "session=" + cookies.get("session")
     }
 
     const fetches = []

@@ -83,9 +83,20 @@ var Raids = map[string][][]string{
 		{"Firehorn, Trampler of Earth"},
 		{"Lazaram, the Trailblazer", "Subordinated Vertus", "Subordinated Calventus", "Subordinated Legoros", "Brand of Subordination"},
 	},
+	"Thaemine": {
+		{"Killineza the Dark Worshipper"},
+		{"Valinak, Knight of Darkness", "Valinak, Taboo Usurper", "Valinak, Herald of the End"},
+		{"Thaemine the Lightqueller", "Darkness Sword", "Giant Darkness Sword"},
+		{"Darkness Legion Commander Thaemine", "Thaemine, Conqueror of Stars"},
+	},
+}
+
+var Guardians = []string{
+	"Veskal", "Gargadeth", "Sonavel", "Hanumatan", "Caliligos", "Deskaluda", "Kungelanium", "Achates",
 }
 
 var RaidLookup = make(map[string][2]string)
+var GuardianLookup = make(map[string]struct{})
 
 func IsEqualized(difficulty string) bool {
 	return slices.Contains([]string{"Inferno", "Trial", "Challenge"}, difficulty)
@@ -99,6 +110,10 @@ func init() {
 			}
 		}
 	}
+
+	for _, guardian := range Guardians {
+		GuardianLookup[guardian] = struct{}{}
+	}
 }
 
 func (p *Processor) loadMeterData() error {
@@ -107,7 +122,6 @@ func (p *Processor) loadMeterData() error {
 		dest interface{}
 	}{
 		{"Skill", &p.skills},
-		{"SkillBuff", &p.buffs},
 	}
 
 	for _, entry := range data {

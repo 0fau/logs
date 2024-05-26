@@ -36,6 +36,18 @@ type EncounterDamageStatsMisc struct {
 	PartyInfo PartyInfo `json:"partyInfo"`
 }
 
+type Engraving struct {
+	Name  string `json:"name"`
+	ID    int32  `json:"id"`
+	Level int32  `json:"level"`
+	Icon  string `json:"icon"`
+}
+
+type EngravingData struct {
+	ClassEngravings []Engraving `json:"classEngravings"`
+	OtherEngravings []Engraving `json:"otherEngravings"`
+}
+
 type Entity struct {
 	ClassId     int32             `json:"classId"`
 	Class       string            `json:"class"`
@@ -45,6 +57,7 @@ type Entity struct {
 	EntityType  string            `json:"entityType"`
 	DamageStats EntityDamageStats `json:"damageStats"`
 	SkillStats  EntitySkillStats  `json:"skillStats"`
+	Engravings  *EngravingData    `json:"engravingData"`
 	Skills      map[string]Skill  `json:"skills"`
 }
 
@@ -54,21 +67,34 @@ type EntitySkillStats struct {
 	BA    int32 `json:"backAttacks"`
 	FA    int32 `json:"frontAttacks"`
 	Crits int32 `json:"crits"`
+
+	IdentityStats string `json:"identityStats"`
 }
 
 type BuffDamage map[string]int64
 
 type EntityDamageStats struct {
-	Damage     int64      `json:"damageDealt"`
-	DPS        int64      `json:"dps"`
-	DPSAverage []int64    `json:"dpsAverage"`
-	DPSRolling []int64    `json:"dpsRolling10sAvg"`
-	CritDamage int64      `json:"critDamage"`
-	BADamage   int64      `json:"backAttackDamage"`
-	FADamage   int64      `json:"frontAttackDamage"`
-	Buffed     int64      `json:"buffedBySupport"`
-	Debuffed   int64      `json:"debuffedBySupport"`
-	BuffedBy   BuffDamage `json:"buffedBy"`
-	DebuffedBy BuffDamage `json:"debuffedBy"`
-	DeathTime  int64      `json:"deathTime"`
+	Damage     int64   `json:"damageDealt"`
+	DPS        int64   `json:"dps"`
+	DPSAverage []int64 `json:"dpsAverage"`
+	DPSRolling []int64 `json:"dpsRolling10sAvg"`
+	CritDamage int64   `json:"critDamage"`
+	BADamage   int64   `json:"backAttackDamage"`
+	FADamage   int64   `json:"frontAttackDamage"`
+
+	RDPSDamageReceived        int64 `json:"rdpsDamageReceived"`
+	RDPSDamageReceivedSupport int64 `json:"rdpsDamageReceivedSupport"`
+	RDPSDamageGiven           int64 `json:"rdpsDamageGiven"`
+
+	Buffed         int64      `json:"buffedBySupport"`
+	BuffedIdentity int64      `json:"buffedByIdentity"`
+	Debuffed       int64      `json:"debuffedBySupport"`
+	BuffedBy       BuffDamage `json:"buffedBy"`
+	DebuffedBy     BuffDamage `json:"debuffedBy"`
+	DeathTime      int64      `json:"deathTime"`
+
+	ShieldsGivenBy           BuffDamage `json:"shieldsGivenBy"`
+	ShieldsReceivedBy        BuffDamage `json:"ShieldsReceivedBy"`
+	DamageAbsorbedBy         BuffDamage `json:"damageAbsorbedBy"`
+	DamageAbsorbedOnOthersBy BuffDamage `json:"damageAbsorbedOnOthersBy"`
 }

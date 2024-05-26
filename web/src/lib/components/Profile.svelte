@@ -2,9 +2,9 @@
     export let profile;
 </script>
 
-<div class="w-[400px] px-2 py-2 mb-2 flex flex-col justify-center items-center border-[0.5px] border-[#c58597] shadow-sm rounded-md bg-[#f8f3ed]">
+<div class="w-fit px-2 py-2 mb-2 flex flex-col justify-center items-center border-[0.5px] border-[#c58597] shadow-sm rounded-md bg-[#f8f3ed]">
     <div class="w-full h-full flex flex-col items-center justify-evenly">
-        <div class="grid grid-cols-2 gap-2 w-full">
+        <div class="grid grid-rows-2 grid-cols-4 gap-2">
             {#each profile as character}
                 <div class="h-[88px] w-[187.5px] bg-[#F4EDE9] rounded-sm flex flex-col justify-center items-center">
                     <div class="flex flex-col items-center justify-evenly text-[#a2596d]">

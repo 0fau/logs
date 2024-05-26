@@ -1,7 +1,6 @@
 import {writable} from 'svelte/store';
 import {browser} from "$app/environment"
-
-export const user = writable({});
+import {getContext, setContext} from "svelte";
 
 let stored;
 if (browser) {
@@ -17,10 +16,26 @@ if (browser) {
     }
 }
 
-export const settings = writable(stored);
+export function getUser() {
+    let store = getContext("user");
+    if (!store) {
+        store = writable({});
+        setContext("user", store);
+    }
+    return store;
+}
 
-if (browser) {
-    settings.subscribe((value) => {
-        localStorage.setItem("settings", JSON.stringify(value))
-    })
+export function getSettings() {
+    let settings = getContext("settings");
+    if (!settings) {
+        settings = writable(stored);
+        setContext("settings", settings);
+
+        if (browser) {
+            settings.subscribe((value) => {
+                localStorage.setItem("settings", JSON.stringify(value))
+            })
+        }
+    }
+    return settings;
 }

@@ -2,13 +2,14 @@ package api
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"slices"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
-	"log"
-	"net/http"
-	"slices"
 )
 
 type ReturnedCharacter struct {

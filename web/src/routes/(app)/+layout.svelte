@@ -1,9 +1,11 @@
 <script lang="ts">
     import type {LayoutData} from './$types';
     import Sidebar from '$lib/components/Sidebar.svelte';
-    import {user} from "$lib/store";
+    import {getUser} from "$lib/store";
     import {settingsUI} from "$lib/menu";
     import Settings from "$lib/components/Settings.svelte";
+
+    let user = getUser();
 
     export let data: LayoutData;
     console.log(data)

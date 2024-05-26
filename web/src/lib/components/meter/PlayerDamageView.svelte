@@ -105,7 +105,7 @@
             </div>
             <td class="float-left">
                 <div class="py-1 flex justify-center items-center">
-                    <Player player={player} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
+                    <Player boss={encounter.boss} player={player} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
                 </div>
             </td>
             <td>{formatDamage(player.damage)}</td>

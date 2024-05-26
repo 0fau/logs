@@ -4,21 +4,24 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/database/sql/structs"
-	"github.com/0fau/logs/pkg/process/meter"
-	"github.com/0fau/logs/pkg/s3"
-	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
-	"github.com/cockroachdb/errors"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"hash/fnv"
 	"math"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
+	"github.com/cockroachdb/errors"
+	"github.com/goccy/go-json"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+
+	"github.com/0fau/logs/pkg/database"
+	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/0fau/logs/pkg/process/meter"
+	"github.com/0fau/logs/pkg/process/structs"
+	"github.com/0fau/logs/pkg/s3"
 )
 
 type Processor struct {
@@ -37,9 +40,9 @@ func NewLogProcessor(db *database.DB, s3 *s3.Client) *Processor {
 }
 
 func (p *Processor) Initialize() error {
-	//if err := p.loadMeterData(); err != nil {
-	//	return err
-	//}
+	if err := p.loadMeterData(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -425,10 +428,14 @@ func Skill(enc *meter.Encounter, player meter.Entity, skill meter.Skill) structs
 		APH:        round(float64(skill.Damage) / float64(skill.Hits) * 100),
 		APC:        round(float64(skill.Damage) / float64(skill.Casts) * 100),
 		Max:        skill.Max,
+		CastLog:    skill.CastLog,
 		Casts:      skill.Casts,
 		CPM:        round(float64(skill.Casts) / (float64(enc.Duration) / 1000 / 60)),
 		Hits:       skill.Hits,
 		HPM:        round(float64(skill.Hits) / (float64(enc.Duration) / 1000 / 60)),
+
+		TripodIndex: skill.TripodIndex,
+		TripodLevel: skill.TripodIndex,
 	}
 }
 
@@ -566,7 +573,15 @@ func (enc *Encounter) UniqueHash(players []string) string {
 	return fmt.Sprintf("%d", h.Sum32())
 }
 
-func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw *meter.Encounter) (int32, error) {
+type EncounterSaveOptions struct {
+	Auto bool
+}
+
+const (
+	LogVersion = 3
+)
+
+func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str []byte, raw *meter.Encounter, options *EncounterSaveOptions) (int32, error) {
 	enc, err := p.Process(raw)
 	if err != nil {
 		return 0, errors.Wrap(err, "processing encounter")
@@ -610,8 +625,7 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 			Duration:    raw.Duration,
 			LocalPlayer: raw.LocalPlayer,
 			Header:      enc.Header,
-			Data:        enc.Data,
-			Version:     1,
+			Version:     LogVersion,
 			UniqueHash:  hash,
 			UniqueGroup: group,
 		})
@@ -663,13 +677,18 @@ func (p *Processor) Save(ctx context.Context, user pgtype.UUID, str string, raw 
 			return errors.Wrap(err, "inserting players")
 		}
 
+		encode, err := json.Marshal(enc.Data)
+		if err != nil {
+			return errors.Wrap(err, "encoding encounter data")
+		}
+
+		if err := p.s3.SaveEncounter(ctx, encID, str, encode); err != nil {
+			return errors.Wrap(err, "saving encounter to s3")
+		}
+
 		return nil
 	}); err != nil {
 		return 0, errors.Wrap(err, "executing transaction")
-	}
-
-	if err := p.s3.SaveEncounter(ctx, encID, str); err != nil {
-		return 0, errors.Wrap(err, "saving encounter to s3")
 	}
 
 	return encID, nil

@@ -94,7 +94,7 @@
                 </div>
                 <td class="float-left">
                     <button on:click={() => focus.set(name)} class="my-1 flex justify-center items-center">
-                        <Player player={player} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
+                        <Player boss={encounter.boss} player={player} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
                     </button>
                 </td>
                 {#each buffGroups as buffGroup}

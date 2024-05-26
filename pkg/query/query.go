@@ -3,14 +3,16 @@ package query
 import (
 	"context"
 	"fmt"
+	"slices"
+	"time"
+
 	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/database/sql/structs"
 	"github.com/0fau/logs/pkg/process"
+	structs2 "github.com/0fau/logs/pkg/process/structs"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5/pgtype"
-	"slices"
-	"time"
 )
 
 type Raid struct {
@@ -44,7 +46,7 @@ type Params struct {
 type User struct {
 	DiscordTag    string
 	Username      pgtype.Text
-	LogVisibility *structs.EncounterVisibility
+	LogVisibility *structs2.EncounterVisibility
 }
 
 type Encounter struct {
@@ -54,10 +56,10 @@ type Encounter struct {
 	Difficulty    string
 	UploadedBy    pgtype.UUID
 	UploadedAt    pgtype.Timestamp
-	Visibility    *structs.EncounterVisibility
-	Settings      structs.EncounterSettings
+	Visibility    *structs2.EncounterVisibility
+	Settings      structs2.EncounterSettings
 	Tags          []string
-	Header        structs.EncounterHeader
+	Header        structs2.EncounterHeader
 	Boss          string
 	Date          pgtype.Timestamp
 	Duration      int32
@@ -372,9 +374,9 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 			sq.And{
 				sq.NotEq{"e.visibility": nil},
 				sq.Or{
-					sq.Eq{"(e.visibility->'names')::INT": structs.ShowNames},
+					sq.Eq{"(e.visibility->'names')::INT": structs2.ShowNames},
 					sq.And{
-						sq.Eq{"(e.visibility->'names')::INT": structs.ShowSelf},
+						sq.Eq{"(e.visibility->'names')::INT": structs2.ShowSelf},
 						sq.Eq{"e.local_player": "p.name"},
 						sq.Expr("e.local_player = p.name"),
 					},
@@ -384,9 +386,9 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 				sq.Eq{"e.visibility": nil},
 				sq.NotEq{"u.log_visibility": nil},
 				sq.Or{
-					sq.Eq{"(u.log_visibility->'names')::INT": structs.ShowNames},
+					sq.Eq{"(u.log_visibility->'names')::INT": structs2.ShowNames},
 					sq.And{
-						sq.Eq{"(u.log_visibility->'names')::INT": structs.ShowSelf},
+						sq.Eq{"(u.log_visibility->'names')::INT": structs2.ShowSelf},
 						sq.Expr("e.local_player = p.name"),
 					},
 				},
@@ -424,6 +426,7 @@ func Query(db *database.DB, params *Params) ([]Encounter, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "to sql")
 	}
+
 	rows, err := db.Pool.Query(context.Background(), sql, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "query")

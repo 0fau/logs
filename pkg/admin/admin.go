@@ -3,11 +3,13 @@ package admin
 import (
 	"cmp"
 	"context"
-	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/process"
-	"github.com/0fau/logs/pkg/process/meter"
-	"github.com/0fau/logs/pkg/s3"
+	"log"
+	"net"
+	"runtime/debug"
+	"slices"
+	"sync"
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
@@ -15,12 +17,12 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"google.golang.org/grpc"
-	"log"
-	"net"
-	"runtime/debug"
-	"slices"
-	"sync"
-	"time"
+
+	"github.com/0fau/logs/pkg/database"
+	"github.com/0fau/logs/pkg/database/sql"
+	"github.com/0fau/logs/pkg/process"
+	"github.com/0fau/logs/pkg/process/meter"
+	"github.com/0fau/logs/pkg/s3"
 )
 
 var _ AdminServer = (*Server)(nil)
@@ -136,7 +138,7 @@ func (s *Server) Process(ctx context.Context, req *ProcessRequest) (*ProcessResp
 		user, err := qtx.ProcessEncounter(ctx, sql.ProcessEncounterParams{
 			ID:         req.Encounter,
 			Header:     proc.Header,
-			Data:       proc.Data,
+			Data:       &proc.Data,
 			UniqueHash: hash,
 		})
 		if err != nil {

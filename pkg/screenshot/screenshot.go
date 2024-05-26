@@ -3,14 +3,16 @@ package screenshot
 import (
 	"context"
 	"fmt"
-	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/s3"
-	"github.com/chromedp/cdproto/emulation"
-	"github.com/chromedp/chromedp"
-	"github.com/cockroachdb/errors"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/chromedp"
+	"github.com/cockroachdb/errors"
+
+	"github.com/0fau/logs/pkg/database"
+	"github.com/0fau/logs/pkg/s3"
 )
 
 type Config struct {
@@ -56,14 +58,18 @@ func (s *Server) Poll(ctx context.Context) error {
 		default:
 		}
 
+		time.Sleep(time.Millisecond * 500)
+
 		ids, err := s.conn.Queries.GetNoThumbnailLogs(ctx)
-		if err != nil {
+		if len(ids) == 0 || err != nil {
 			continue
 		}
 
 		sem := make(chan struct{}, 10)
 		var wg sync.WaitGroup
 		wg.Add(len(ids))
+
+		ctx, cancel := context.WithTimeout(ctx, time.Second*5)
 		for _, id := range ids {
 			sem <- struct{}{}
 			go func(enc int32) {
@@ -73,8 +79,7 @@ func (s *Server) Poll(ctx context.Context) error {
 			}(id)
 		}
 		wg.Wait()
-
-		time.Sleep(time.Millisecond * 500)
+		cancel()
 	}
 }
 
@@ -87,7 +92,7 @@ func (s *Server) Screenshot(ctx context.Context, enc int32) {
 		chromedp.WindowSize(1920, 1080),
 	)
 
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
 	defer cancel()
 
 	chromedpCtx, cancel := chromedp.NewContext(
@@ -104,11 +109,13 @@ func (s *Server) Screenshot(ctx context.Context, enc int32) {
 				sdmop.DeviceScaleFactor = 4
 			}).Do(ctx)
 		}), elementScreenshot(fmt.Sprintf("%s/screenshot/log/%d", s.config.FrontendURL, enc), `.screenshot`, &buf)); err != nil {
-		log.Fatal(err)
+		log.Println(errors.Wrapf(err, "Failed to screenshot encounter %d", enc))
+		return
 	}
 
 	if err := s.s3.SaveImage(chromedpCtx, "thumbnail/"+fmt.Sprintf("%d", enc), buf); err != nil {
 		log.Println(err)
+		return
 	}
 
 	if err := s.conn.Queries.MarkThumbnail(ctx, enc); err != nil {

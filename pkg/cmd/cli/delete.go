@@ -42,3 +42,29 @@ func delete() *cobra.Command {
 		},
 	}
 }
+
+func deleteUserLogs() *cobra.Command {
+	viper.AutomaticEnv()
+	viper.SetEnvPrefix("LCLI")
+
+	viper.MustBindEnv("ADMIN_ADDRESS")
+	addr := viper.GetString("ADMIN_ADDRESS")
+
+	return &cobra.Command{
+		Use:  "delete-user-logs",
+		Args: cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				log.Fatal(errors.Wrap(err, "grpc dial"))
+			}
+
+			ctx := context.Background()
+			cli := admin.NewAdminClient(conn)
+			_, err = cli.DeleteUserLogs(ctx, &admin.DeleteUserLogsRequest{Uuid: args[0]})
+			if err != nil {
+				log.Fatal(errors.Wrap(err, "delete user logs"))
+			}
+		},
+	}
+}

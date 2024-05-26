@@ -97,7 +97,7 @@
                     <td class="float-left">
                         <button class="my-1 flex justify-center items-center"
                                 on:click={() => focus.set(name)}>
-                            <Player player={player} anonymized={encounter.anonymized}
+                            <Player boss={encounter.boss} player={player} anonymized={encounter.anonymized}
                                     difficulty={encounter.difficulty}/>
                         </button>
                     </td>

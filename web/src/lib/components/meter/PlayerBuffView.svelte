@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {cards, getClassFromId, getClassIcon, getSkillIcon} from "$lib/game";
+    import {cards, getClassFromId, getSkillIcon} from "$lib/game";
     import {formatPercent, sanitizeBuffDescription} from "$lib/print";
     import Player from "$lib/components/meter/Player.svelte";
 
@@ -93,7 +93,8 @@
             </div>
             <td class="float-left">
                 <div class="my-1 flex justify-center items-center">
-                    <Player player={encounter.players[$focus]} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
+                    <Player boss={encounter.boss} player={encounter.players[$focus]} anonymized={encounter.anonymized}
+                            difficulty={encounter.difficulty}/>
                 </div>
             </td>
             {#each synergies as synergy}

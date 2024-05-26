@@ -2,16 +2,18 @@ package api
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"unicode"
+
 	"github.com/0fau/logs/pkg/database/sql"
-	"github.com/0fau/logs/pkg/database/sql/structs"
+	"github.com/0fau/logs/pkg/process/structs"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"log"
-	"net/http"
-	"unicode"
 )
 
 func (s *Server) userHandler(c *gin.Context) {

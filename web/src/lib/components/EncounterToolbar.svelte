@@ -69,21 +69,21 @@
                                 <input on:click={() => changeSetting("names", 1)}
                                        class="w-3.5 h-3.5 mr-1"
                                        type="radio" name="logvisibility" value="1"
-                                       checked={settings.visibility?.names === 1}/>
+                                       checked={encounter.visibility?.names === 1}/>
                                 <p class="text-sm">Show all names</p>
                             </div>
                             <div class="flex items-center">
                                 <input on:click={() => changeSetting("names", 2)}
                                        class="w-3.5 h-3.5 mr-1"
                                        type="radio" name="logvisibility" value="2"
-                                       checked={settings.visibility?.names === 2}/>
+                                       checked={encounter.visibility?.names === 2}/>
                                 <p class="text-sm">Show own name</p>
                             </div>
                             <div class="flex items-center">
                                 <input on:click={() => changeSetting("names", 3)}
                                        class="w-3.5 h-3.5 mr-1"
                                        type="radio" name="logvisibility" value="3"
-                                       checked={settings.visibility?.names === 3}/>
+                                       checked={encounter.visibility?.names === 3}/>
                                 <p class="text-sm">Hide names</p>
                             </div>
                         </div>

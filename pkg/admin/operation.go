@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/0fau/logs/pkg/database/sql/structs"
+	"image/png"
+	"log"
+	"sync"
+
 	"github.com/chromedp/cdproto/emulation"
 	"github.com/chromedp/chromedp"
 	crdbpgx "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgxv5"
 	"github.com/cockroachdb/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	"image/png"
-	"log"
-	"sync"
+
+	"github.com/0fau/logs/pkg/process/structs"
 )
 
 func (s *Server) RunOperation(ctx context.Context, req *RunOperationRequest) (*RunOperationResponse, error) {

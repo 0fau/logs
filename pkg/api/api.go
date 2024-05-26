@@ -3,15 +3,21 @@ package api
 import (
 	"context"
 	"encoding/gob"
-	"github.com/0fau/logs/pkg/database"
-	"github.com/0fau/logs/pkg/process"
-	"github.com/0fau/logs/pkg/s3"
+	"log"
+	"runtime"
+
 	"github.com/cockroachdb/errors"
 	gincors "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/redis"
+	ginredis "github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
+	"github.com/grafana/pyroscope-go"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
+
+	"github.com/0fau/logs/pkg/database"
+	"github.com/0fau/logs/pkg/process"
+	"github.com/0fau/logs/pkg/s3"
 )
 
 type ServerConfig struct {
@@ -24,6 +30,11 @@ type ServerConfig struct {
 
 	S3     *s3.Config
 	OAuth2 *oauth2.Config
+
+	PyroscopeEnabled  bool
+	PyroscopeServer   string
+	PyroscopeUser     string
+	PyroscopePassword string
 }
 
 type Server struct {
@@ -32,7 +43,11 @@ type Server struct {
 
 	processor *process.Processor
 	conn      *database.DB
+	redis     *redis.Client
 	s3        *s3.Client
+
+	//tokens      map[string]APIToken
+	//tokensMutex sync.RWMutex
 }
 
 func cors() gin.HandlerFunc {
@@ -58,11 +73,21 @@ func NewServer(conf *ServerConfig) *Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
+	if s.config.PyroscopeEnabled {
+		go s.StartPyroscope()
+	}
+
 	conn, err := database.Connect(ctx, s.config.DatabaseURL, "logs", true)
 	if err != nil {
 		return errors.Wrap(err, "connecting to database")
 	}
 	s.conn = conn
+
+	s.redis = redis.NewClient(&redis.Options{
+		Addr:     s.config.RedisAddress,
+		Password: s.config.RedisPassword,
+		DB:       5,
+	})
 
 	s.s3, err = s3.NewClient(s.config.S3)
 	if err != nil {
@@ -74,12 +99,12 @@ func (s *Server) Run(ctx context.Context) error {
 		return errors.Wrap(err, "initializing log processor")
 	}
 
-	store, err := redis.NewStore(10, "tcp", s.config.RedisAddress, s.config.RedisPassword, []byte(s.config.SessionSecret))
+	store, err := ginredis.NewStore(10, "tcp", s.config.RedisAddress, s.config.RedisPassword, []byte(s.config.SessionSecret))
 	if err != nil {
 		return errors.Wrap(err, "creating redis sessions store")
 	}
-	store.Options(sessions.Options{MaxAge: 2628000}) // one month
-	s.router.Use(sessions.Sessions("sessions", store))
+	store.Options(sessions.Options{Path: "/", MaxAge: 2628000}) // one month
+	s.router.Use(sessions.Sessions("session", store))
 
 	gob.Register(&SessionUser{})
 	s.router.POST("oauth2", s.oauth2)
@@ -107,4 +132,35 @@ func (s *Server) Run(ctx context.Context) error {
 	s.router.POST("api/users/@me/token", s.generateToken)
 
 	return s.router.Run(s.config.Address)
+}
+
+func (s *Server) StartPyroscope() {
+	runtime.SetMutexProfileFraction(5)
+	runtime.SetBlockProfileRate(5)
+
+	if _, err := pyroscope.Start(pyroscope.Config{
+		ApplicationName: "logs.fau.dev",
+
+		Logger: nil,
+
+		ServerAddress:     s.config.PyroscopeServer,
+		BasicAuthUser:     s.config.PyroscopeUser,
+		BasicAuthPassword: s.config.PyroscopePassword,
+
+		ProfileTypes: []pyroscope.ProfileType{
+			pyroscope.ProfileCPU,
+			pyroscope.ProfileAllocObjects,
+			pyroscope.ProfileAllocSpace,
+			pyroscope.ProfileInuseObjects,
+			pyroscope.ProfileInuseSpace,
+
+			pyroscope.ProfileGoroutines,
+			pyroscope.ProfileMutexCount,
+			pyroscope.ProfileMutexDuration,
+			pyroscope.ProfileBlockCount,
+			pyroscope.ProfileBlockDuration,
+		},
+	}); err != nil {
+		log.Fatal(err)
+	}
 }

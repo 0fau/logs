@@ -2,18 +2,21 @@ package api
 
 import (
 	"context"
-	"github.com/0fau/logs/pkg/process/meter"
+	"io"
+	"log"
+	"net/http"
+	"slices"
+	"strings"
+
 	"github.com/cockroachdb/errors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	json "github.com/goccy/go-json"
 	"github.com/jackc/pgx/v5"
 	"github.com/thanhpk/randstr"
-	"io"
-	"log"
-	"net/http"
-	"slices"
-	"strings"
+
+	"github.com/0fau/logs/pkg/process"
+	"github.com/0fau/logs/pkg/process/meter"
 )
 
 func (s *Server) generateToken(c *gin.Context) {
@@ -101,14 +104,18 @@ func (s *Server) uploadHandler(c *gin.Context) {
 
 	s.processor.Preprocess(enc)
 
-	if err := s.processor.Lint(enc); err != nil {
+	if err, code := s.processor.Lint(enc); err != nil {
+		log.Printf("%s failed to upload a %s %s encounter (lint code: %d)\n", user.DiscordTag, enc.Difficulty, enc.CurrentBossName, code)
 		c.AbortWithStatusJSON(http.StatusBadRequest, Error{
 			Error: err.Error(),
 		})
 		return
 	}
 
-	encID, err := s.processor.Save(ctx, user.ID, string(raw), enc)
+	_, auto := c.GetQuery("auth")
+	encID, err := s.processor.Save(ctx, user.ID, raw, enc, &process.EncounterSaveOptions{
+		Auto: auto,
+	})
 	if err != nil {
 		if strings.Contains(err.Error(), "violates unique constraint") {
 			c.AbortWithStatusJSON(http.StatusBadRequest, Error{

@@ -16,6 +16,14 @@ message DeleteRequest {
 message DeleteResponse {
 }
 
+message DeleteUserLogsRequest {
+  string uuid = 1;
+  int32 case = 2;
+}
+
+message DeleteUserLogsResponse {
+}
+
 message ProcessAllRequest {
 }
 
@@ -45,6 +53,12 @@ message RoleRequest {
 message RoleResponse {
 }
 
+message CatLogsRequest {
+}
+
+message CatLogsResponse {
+}
+
 service Admin {
   rpc Process(ProcessRequest) returns (ProcessResponse) {}
   rpc Delete(DeleteRequest) returns (DeleteResponse) {}
@@ -52,4 +66,5 @@ service Admin {
   rpc ProcessHash(ProcessHashRequest) returns (ProcessHashResponse) {}
   rpc RunOperation(RunOperationRequest) returns (RunOperationResponse) {}
   rpc Role(RoleRequest) returns (RoleResponse) {}
+  rpc DeleteUserLogs(DeleteUserLogsRequest) returns (DeleteUserLogsResponse) {}
 }

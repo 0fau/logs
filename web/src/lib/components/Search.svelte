@@ -12,6 +12,7 @@
     import IconH from '~icons/mdi/letter-h-box';
     import IconE from '~icons/mdi/letter-e-box';
     import IconI from '~icons/heroicons-solid/fire';
+    import IconF from '~icons/mdi/letter-f-box';
     import IconNumberOneO from '~icons/mdi/number-1-box-outline';
     import IconNumberTwoO from '~icons/mdi/number-2-box-outline';
     import IconNumberThreeO from '~icons/mdi/number-3-box-outline';
@@ -21,14 +22,15 @@
     import IconNO from '~icons/mdi/letter-n-box-outline';
     import IconHO from '~icons/mdi/letter-h-box-outline';
     import IconEO from '~icons/mdi/letter-e-box-outline';
+    import IconFO from '~icons/mdi/letter-f-box-outline';
     import IconIO from '~icons/heroicons-outline/fire';
     import IconFrog from '~icons/icon-park-outline/frog';
     import IconTree from '~icons/typcn/tree';
     import IconMonkey from '~icons/emojione-monotone/monkey-face';
-    import IconDragon from '~icons/fluent-emoji-high-contrast/dragon-face';
-    import IconBird from '~icons/lucide/bird';
     import IconLion from '~icons/emojione-monotone/lion-face';
     import IconScaryDragon from '~icons/game-icons/spiked-dragon-head';
+    import IconBat from '~icons/carbon/bat';
+    import IconGorilla from '~icons/fluent-emoji-high-contrast/monkey'
 
     export let search;
 
@@ -55,16 +57,25 @@
         "Hard": IconH,
         "Inferno": IconI,
         "Extreme": IconE,
+        "The First": IconF,
     }
 
     let difficultiesO = {
         "Normal": IconNO,
         "Hard": IconHO,
         "Inferno": IconIO,
-        "Extreme": IconEO
+        "Extreme": IconEO,
+        "The First": IconFO,
     }
 
     let raids = [[
+        {
+            name: "Thaemine",
+            primary: "bg-[#9898bb]",
+            secondary: "bg-[#8383ae]",
+            gates: 4,
+            difficulties: ["Normal", "Hard", "The First"],
+        },
         {
             name: "Ivory",
             primary: "bg-[#8fa6ad]",
@@ -86,15 +97,14 @@
             gates: 3,
             difficulties: ["Normal", "Hard"],
         },
+    ], [
         {
             name: "Brelshaza",
             primary: "bg-[#b9acc6]",
             secondary: "bg-[#a08eb1]",
             gates: 6,
             difficulties: ["Normal", "Hard", "Inferno"],
-        }
-    ], [
-        {
+        }, {
             name: "Valtan",
             primary: "bg-[#7ea6b2]",
             secondary: "bg-[#5f909e]",
@@ -124,24 +134,25 @@
 
     let guardians = [
         {
+            name: "Veskal",
+            icon: IconBat
+        }, {
             name: "Gargadeth",
-            icon: IconFrog,
+            icon: IconFrog
         }, {
             name: "Sonavel",
             icon: IconTree
         }, {
             name: "Hanumatan",
             icon: IconMonkey
-        }, {
-            name: "Caliligos",
-            icon: IconDragon
-        }, {
-            name: "Deskaluda",
-            icon: IconBird
         }
     ];
 
     let trials = [
+        {
+            name: "Hanumatan",
+            icon: IconGorilla
+        },
         {
             name: "Caliligos",
             icon: IconScaryDragon

@@ -5,6 +5,7 @@ go 1.21.0
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bwmarrin/discordgo v0.27.1
+	github.com/chromedp/cdproto v0.0.0-20240102194822-c006b26f21c7
 	github.com/chromedp/chromedp v0.9.3
 	github.com/cockroachdb/cockroach-go/v2 v2.3.5
 	github.com/cockroachdb/errors v1.11.1
@@ -13,6 +14,8 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/goccy/go-json v0.10.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
+	github.com/google/brotli/go/cbrotli v0.0.0-20240422090725-d01a4caaa80c
+	github.com/grafana/pyroscope-go v1.1.1
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/minio/minio-go/v7 v7.0.63
@@ -25,15 +28,15 @@ require (
 )
 
 require (
-	dario.cat/mergo v1.0.0 // indirect
 	github.com/boj/redistore v0.0.0-20180917114910-cd5dcc76aeff // indirect
 	github.com/bytedance/sonic v1.10.1 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
-	github.com/chromedp/cdproto v0.0.0-20240102194822-c006b26f21c7 // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
 	github.com/cockroachdb/redact v1.1.5 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -53,6 +56,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/gorilla/sessions v1.2.1 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -62,7 +66,7 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.17.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -80,6 +84,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/redis/go-redis/v9 v9.5.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/rs/xid v1.5.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect

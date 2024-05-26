@@ -1,3 +1,4 @@
 .idea
 .envrc
-sample
+.justfile
+logs

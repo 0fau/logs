@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
-	"github.com/0fau/logs/pkg/api"
-	"github.com/0fau/logs/pkg/s3"
+
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
+
+	"github.com/0fau/logs/pkg/api"
+	"github.com/0fau/logs/pkg/s3"
 )
 
-func config() {
+func bindEnv() {
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix("LBF")
 
@@ -39,13 +42,20 @@ func config() {
 		"S3_ACCESS_KEY_ID",
 		"S3_SECRET_ACCESS_KEY",
 	)
+
+	viper.BindEnv(
+		"PYROSCOPE_ENABLED",
+		"PYROSCOPE_SERVER",
+		"PYROSCOPE_USER",
+		"PYROSCOPE_PASSWORD",
+	)
 }
 
 func main() {
 	cmd := &cobra.Command{
 		Use: "logs-api",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			config()
+			bindEnv()
 
 			s := api.NewServer(&api.ServerConfig{
 				Address:       viper.GetString("API_SERVER_ADDRESS"),
@@ -53,6 +63,11 @@ func main() {
 				SessionSecret: viper.GetString("API_SERVER_SESSION_SECRET"),
 				RedisAddress:  viper.GetString("API_SERVER_REDIS_ADDRESS"),
 				RedisPassword: viper.GetString("API_SERVER_REDIS_PASSWORD"),
+
+				PyroscopeEnabled:  viper.GetBool("PYROSCOPE_ENABLED"),
+				PyroscopeServer:   viper.GetString("PYROSCOPE_SERVER"),
+				PyroscopeUser:     viper.GetString("PYROSCOPE_USER"),
+				PyroscopePassword: viper.GetString("PYROSCOPE_PASSWORD"),
 
 				OAuth2: &oauth2.Config{
 					ClientID:     viper.GetString("API_SERVER_DISCORD_OAUTH2_CLIENT_ID"),
@@ -73,6 +88,9 @@ func main() {
 					SecretAccessKey: viper.GetString("S3_SECRET_ACCESS_KEY"),
 				},
 			})
+
+			gin.SetMode(gin.ReleaseMode)
+
 			return s.Run(context.Background())
 		},
 	}

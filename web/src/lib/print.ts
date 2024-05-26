@@ -10,8 +10,9 @@ export function formatDateSolid(date: number): string {
 }
 
 export function formatDuration(duration: number): string {
-    let date = new Date(duration);
-    return date.getMinutes() + 'm' + date.getSeconds() + 's';
+    const seconds = Math.floor(duration / 1000) % 60;
+    const minutes = Math.floor(duration / (1000 * 60));
+    return minutes + 'm' + seconds + 's';
 }
 
 export function formatSeconds(milli: number): string {

@@ -1,7 +1,7 @@
 <script lang="ts">
     import {blur} from 'svelte/transition';
     import {settingsUI} from '$lib/menu'
-    import {user} from '$lib/store'
+    import {getUser} from '$lib/store'
 
     import IconAnalytics from '~icons/material-symbols/analytics-outline'
     import IconAnalytics2 from '~icons/carbon/analytics'
@@ -33,6 +33,8 @@
 
     let toggle;
     let panelOpen = false;
+
+    let user = getUser();
 
     function unfocus(box) {
         const click = (event) => {

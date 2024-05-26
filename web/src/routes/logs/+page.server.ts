@@ -8,10 +8,14 @@ export const load: PageServerLoad = async ({request, cookies}) => {
     }
     url += "://" + env.LBF_API_SERVER_ADDRESS
 
-    const token = cookies.get("sessions")
     let header;
+    let token = cookies.get("session")
     if (token) {
-        header = {cookie: "sessions=" + token}
+        header = {cookie: "session=" + token}
+    } else {
+        return {
+            me: {}
+        }
     }
 
     const fetches = []
@@ -25,9 +29,9 @@ export const load: PageServerLoad = async ({request, cookies}) => {
         }))
     }
 
-    const [/*stats,*/ me] = await Promise.all(fetches)
+    let [/*stats,*/ me] = await Promise.all(fetches)
 
-    const data = {
+    let data = {
         me: me
     };
 

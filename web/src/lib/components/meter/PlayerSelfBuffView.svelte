@@ -84,7 +84,7 @@
             </div>
             <td class="float-left">
                 <div class="my-1 flex justify-center items-center">
-                    <Player player={encounter.players[$focus]} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
+                    <Player boss={encounter.boss} player={encounter.players[$focus]} anonymized={encounter.anonymized} difficulty={encounter.difficulty}/>
                 </div>
             </td>
             {#each data.skillSelfBuffs as buffGroup}
